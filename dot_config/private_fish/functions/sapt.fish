@@ -1,3 +1,3 @@
-function sapt --wraps='sudo aptitude' --description 'alias sapt sudo aptitude'
+function sapt
   sudo aptitude $argv; 
 end

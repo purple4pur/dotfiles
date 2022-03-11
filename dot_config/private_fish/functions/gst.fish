@@ -1,3 +1,3 @@
-function gst --wraps='git status' --description 'alias gst git status'
+function gst
   git status $argv; 
 end

@@ -1,3 +1,3 @@
-function glg --wraps='git log --all --graph --oneline' --description 'alias glg git log --all --graph --oneline'
-  git log --all --graph --oneline $argv; 
+function glg
+  git log --graph --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ad) %C(bold blue)<%an>%Creset' --date=short $argv; 
 end
