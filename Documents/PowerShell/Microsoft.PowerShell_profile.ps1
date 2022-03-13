@@ -20,3 +20,8 @@ Function gcmt {
     $a = $args -join " "
     git commit $a
 }
+
+Function pipins {
+    $a = $args -join " "
+     pip install -i https://pypi.tuna.tsinghua.edu.cn/simple $a
+}
