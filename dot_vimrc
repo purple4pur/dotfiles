@@ -8,6 +8,10 @@ set hidden             " Hide buffers when they are abandoned
 set showcmd            " show command when typing
 set mouse=a            " enable mouse for all modes
 
+set listchars=eol:¬,tab:>·,trail:~,extends:>,precedes:<,nbsp:␣
+set splitbelow
+set splitright
+
 setlocal noswapfile    " 不要生成swap文件
 set bufhidden=hide     " 当buffer被丢弃的时候隐藏它
 set number rnu         " 显示相对行号
