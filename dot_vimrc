@@ -1,4 +1,3 @@
-set background=dark
 filetype plugin indent on
 set showmatch          " Show matching brackets.
 set ignorecase         " Do case insensitive matching
@@ -8,6 +7,8 @@ set hidden             " Hide buffers when they are abandoned
 set showcmd            " show command when typing
 set mouse=a            " enable mouse for all modes
 
+set t_Co=256
+colorscheme onehalfdark
 set listchars=eol:¬,tab:>·,trail:~,extends:>,precedes:<,nbsp:␣
 set splitbelow
 set splitright
