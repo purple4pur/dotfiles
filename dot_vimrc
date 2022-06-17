@@ -15,7 +15,7 @@ set splitright
 
 setlocal noswapfile    " 不要生成swap文件
 set bufhidden=hide     " 当buffer被丢弃的时候隐藏它
-set number rnu         " 显示相对行号
+set number nu          " 显示行号
 set cursorline         " 突出显示当前行
 set ruler              " 打开状态栏标尺
 set shiftwidth=4       " 设定 << 和 >> 命令移动时的宽度为 4
@@ -41,4 +41,5 @@ set foldenable         " 开始折叠
 set foldmethod=syntax  " 设置语法折叠
 set foldcolumn=0       " 设置折叠区域的宽度
 setlocal foldlevel=1   " 设置折叠层数为 1
-nnoremap <space> @=((foldclosed(line('.')) < 0) ? 'zc' : 'zo')<CR> " 用空格键来开关折叠
+
+nnoremap <space> @=((foldclosed(line('.')) < 0) ? 'zc' : 'zo')<CR>|" 用空格键来开关折叠
