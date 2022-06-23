@@ -9,6 +9,7 @@ set clipboard+=unnamed
 set complete-=i
 set cursorline
 set fileencodings=ucs-bom,utf-8,cp936 fileencoding=utf-8
+set foldcolumn=1
 set foldmethod=manual
 set hidden hlsearch
 set ignorecase smartcase incsearch
