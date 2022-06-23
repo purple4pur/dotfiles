@@ -1,50 +1,44 @@
-filetype plugin indent on
-set showmatch          " Show matching brackets.
-set ignorecase         " Do case insensitive matching
-set smartcase          " Do smart case matching
-set incsearch          " Incremental search
-set hidden             " Hide buffers when they are abandoned
-set showcmd            " show command when typing
-set mouse=a            " enable mouse for all modes
+set nocompatible
 
-set t_Co=256
-colorscheme onehalfdark
-set listchars=eol:¬,tab:>·,trail:~,extends:>,precedes:<,nbsp:␣
+filetype plugin indent on
+set autochdir
+set autoread
+set autowriteall
+set backspace=indent,eol,start
+set clipboard+=unnamed
+set complete-=i
+set cursorline
+set fileencodings=ucs-bom,utf-8,cp936 fileencoding=utf-8
+set foldmethod=manual
+set hidden hlsearch
+set ignorecase smartcase incsearch
+set listchars+=tab:>-,trail:~,extends:>,precedes:<
+set mouse=a
+set noerrorbells
+set noshowmatch
+set novisualbell
+set number
+set pastetoggle=<F5>
+set scrolloff=1
+set smartindent cindent autoindent
+set smarttab shiftwidth=4 tabstop=4 softtabstop=4 expandtab
 set splitbelow
 set splitright
+set t_Co=256
+set textwidth=0
 
-setlocal noswapfile    " 不要生成swap文件
-set bufhidden=hide     " 当buffer被丢弃的时候隐藏它
-set number nu          " 显示行号
-set cursorline         " 突出显示当前行
-set ruler              " 打开状态栏标尺
-set shiftwidth=4       " 设定 << 和 >> 命令移动时的宽度为 4
-set softtabstop=4      " 使得按退格键时可以一次删掉 4 个空格
-set tabstop=4          " 设定 tab 长度为 4
-set expandtab
-set smarttab
-set nobackup           " 覆盖文件时不备份
-set autochdir          " 自动切换当前目录为当前文件所在的目录
-set backupcopy=yes     " 设置备份时的行为为覆盖
-set hlsearch           " 搜索时高亮显示被找到的文本
-set noerrorbells       " 关闭错误信息响铃
-set novisualbell       " 关闭使用可视响铃代替呼叫
-set t_vb=              " 置空错误铃声的终端代码
-set matchtime=2        " 短暂跳转到匹配括号的时间
-set magic              " 设置魔术
-set smartindent        " 开启新行时使用智能自动缩进
-set backspace=indent,eol,start " 不设定在插入状态无法用退格键和 Delete 键删除回车符
-set cmdheight=1        " 设定命令行的行数为 1
-set laststatus=2       " 显示状态栏 (默认值为 1, 无法显示状态栏)
-set statusline=\ %<%F[%1*%M%*%n%R%H]%=\ %y\ %0(%{&fileformat}\ %{&encoding}\ %l/%L,%c\ %p%%%) " 设置在状态行显示的信息
-set foldenable         " 开始折叠
-set foldmethod=syntax  " 设置语法折叠
-set foldcolumn=0       " 设置折叠区域的宽度
-setlocal foldlevel=1   " 设置折叠层数为 1
+colorscheme onehalfdark
+set showcmd
+set laststatus=2
+set statusline=\ %<%F[%1*%M%*%n%R%H]%=\ %y\ %0(%{&fileformat}\ %{&encoding}\ %l/%L,%c\ %p%%%)
 
-nnoremap <space> @=((foldclosed(line('.')) < 0) ? 'zc' : 'zo')<CR>|" 用空格键来开关折叠
+nnoremap <silent> <space> @=((foldclosed(line('.')) < 0) ? 'zc' : 'zo') <CR>
 nnoremap ; :
 nnoremap j gj
 nnoremap k gk
 nnoremap 0 g0
 nnoremap $ g$
+nnoremap <silent> <leader>2t :set shiftwidth=2 tabstop=2 softtabstop=2 <CR> :echo "Set tabwidth to 2"<CR>
+nnoremap <silent> <leader>3t :set shiftwidth=3 tabstop=3 softtabstop=3 <CR> :echo "Set tabwidth to 3"<CR>
+nnoremap <silent> <leader>4t :set shiftwidth=4 tabstop=4 softtabstop=4 <CR> :echo "Set tabwidth to 4"<CR>
+nnoremap <silent> <leader>8t :set shiftwidth=8 tabstop=8 softtabstop=8 <CR> :echo "Set tabwidth to 8"<CR>
