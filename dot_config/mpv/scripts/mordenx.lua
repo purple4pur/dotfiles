@@ -1131,7 +1131,7 @@ layouts = function ()
 	lo.geometry = {x = posX, y = posY, an = 7, w = osc_w, h = 1}
 	lo.style = osc_styles.TransBg
 	lo.layer = 10
-	lo.alpha[3] = 0
+	lo.alpha[3] = 64
 	
     --
     -- Alignment
