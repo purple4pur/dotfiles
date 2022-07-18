@@ -21,6 +21,7 @@ set novisualbell
 set number
 set pastetoggle=<F5>
 set scrolloff=1
+set showtabline=2
 set smartindent cindent autoindent
 set smarttab shiftwidth=4 tabstop=4 softtabstop=4 expandtab
 set splitbelow
