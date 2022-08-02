@@ -10,7 +10,7 @@ set clipboard+=unnamed
 set complete-=i
 set cursorline
 set fileencodings=ucs-bom,utf-8,cp936 fileencoding=utf-8
-set foldcolumn=1
+set foldcolumn=0
 set foldmethod=manual
 set hidden hlsearch
 set ignorecase smartcase incsearch
@@ -29,54 +29,63 @@ set smarttab shiftwidth=4 tabstop=4 softtabstop=4 expandtab
 set splitbelow
 set splitright
 set t_Co=256
+set t_ZH=[3m
+set t_ZR=[23m
 set textwidth=0
+syntax on
 
-nnoremap <silent> <space> @=((foldclosed(line('.')) < 0) ? 'zc' : 'zo')<CR>
 nnoremap ; :
 nnoremap j gj
 nnoremap k gk
 nnoremap 0 g0
 nnoremap $ g$
-nnoremap <silent> <leader>2t :set shiftwidth=2 tabstop=2 softtabstop=2 <CR> :echo "Set tabwidth to 2"<CR>
-nnoremap <silent> <leader>3t :set shiftwidth=3 tabstop=3 softtabstop=3 <CR> :echo "Set tabwidth to 3"<CR>
-nnoremap <silent> <leader>4t :set shiftwidth=4 tabstop=4 softtabstop=4 <CR> :echo "Set tabwidth to 4"<CR>
-nnoremap <silent> <leader>8t :set shiftwidth=8 tabstop=8 softtabstop=8 <CR> :echo "Set tabwidth to 8"<CR>
+nnoremap <silent> <space> @=((foldclosed(line('.')) < 0) ? 'zc' : 'zo')<CR>
+nnoremap <silent> <leader>2t :setlocal shiftwidth=2 tabstop=2 softtabstop=2<CR> :set tabstop?<CR>
+nnoremap <silent> <leader>3t :setlocal shiftwidth=3 tabstop=3 softtabstop=3<CR> :set tabstop?<CR>
+nnoremap <silent> <leader>4t :setlocal shiftwidth=4 tabstop=4 softtabstop=4<CR> :set tabstop?<CR>
+nnoremap <silent> <leader>8t :setlocal shiftwidth=8 tabstop=8 softtabstop=8<CR> :set tabstop?<CR>
+nnoremap <silent> <leader>w :setlocal wrap!<CR> :set wrap?<CR>
+nnoremap <silent> <leader>l :setlocal list!<CR> :set list?<CR>
+nnoremap <silent> <leader>f :call FoldColumnToggle()<CR> :set foldcolumn?<CR>
+nnoremap <silent> <leader><C-]> :tab tag <C-R><C-W><CR>
+
+" ********  map functions  ********
+function! FoldColumnToggle()
+    if &foldcolumn
+        setlocal foldcolumn=0
+    else
+        setlocal foldcolumn=2
+    endif
+endfunction
 
 
+" ********  configs  ********
+if has("gui_running")
+    if has("gui_win32")
+        set guifont=Consolas:h12
+    endif
+endif
 
-" https://gist.github.com/suderman/1243665
 
+" ******************************************************
+" ******************  status line  *********************
+" modified from https://gist.github.com/suderman/1243665
 " statusline setup
 set laststatus=2
 set statusline=%([%{&buflisted?bufnr('%'):''}]\ %)
 set statusline+=%F\     " full filename
-
 " display a warning if file encoding isnt utf-8
 set statusline+=%#warningmsg#
 set statusline+=%{(&fenc!='utf-8'&&&fenc!='')?'['.&fenc.']':''}
 set statusline+=%*
-
 set statusline+=%y      " filetype
 set statusline+=%r      " read only flag
 set statusline+=%m      " modified flag
-
 " display a warning if &paste is set
 set statusline+=%#error#
 set statusline+=%{&paste?'[paste]':''}
 set statusline+=%*
-
-set statusline+=%=      " left/right separator
-set statusline+=%{StatuslineCurrentHighlight()}\  " current highlight
+set statusline+=%=\     " left/right separator
 set statusline+=%c,     " cursor column
 set statusline+=%l/%L   " cursor line/total lines
 set statusline+=\ %p%%  " percent through file
-
-" return the syntax highlight group under the cursor
-function! StatuslineCurrentHighlight()
-    let name = synIDattr(synID(line('.'),col('.'),1),'name')
-    if name == ''
-        return ''
-    else
-        return '[' . name . ']'
-    endif
-endfunction
