@@ -48,6 +48,8 @@ nnoremap <silent> <leader>w :setlocal wrap!<CR> :set wrap?<CR>
 nnoremap <silent> <leader>l :setlocal list!<CR> :set list?<CR>
 nnoremap <silent> <leader>f :call FoldColumnToggle()<CR> :set foldcolumn?<CR>
 nnoremap <silent> <leader><C-]> :tab tag <C-R><C-W><CR>
+nnoremap <leader>dt :diffthis<CR>
+nnoremap <leader>do :diffoff<CR>
 
 " ********  map functions  ********
 function! FoldColumnToggle()
