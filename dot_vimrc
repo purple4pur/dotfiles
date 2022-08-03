@@ -4,7 +4,7 @@ colorscheme onehalfdark
 filetype plugin indent on
 set autochdir
 set autoread
-set autowriteall
+set autowrite
 set backspace=indent,eol,start
 set clipboard+=unnamed
 set complete-=i
@@ -31,9 +31,11 @@ set splitright
 set t_Co=256
 set t_ZH=[3m
 set t_ZR=[23m
+set tags+=../tags,../../tags
 set textwidth=0
 syntax on
 
+vnoremap ; :
 nnoremap ; :
 nnoremap j gj
 nnoremap k gk
