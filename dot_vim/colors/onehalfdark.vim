@@ -73,7 +73,7 @@ call s:h("CursorLineNr", s:fg, "", "")
 call s:h("DiffAdd", s:green, "", "reverse")
 call s:h("DiffChange", s:yellow, "", "")
 call s:h("DiffDelete", s:red, "", "reverse")
-call s:h("DiffText", s:blue, "", "reverse")
+call s:h("DiffText", s:yellow, "", "reverse")
 
 call s:h("IncSearch", s:bg, s:yellow, "")
 call s:h("Search", s:bg, s:yellow, "")
