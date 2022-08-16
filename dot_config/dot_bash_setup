@@ -1,10 +1,13 @@
 alias vims='vim ~/.config/.bash_setup'
 alias srcs='source ~/.config/.bash_setup'
 
+alias hh='history'
+alias jj='jobs'
 alias ll='ls -l'
-alias gst='git status'
+
 alias gad='git add'
 alias gcmt='git commit'
 alias glg='git log --graph --pretty="%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ad) %C(bold blue)<%an>%Creset" --date=short'
+alias gst='git status'
 
 eval "$(starship init bash)"
