@@ -24,6 +24,8 @@ set pastetoggle=<F5>
 set scrolloff=1
 set showcmd
 set showtabline=2
+set sidescroll=1
+set sidescrolloff=3
 set smartindent cindent autoindent
 set smarttab shiftwidth=4 tabstop=4 softtabstop=4 expandtab
 set splitbelow
@@ -41,17 +43,24 @@ nnoremap j gj
 nnoremap k gk
 nnoremap 0 g0
 nnoremap $ g$
+nnoremap <silent> <F9> :tabprevious<CR>
+nnoremap <silent> <F10> :tabnext<CR>
 nnoremap <silent> <space> @=((foldclosed(line('.')) < 0) ? 'zc' : 'zo')<CR>
 nnoremap <silent> <leader>2t :setlocal shiftwidth=2 tabstop=2 softtabstop=2<CR>:set tabstop?<CR>
 nnoremap <silent> <leader>3t :setlocal shiftwidth=3 tabstop=3 softtabstop=3<CR>:set tabstop?<CR>
 nnoremap <silent> <leader>4t :setlocal shiftwidth=4 tabstop=4 softtabstop=4<CR>:set tabstop?<CR>
 nnoremap <silent> <leader>8t :setlocal shiftwidth=8 tabstop=8 softtabstop=8<CR>:set tabstop?<CR>
-nnoremap <silent> <leader>w :setlocal wrap!<CR>:set wrap?<CR>
-nnoremap <silent> <leader>l :setlocal list!<CR>:set list?<CR>
 nnoremap <silent> <leader>f :call FoldColumnToggle()<CR>:set foldcolumn?<CR>
+nnoremap <silent> <leader>n :nohlsearch<CR>
+nnoremap <silent> <leader>l :setlocal list!<CR>:set list?<CR>
+nnoremap <silent> <leader>w :setlocal wrap!<CR>:set wrap?<CR>
 nnoremap <silent> <leader><C-]> :tab tag <C-R><C-W><CR>
+nnoremap <leader>do :diffoff!<CR>
 nnoremap <leader>dt :diffthis<CR>
-nnoremap <leader>do :diffoff<CR>
+nnoremap <leader>du :diffupdate!<CR>
+nnoremap <leader>e :Explore<CR>
+nnoremap <leader>t :Texplore<CR>
+nnoremap <leader>v :Vexplore!<CR>
 
 " ********  map functions  ********
 function! FoldColumnToggle()
@@ -66,7 +75,7 @@ endfunction
 " ********  configs  ********
 if has("gui_running")
     if has("gui_win32")
-        set guifont=Consolas:h12
+        set guifont=Consolas:h11
     endif
 endif
 
