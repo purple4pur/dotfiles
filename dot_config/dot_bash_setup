@@ -4,6 +4,7 @@ alias srcs='source ~/.config/.bash_setup'
 alias hh='history'
 alias jj='jobs'
 alias ll='ls -l'
+alias so='source'
 
 alias gad='git add'
 alias gcmt='git commit'
