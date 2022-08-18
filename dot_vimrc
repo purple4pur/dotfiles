@@ -37,7 +37,7 @@ set tags+=../tags,../../tags
 set textwidth=0
 syntax on
 
-autocmd BufWinLeave *.* mkview!
+autocmd BufWinLeave *.* mkview
 autocmd BufWinEnter *.* silent loadview
 
 vnoremap ; :
@@ -49,7 +49,7 @@ nnoremap $ g$
 nnoremap <silent> ZZ :echo "You've pressed ZZ!"<CR>
 nnoremap <silent> <F9> :tabprevious<CR>
 nnoremap <silent> <F10> :tabnext<CR>
-nnoremap <silent> <space> @=((foldclosed(line('.')) < 0) ? 'zc' : 'zo')<CR>
+nnoremap <silent> <space> za
 nnoremap <silent> <leader>2t :setlocal shiftwidth=2 tabstop=2 softtabstop=2<CR>:set tabstop?<CR>
 nnoremap <silent> <leader>3t :setlocal shiftwidth=3 tabstop=3 softtabstop=3<CR>:set tabstop?<CR>
 nnoremap <silent> <leader>4t :setlocal shiftwidth=4 tabstop=4 softtabstop=4<CR>:set tabstop?<CR>
