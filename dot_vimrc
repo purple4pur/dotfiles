@@ -65,6 +65,8 @@ nnoremap <leader>du :diffupdate!<CR>
 nnoremap <leader>e :Explore<CR>
 nnoremap <leader>t :Texplore<CR>
 nnoremap <leader>v :Vexplore!<CR>
+nnoremap <leader>T :tab terminal<CR>
+tnoremap <C-\> <C-\><C-N>
 
 " ********  map functions  ********
 function! FoldColumnToggle()
