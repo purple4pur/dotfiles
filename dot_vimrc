@@ -17,6 +17,7 @@ set ignorecase smartcase incsearch
 set listchars+=tab:>-,trail:~,extends:>,precedes:<
 set mouse=a
 set noerrorbells
+set nofixendofline
 set noshowmatch
 set novisualbell
 set number
@@ -50,6 +51,10 @@ nnoremap <silent> ZZ :echo "You've pressed ZZ!"<CR>
 nnoremap <silent> <F9> :tabprevious<CR>
 nnoremap <silent> <F10> :tabnext<CR>
 nnoremap <silent> <space> za
+nnoremap <silent> <C-H> <C-W>h
+nnoremap <silent> <C-J> <C-W>j
+nnoremap <silent> <C-K> <C-W>k
+nnoremap <silent> <C-L> <C-W>l
 nnoremap <silent> <leader>2t :setlocal shiftwidth=2 tabstop=2 softtabstop=2<CR>:set tabstop?<CR>
 nnoremap <silent> <leader>3t :setlocal shiftwidth=3 tabstop=3 softtabstop=3<CR>:set tabstop?<CR>
 nnoremap <silent> <leader>4t :setlocal shiftwidth=4 tabstop=4 softtabstop=4<CR>:set tabstop?<CR>
