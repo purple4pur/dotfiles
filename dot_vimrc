@@ -38,9 +38,6 @@ set tags+=../tags,../../tags
 set textwidth=0
 syntax on
 
-autocmd BufWinLeave *.* mkview
-autocmd BufWinEnter *.* silent loadview
-
 vnoremap ; :
 nnoremap ; :
 nnoremap j gj
@@ -60,6 +57,8 @@ nnoremap <silent> <leader>3t :setlocal shiftwidth=3 tabstop=3 softtabstop=3<CR>:
 nnoremap <silent> <leader>4t :setlocal shiftwidth=4 tabstop=4 softtabstop=4<CR>:set tabstop?<CR>
 nnoremap <silent> <leader>8t :setlocal shiftwidth=8 tabstop=8 softtabstop=8<CR>:set tabstop?<CR>
 nnoremap <silent> <leader>f :call FoldColumnToggle()<CR>:set foldcolumn?<CR>
+nnoremap <silent> <leader>sf :setlocal foldmethod=syntax<CR>:set foldmethod?<CR>
+nnoremap <silent> <leader>mf :setlocal foldmethod=manual<CR>:set foldmethod?<CR>
 nnoremap <silent> <leader>n :nohlsearch<CR>
 nnoremap <silent> <leader>l :setlocal list!<CR>:set list?<CR>
 nnoremap <silent> <leader>w :setlocal wrap!<CR>:set wrap?<CR>
