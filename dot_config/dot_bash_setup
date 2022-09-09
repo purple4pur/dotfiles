@@ -1,7 +1,7 @@
 alias vims='vim ~/.config/.bash_setup'
 alias srcs='source ~/.config/.bash_setup'
 
-alias hh='history'
+alias hh='history | tail -n 30'
 alias jj='jobs'
 alias ll='ls -l'
 alias so='source'
