@@ -1,6 +1,6 @@
 set nocompatible
 
-colorscheme onehalfdark
+colorscheme onehalflight
 filetype plugin indent on
 set autochdir
 set autoread
@@ -32,10 +32,11 @@ set smarttab shiftwidth=4 tabstop=4 softtabstop=4 expandtab
 set splitbelow
 set splitright
 set t_Co=256
-set t_ZH=[3m
-set t_ZR=[23m
+set t_ZH=[3m     " <C-V><ESC>[3m
+set t_ZR=[23m    " <C-V><ESC>[23m
 set tags+=../tags,../../tags
 set textwidth=0
+set virtualedit=block
 syntax on
 
 vnoremap ; :
@@ -44,6 +45,8 @@ nnoremap j gj
 nnoremap k gk
 nnoremap 0 g0
 nnoremap $ g$
+nnoremap < <<
+nnoremap > >>
 nnoremap <silent> ZZ :echo "You've pressed ZZ!"<CR>
 nnoremap <silent> <F9> :tabprevious<CR>
 nnoremap <silent> <F10> :tabnext<CR>
