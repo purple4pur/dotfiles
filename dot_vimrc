@@ -58,8 +58,10 @@ nnoremap $ g$
 nnoremap < <<
 nnoremap > >>
 nnoremap <silent> ZZ :echo "You've pressed ZZ!"<CR>
-nnoremap <silent> <F9> :tabprevious<CR>
-nnoremap <silent> <F10> :tabnext<CR>
+nnoremap <silent> <F3> :tabprevious<CR>
+inoremap <silent> <F3> <C-O>:tabprevious<CR>
+nnoremap <silent> <F4> :tabnext<CR>
+inoremap <silent> <F4> <C-O>:tabnext<CR>
 nnoremap <silent> <space> za
 nnoremap <silent> <C-H> <C-W>h
 nnoremap <silent> <C-J> <C-W>j
@@ -98,10 +100,12 @@ endfunction
 " ******************************************************
 " ******************  status line  *********************
 " modified from https://gist.github.com/suderman/1243665
+
 " statusline setup
 set laststatus=2
 set statusline=%([%{&buflisted?bufnr('%'):''}]\ %)
 set statusline+=%F\     " full filename
+
 " display a warning if file encoding isnt utf-8
 set statusline+=%#warningmsg#
 set statusline+=%{(&fenc!='utf-8'&&&fenc!='')?'['.&fenc.']':''}
@@ -109,6 +113,7 @@ set statusline+=%*
 set statusline+=%y      " filetype
 set statusline+=%r      " read only flag
 set statusline+=%m      " modified flag
+
 " display a warning if &paste is set
 set statusline+=%#error#
 set statusline+=%{&paste?'[paste]':''}
@@ -117,3 +122,4 @@ set statusline+=%=\     " left/right separator
 set statusline+=%c,     " cursor column
 set statusline+=%l/%L   " cursor line/total lines
 set statusline+=\ %p%%  " percent through file
+" ******************************************************
