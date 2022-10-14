@@ -2,6 +2,8 @@ set nocompatible
 
 colorscheme onehalflight
 filetype plugin indent on
+syntax on
+
 set autochdir
 set autoread
 set autowrite
@@ -37,8 +39,16 @@ set t_ZR=[23m    " <C-V><ESC>[23m
 set tags+=../tags,../../tags
 set textwidth=0
 set virtualedit=block
-syntax on
 
+" ********  gui configs  ********
+if has("gui_running")
+    if has("gui_win32")
+        set guifont=Consolas:h11
+    endif
+    set mousemodel=popup_setpos
+endif
+
+" ********  keymaps  ********
 vnoremap ; :
 nnoremap ; :
 nnoremap j gj
@@ -83,14 +93,6 @@ function! FoldColumnToggle()
         setlocal foldcolumn=2
     endif
 endfunction
-
-
-" ********  configs  ********
-if has("gui_running")
-    if has("gui_win32")
-        set guifont=Consolas:h11
-    endif
-endif
 
 
 " ******************************************************
