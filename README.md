@@ -19,7 +19,7 @@ $ sudo snap install starship  # Linux
 $ scoop install starship      # or Windows
 ```
 
-- bash:
+### bash
 
 Append the following line to `~/.bashrc`:
 
@@ -27,15 +27,15 @@ Append the following line to `~/.bashrc`:
 source ~/.config/.bash_setup
 ```
 
-- Powershell:
+### Powershell
 
-Append the following line to `$PROFILE`:
+Append the following line to `$PROFILE`, and DO NOT forget the leading `.`:
 
 ```
-TODO
+. ~\.config\.powershell_setup.ps1
 ```
 
-Other related apps:
+### Other related apps
 
 - tmux
 - mpv
