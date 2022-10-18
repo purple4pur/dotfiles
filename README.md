@@ -23,7 +23,7 @@ $ scoop install starship      # or Windows
 
 Append the following line to `~/.bashrc`:
 
-``` bash
+```
 source ~/.config/.bash_setup
 ```
 
@@ -31,25 +31,21 @@ source ~/.config/.bash_setup
 
 Append the following line to `$PROFILE`, and DO NOT forget the leading `.`:
 
-``` powershell
+```
 . ~\.config\.powershell_setup.ps1
 ```
 
-### Other related apps
-
-- tmux
-- mpv
-
-## Windows only setups
+## Windows-only setups
 
 Create soft links for config files:
 
-``` powershell
+```
 cmd /C mklink /J "C:\Users\<USERNAME>\vimfiles" "C:\Users\<USERNAME>\.vim"
-cmd /C mklink /J "C:\Users\<USERNAME>\AppData\Roaming\mpv" "C:\Users\<USERNAME>\.config\mpv"
+rm ~\scoop\persist\mpv\portable_config
+cmd /C mklink /J "C:\Users\<USERNAME>\scoop\persist\mpv\portable_config" "C:\Users\<USERNAME>\.config\mpv"
 ```
 
-## Appendix: About Scoop
+## Appendix: Scoop
 
 [Scoop](https://scoop.sh/) is a package manager for Windows, which provides tons of UAC-free apps.
 
@@ -60,7 +56,6 @@ Scoop will be installed into `~/scoop` by default.
 ```
 $ Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 $ irm get.scoop.sh | iex
-$ scoop install git aria2
 ```
 
 ### Config
@@ -77,11 +72,20 @@ $ scoop bucket add extras
 $ scoop install <app>
 ```
 
+- aria2
+- chezmoi
 - gcc
+- git
 - make
+- mpv
+- python38 (in `versions` bucket)
 - ripgrep
+- starship
 - tabby
 - tealdeer : tldr
+- universal-ctags
 - uutils-coreutils : A set of bash-like cli tools.
 - vcxsrv
 - vim
+- winscp
+- zoxide
