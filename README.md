@@ -3,20 +3,26 @@
 Dotfiles are managed by [chezmoi](https://www.chezmoi.io/):
 
 ```
-$ sudo snap install chezmoi --classic  # Linux
-$ scoop install chezmoi                # or Windows
+$ sudo snap install chezmoi --classic   # Linux
+$ scoop install chezmoi                 # or Windows
 
-$ chezmoi init --apply https://github.com/purple4pur/dotfiles.git  # First-time initialization
-$ chezmoi update                                                   # Future udpates
+$ chezmoi init --apply https://github.com/purple4pur/dotfiles.git   # First-time initialization
+$ chezmoi update                                                    # Future udpates
 ```
 
 ## Common setups
 
-Using [Starship](https://starship.rs/) for a shell prompt:
+Using [Starship](https://starship.rs/) for the shell prompt & [zoxide](https://github.com/ajeetdsouza/zoxide) for a smarter `cd`:
 
 ```
-$ sudo snap install starship  # Linux
-$ scoop install starship      # or Windows
+$ sudo snap install starship zoxide   # Linux
+$ scoop install starship zoxide       # or Windows
+```
+
+Alternatively, Linux can install zoxide by:
+
+```
+$ curl -sS https://webinstall.dev/zoxide | bash
 ```
 
 ### bash
@@ -40,9 +46,9 @@ Append the following line to `$PROFILE`, and DO NOT forget the leading `.`:
 Create soft links for config files:
 
 ```
-cmd /C mklink /J "C:\Users\<USERNAME>\vimfiles" "C:\Users\<USERNAME>\.vim"
-rm ~\scoop\persist\mpv\portable_config
-cmd /C mklink /J "C:\Users\<USERNAME>\scoop\persist\mpv\portable_config" "C:\Users\<USERNAME>\.config\mpv"
+$ cmd /C mklink /J "C:\Users\<USERNAME>\vimfiles" "C:\Users\<USERNAME>\.vim"
+$ rm ~\scoop\persist\mpv\portable_config
+$ cmd /C mklink /J "C:\Users\<USERNAME>\scoop\persist\mpv\portable_config" "C:\Users\<USERNAME>\.config\mpv"
 ```
 
 ## Appendix: Scoop
