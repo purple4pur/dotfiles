@@ -1,10 +1,9 @@
 [username]
-style_user = "yellow bold"
-style_root = "red bold"
-format = "[$user]($style) "
-disabled = false
+format = "[$user]($style) @ "
 show_always = true
+
+[hostname]
+ssh_only = false
 
 [directory]
 truncation_length = 5
-truncation_symbol = ".../"
