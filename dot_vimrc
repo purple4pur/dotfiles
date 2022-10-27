@@ -3,6 +3,7 @@ set nocompatible
 colorscheme onehalflight
 filetype plugin indent on
 syntax on
+let g:netrw_keepdir = 0
 
 set autochdir
 set autoread
