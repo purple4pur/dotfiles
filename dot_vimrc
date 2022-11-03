@@ -58,6 +58,8 @@ nnoremap 0 g0
 nnoremap $ g$
 nnoremap < <<
 nnoremap > >>
+nnoremap * *<C-O>
+nnoremap # #<C-O>
 nnoremap <silent> ZZ :echo "You've pressed ZZ!"<CR>
 nnoremap <silent> <F3> :tabprevious<CR>
 inoremap <silent> <F3> <C-O>:tabprevious<CR>
