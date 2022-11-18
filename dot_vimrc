@@ -16,7 +16,7 @@ set complete-=i
 set cursorline
 set fileencodings=ucs-bom,utf-8,cp936 fileencoding=utf-8
 set foldcolumn=0
-set foldmethod=manual
+set foldmethod=marker
 set hidden hlsearch
 set ignorecase smartcase incsearch
 set listchars+=tab:>-,trail:~,extends:>,precedes:<
@@ -78,7 +78,7 @@ nnoremap <silent> <leader>4t :setlocal shiftwidth=4 tabstop=4 softtabstop=4<CR>:
 nnoremap <silent> <leader>8t :setlocal shiftwidth=8 tabstop=8 softtabstop=8<CR>:set tabstop?<CR>
 nnoremap <silent> <leader>f :call FoldColumnToggle()<CR>:set foldcolumn?<CR>
 nnoremap <silent> <leader>sf :setlocal foldmethod=syntax<CR>:set foldmethod?<CR>
-nnoremap <silent> <leader>mf :setlocal foldmethod=manual<CR>:set foldmethod?<CR>
+nnoremap <silent> <leader>mf :setlocal foldmethod=marker<CR>:set foldmethod?<CR>
 nnoremap <silent> <leader>n :nohlsearch<CR>
 nnoremap <silent> <leader>l :setlocal list!<CR>:set list?<CR>
 nnoremap <silent> <leader>w :setlocal wrap!<CR>:set wrap?<CR>
