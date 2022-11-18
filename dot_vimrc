@@ -1,10 +1,12 @@
 set nocompatible
 
-colorscheme onehalflight
 filetype plugin indent on
 syntax on
-let g:netrw_keepdir = 0
 
+set background=light
+colorscheme PaperColor
+
+let g:netrw_keepdir = 0
 set autochdir
 set autoread
 set autowrite
@@ -80,6 +82,7 @@ nnoremap <silent> <leader>mf :setlocal foldmethod=manual<CR>:set foldmethod?<CR>
 nnoremap <silent> <leader>n :nohlsearch<CR>
 nnoremap <silent> <leader>l :setlocal list!<CR>:set list?<CR>
 nnoremap <silent> <leader>w :setlocal wrap!<CR>:set wrap?<CR>
+nnoremap <silent> <leader>z /\s\+$<CR>
 nnoremap <silent> <leader><C-]> :tab tag <C-R><C-W><CR>
 nnoremap <leader>do :diffoff!<CR>
 nnoremap <leader>dt :diffthis<CR>
