@@ -17,8 +17,8 @@ set cursorline
 set fileencodings=ucs-bom,utf-8,cp936 fileencoding=utf-8
 set foldcolumn=0
 set foldmethod=marker
-set hidden hlsearch
-set ignorecase smartcase incsearch
+set hidden
+set hlsearch ignorecase smartcase incsearch
 set listchars+=tab:>-,trail:~,extends:>,precedes:<
 set mouse=a
 set noerrorbells
@@ -52,46 +52,56 @@ if has("gui_running")
 endif
 
 " ********  keymaps  ********
-vnoremap ; :
 nnoremap ; :
+vnoremap ; :
+" movement
 nnoremap j gj
 nnoremap k gk
 nnoremap 0 g0
 nnoremap $ g$
+" edit
 nnoremap < <<
 nnoremap > >>
-nnoremap * *<C-O>
-nnoremap # #<C-O>
-nnoremap <silent> ZZ :echo "You've pressed ZZ!"<CR>
-nnoremap <silent> <F3> :tabprevious<CR>
-inoremap <silent> <F3> <C-O>:tabprevious<CR>
-nnoremap <silent> <F4> :tabnext<CR>
-inoremap <silent> <F4> <C-O>:tabnext<CR>
-nnoremap <silent> <space> za
-nnoremap <silent> <C-H> <C-W>h
-nnoremap <silent> <C-J> <C-W>j
-nnoremap <silent> <C-K> <C-W>k
-nnoremap <silent> <C-L> <C-W>l
 nnoremap <silent> <leader>2t :setlocal shiftwidth=2 tabstop=2 softtabstop=2<CR>:set tabstop?<CR>
 nnoremap <silent> <leader>3t :setlocal shiftwidth=3 tabstop=3 softtabstop=3<CR>:set tabstop?<CR>
 nnoremap <silent> <leader>4t :setlocal shiftwidth=4 tabstop=4 softtabstop=4<CR>:set tabstop?<CR>
 nnoremap <silent> <leader>8t :setlocal shiftwidth=8 tabstop=8 softtabstop=8<CR>:set tabstop?<CR>
-nnoremap <silent> <leader>f :call FoldColumnToggle()<CR>:set foldcolumn?<CR>
-nnoremap <silent> <leader>sf :setlocal foldmethod=syntax<CR>:set foldmethod?<CR>
-nnoremap <silent> <leader>mf :setlocal foldmethod=marker<CR>:set foldmethod?<CR>
+" search
+nnoremap * *<C-O>
+nnoremap # #<C-O>
 nnoremap <silent> <leader>n :nohlsearch<CR>
-nnoremap <silent> <leader>l :setlocal list!<CR>:set list?<CR>
-nnoremap <silent> <leader>w :setlocal wrap!<CR>:set wrap?<CR>
-nnoremap <silent> <leader>z /\s\+$<CR>
+" tab
+inoremap <silent> <F3> <C-O>:tabprevious<CR>
+inoremap <silent> <F4> <C-O>:tabnext<CR>
+nnoremap <silent> <F3> :tabprevious<CR>
+nnoremap <silent> <F4> :tabnext<CR>
 nnoremap <silent> <leader><C-]> :tab tag <C-R><C-W><CR>
+" window
+nnoremap <silent> <C-H> <C-W>h
+nnoremap <silent> <C-J> <C-W>j
+nnoremap <silent> <C-K> <C-W>k
+nnoremap <silent> <C-L> <C-W>l
+" fold
+nnoremap <silent> <space> za
+nnoremap <silent> <leader>f :call FoldColumnToggle()<CR>:set foldcolumn?<CR>
+nnoremap <silent> <leader>mf :setlocal foldmethod=marker<CR>:set foldmethod?<CR>
+nnoremap <silent> <leader>sf :setlocal foldmethod=syntax<CR>:set foldmethod?<CR>
+" diff
 nnoremap <leader>do :diffoff!<CR>
 nnoremap <leader>dt :diffthis<CR>
 nnoremap <leader>du :diffupdate!<CR>
+" netrw
 nnoremap <leader>e :Explore<CR>
 nnoremap <leader>t :Texplore<CR>
 nnoremap <leader>v :Vexplore!<CR>
+" terminal
 nnoremap <leader>T :tab terminal<CR>
 tnoremap <C-\> <C-\><C-N>
+" misc
+nnoremap <silent> ZZ :echo "You've pressed ZZ!"<CR>
+nnoremap <silent> <leader>l :setlocal list!<CR>:set list?<CR>
+nnoremap <silent> <leader>w :setlocal wrap!<CR>:set wrap?<CR>
+nnoremap <silent> <leader>z /\s\+$<CR>
 
 " ********  map functions  ********
 function! FoldColumnToggle()
