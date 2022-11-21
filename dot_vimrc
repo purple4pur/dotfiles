@@ -46,7 +46,7 @@ set virtualedit=block
 " ********  gui configs  ********
 if has("gui_running")
     if has("gui_win32")
-        set guifont=Consolas:h11
+        set guifont=更纱黑体_Mono_SC_Nerd:h11
     endif
     set mousemodel=popup
 endif
