@@ -59,6 +59,7 @@ nnoremap j gj
 nnoremap k gk
 nnoremap 0 g0
 nnoremap $ g$
+nnoremap , ;
 " edit
 nnoremap < <<
 nnoremap > >>
@@ -81,6 +82,10 @@ nnoremap <silent> <C-H> <C-W>h
 nnoremap <silent> <C-J> <C-W>j
 nnoremap <silent> <C-K> <C-W>k
 nnoremap <silent> <C-L> <C-W>l
+nnoremap <silent> <leader>, <C-W>10<
+nnoremap <silent> <leader>. <C-W>10>
+nnoremap <silent> <leader>- <C-W>5-
+nnoremap <silent> <leader>= <C-W>5+
 " fold
 nnoremap <silent> <space> za
 nnoremap <silent> <leader>f :call FoldColumnToggle()<CR>:set foldcolumn?<CR>
