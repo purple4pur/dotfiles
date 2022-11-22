@@ -67,10 +67,10 @@ nnoremap , ;
 " edit
 nnoremap < <<
 nnoremap > >>
-nnoremap <silent> <leader>2t :setlocal shiftwidth=2 tabstop=2 softtabstop=2<CR>:set tabstop?<CR>
-nnoremap <silent> <leader>3t :setlocal shiftwidth=3 tabstop=3 softtabstop=3<CR>:set tabstop?<CR>
-nnoremap <silent> <leader>4t :setlocal shiftwidth=4 tabstop=4 softtabstop=4<CR>:set tabstop?<CR>
-nnoremap <silent> <leader>8t :setlocal shiftwidth=8 tabstop=8 softtabstop=8<CR>:set tabstop?<CR>
+nnoremap <silent> <leader>2t :setlocal shiftwidth=2 tabstop=2 softtabstop=2 tabstop?<CR>
+nnoremap <silent> <leader>3t :setlocal shiftwidth=3 tabstop=3 softtabstop=3 tabstop?<CR>
+nnoremap <silent> <leader>4t :setlocal shiftwidth=4 tabstop=4 softtabstop=4 tabstop?<CR>
+nnoremap <silent> <leader>8t :setlocal shiftwidth=8 tabstop=8 softtabstop=8 tabstop?<CR>
 " search
 nnoremap * *<C-O>
 nnoremap # #<C-O>
@@ -94,8 +94,8 @@ nnoremap <silent> <leader>= <C-W>5+
 " fold
 nnoremap <silent> <space> za
 nnoremap <silent> <leader>f :call FoldColumnToggle()<CR>:set foldcolumn?<CR>
-nnoremap <silent> <leader>mf :setlocal foldmethod=marker<CR>:set foldmethod?<CR>
-nnoremap <silent> <leader>sf :setlocal foldmethod=syntax<CR>:set foldmethod?<CR>
+nnoremap <silent> <leader>mf :setlocal foldmethod=marker foldmethod?<CR>
+nnoremap <silent> <leader>sf :setlocal foldmethod=syntax foldmethod?<CR>
 " diff
 nnoremap <leader>do :diffoff!<CR>
 nnoremap <leader>dt :diffthis<CR>
@@ -109,8 +109,8 @@ nnoremap <leader>T :tab terminal<CR>
 tnoremap <C-\> <C-\><C-N>
 " misc
 nnoremap <silent> ZZ :echo "You've pressed ZZ!"<CR>
-nnoremap <silent> <leader>l :setlocal list!<CR>:set list?<CR>
-nnoremap <silent> <leader>w :setlocal wrap!<CR>:set wrap?<CR>
+nnoremap <silent> <leader>l :setlocal list! list?<CR>
+nnoremap <silent> <leader>w :setlocal wrap! wrap?<CR>
 nnoremap <silent> <leader>z /\s\+$<CR>
 
 " ********  map functions  ********
