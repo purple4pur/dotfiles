@@ -114,14 +114,14 @@ nnoremap <silent> <leader>w :setlocal wrap! wrap?<CR>
 nnoremap <silent> <leader>z /\s\+$<CR>
 
 " ********  map functions  ********
-function FixNetrwMap()
+function! FixNetrwMap()
     if hasmapto('<Plug>NetrwRefresh')
         unmap <buffer> <C-L>
         nnoremap <silent> <C-L> <C-W>l
     endif
 endfunction
 
-function FoldColumnToggle()
+function! FoldColumnToggle()
     if &foldcolumn
         setlocal foldcolumn=0
     else
