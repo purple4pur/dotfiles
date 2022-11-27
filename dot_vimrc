@@ -86,7 +86,7 @@ nnoremap <silent> <C-H> <C-W>h
 nnoremap <silent> <C-J> <C-W>j
 nnoremap <silent> <C-K> <C-W>k
 nnoremap <silent> <C-L> <C-W>l
-autocmd FileType netrw call FixNetrwMap()
+autocmd! FileType netrw call FixNetrwMap()
 nnoremap <silent> <leader>, <C-W>10<
 nnoremap <silent> <leader>. <C-W>10>
 nnoremap <silent> <leader>- <C-W>5-
