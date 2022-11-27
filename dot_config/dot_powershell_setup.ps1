@@ -1,9 +1,12 @@
 Function vims {
     $a = $args -join " "
-    gvim ~\.config\.powershell_setup.ps1 $a
+    gvim ~\.config\.powershell_setup.ps1 $a &
 }
 Function srcs {
     . ~\.config\.powershell_setup.ps1
+}
+Function jj {
+    Get-Job -State Running
 }
 
 # ------  git alias  ------
