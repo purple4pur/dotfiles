@@ -63,6 +63,7 @@ nnoremap j gj
 nnoremap k gk
 nnoremap 0 g0
 nnoremap $ g$
+nnoremap g$ $
 nnoremap , ;
 " edit
 nnoremap < <<
@@ -80,6 +81,7 @@ inoremap <silent> <F3> <C-O>:tabprevious<CR>
 inoremap <silent> <F4> <C-O>:tabnext<CR>
 nnoremap <silent> <F3> :tabprevious<CR>
 nnoremap <silent> <F4> :tabnext<CR>
+nnoremap <silent> <leader>gf <C-W>gf
 nnoremap <silent> <leader><C-]> :tab tag <C-R><C-W><CR>
 " window
 nnoremap <silent> <C-H> <C-W>h
@@ -112,6 +114,7 @@ nnoremap <silent> ZZ :echo "You've pressed ZZ!"<CR>
 nnoremap <silent> <leader>l :setlocal list! list?<CR>
 nnoremap <silent> <leader>w :setlocal wrap! wrap?<CR>
 nnoremap <silent> <leader>z /\s\+$<CR>
+nnoremap <silent> <leader>dz :%s/\s\+$//g<CR>
 
 " ********  map functions  ********
 function! FixNetrwMap()
