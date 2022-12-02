@@ -26,7 +26,6 @@ set hlsearch ignorecase smartcase incsearch
 set listchars+=tab:>-,trail:~,extends:>,precedes:<
 set mouse=a
 set noerrorbells
-set nofixendofline
 set noshowmatch
 set novisualbell
 set number
@@ -46,6 +45,9 @@ set t_ZR=[23m    " <C-V><ESC>[23m
 set tags+=../tags,../../tags
 set textwidth=0
 set virtualedit=block
+if (v:version >= 705)
+    set nofixendofline
+endif
 
 " ********  gui configs  ********
 if has("gui_running")
@@ -107,8 +109,10 @@ nnoremap <leader>e :Explore<CR>
 nnoremap <leader>t :Texplore<CR>
 nnoremap <leader>v :Vexplore!<CR>
 " terminal
-nnoremap <leader>T :tab terminal<CR>
-tnoremap <C-\> <C-\><C-N>
+if has("terminal")
+    nnoremap <leader>T :tab terminal<CR>
+    tnoremap <C-\> <C-\><C-N>
+endif
 " misc
 nnoremap <silent> ZZ :echo "You've pressed ZZ!"<CR>
 nnoremap <silent> <leader>l :setlocal list! list?<CR>
