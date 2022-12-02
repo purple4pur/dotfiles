@@ -117,6 +117,7 @@ endif
 nnoremap <silent> ZZ :echo "You've pressed ZZ!"<CR>
 nnoremap <silent> <leader>l :setlocal list! list?<CR>
 nnoremap <silent> <leader>w :setlocal wrap! wrap?<CR>
+nnoremap <silent> <leader>c :call ColorColumnToggle()<CR>:set colorcolumn?<CR>
 nnoremap <silent> <leader>z /\s\+$<CR>
 nnoremap <silent> <leader>dz :%s/\s\+$//g<CR>
 
@@ -133,6 +134,14 @@ function! FoldColumnToggle()
         setlocal foldcolumn=0
     else
         setlocal foldcolumn=2
+    endif
+endfunction
+
+function! ColorColumnToggle()
+    if &colorcolumn
+        setlocal colorcolumn=
+    else
+        setlocal colorcolumn=72
     endif
 endfunction
 
