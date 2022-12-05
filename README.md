@@ -79,19 +79,22 @@ $ scoop install <app>
 ```
 
 - aria2
+- bat               : modern `cat`
 - chezmoi
-- gcc
+- dust              : modern `du`
+- gcc               : nuwen.net minGW distro
 - git
 - make
 - mpv
-- python38 (in `versions` bucket)
-- ripgrep
-- starship
-- tabby
-- tealdeer : tldr
+- ripgrep           : modern `grep`
+- starship          : modern shell prompt
+- tabby             : powerful ssh shell
+- tealdeer          : tldr
 - universal-ctags
-- uutils-coreutils : A set of bash-like cli tools.
-- vcxsrv
+- uutils-coreutils  : GNU coreutils in Rust
+- vcxsrv            : X-Forwarding client
+- versions/snipaste-beta
+- versions/python38
 - vim
 - winscp
-- zoxide
+- zoxide            : smart `cd`
