@@ -51,10 +51,10 @@ endif
 
 " ********  gui configs  ********
 if has("gui_running")
+    set mousemodel=popup
     if has("gui_win32")
         set guifont=更纱黑体_Mono_SC_Nerd:h11
     endif
-    set mousemodel=popup
 endif
 
 " ********  keymaps  ********
@@ -67,6 +67,10 @@ nnoremap 0 g0
 nnoremap $ g$
 nnoremap g$ $
 nnoremap , ;
+inoremap <C-H> <LEFT>
+inoremap <C-J> <DOWN>
+inoremap <C-K> <UP>
+inoremap <C-L> <RIGHT>
 " edit
 nnoremap < <<
 nnoremap > >>
@@ -90,11 +94,11 @@ nnoremap <silent> <C-H> <C-W>h
 nnoremap <silent> <C-J> <C-W>j
 nnoremap <silent> <C-K> <C-W>k
 nnoremap <silent> <C-L> <C-W>l
-autocmd! FileType netrw call FixNetrwMap()
 nnoremap <silent> <leader>, <C-W>10<
 nnoremap <silent> <leader>. <C-W>10>
 nnoremap <silent> <leader>- <C-W>5-
 nnoremap <silent> <leader>= <C-W>5+
+autocmd! FileType netrw call FixNetrwMap()
 " fold
 nnoremap <silent> <space> za
 nnoremap <silent> <leader>f :call FoldColumnToggle()<CR>:set foldcolumn?<CR>
