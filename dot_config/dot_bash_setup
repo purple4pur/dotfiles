@@ -3,8 +3,12 @@ alias srcs='source ~/.config/.bash_setup'
 
 alias hh='history | tail -n 30'
 alias jj='jobs'
-alias ll='ls -l'
+alias ll='ls -alh'
 alias so='source'
+
+alias pd='pushd'
+alias po='popd'
+alias dd='dirs -v'
 
 alias gad='git add'
 alias gcmt='git commit'
