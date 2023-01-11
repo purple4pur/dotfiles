@@ -3,8 +3,9 @@ alias srcs='source ~/.config/.bash_setup'
 
 alias hh='history | tail -n 30'
 alias jj='jobs'
-alias ll='ls -alh'
+alias ll='ls -alhF'
 alias so='source'
+alias tt='tmux'
 
 alias pd='pushd'
 alias po='popd'
@@ -15,5 +16,11 @@ alias gcmt='git commit'
 alias glg='git log --graph --pretty="%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ad) %C(bold blue)<%an>%Creset" --date=short'
 alias gst='git status'
 
-eval "$(starship init bash)"
-eval "$(zoxide init bash --cmd cd)"
+if ! command -v starship &> /dev/null ; then
+    eval "$(starship init bash)"
+fi
+if ! command -v zoxide &> /dev/null ; then
+    eval "$(zoxide init bash --cmd cd)"
+fi
+
+# vim: ft=sh
