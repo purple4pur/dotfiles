@@ -18,6 +18,14 @@ alias gst='git status'
 
 if ! command -v starship &> /dev/null ; then
     eval "$(starship init bash)"
+else
+    BOLD="\[$(tput bold)\]"
+    GREEN="\[$(tput setaf 2)\]"
+    YELLOW="\[$(tput setaf 3)\]"
+    CYAN="\[$(tput setaf 6)\]"
+    BG_BLACK="\[$(tput setab 0)\]"
+    RESET="\[$(tput sgr0)\]"
+    PS1="\n${BOLD}${YELLOW}\u${RESET} @ ${BOLD}${GREEN}${BG_BLACK}\H${RESET} in ${BOLD}${CYAN}\w${RESET}\n${BOLD}${GREEN}>${RESET} "
 fi
 if ! command -v zoxide &> /dev/null ; then
     eval "$(zoxide init bash --cmd cd)"
