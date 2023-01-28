@@ -16,9 +16,8 @@ alias gcmt='git commit'
 alias glg='git log --graph --pretty="%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ad) %C(bold blue)<%an>%Creset" --date=short'
 alias gst='git status'
 
-if ! command -v starship &> /dev/null ; then
-    source <(starship init bash)
-else
+if ! source <(starship init bash) 2> /dev/null ; then
+    echo "'starship' not found."
     BOLD="\[$(tput bold)\]"
     GREEN="\[$(tput setaf 2)\]"
     YELLOW="\[$(tput setaf 3)\]"
@@ -27,8 +26,9 @@ else
     RESET="\[$(tput sgr0)\]"
     PS1="\n${BOLD}${YELLOW}\u${RESET} @ ${BOLD}${GREEN}${BG_BLACK}\H${RESET} in ${BOLD}${CYAN}\w${RESET}\n${BOLD}${GREEN}>${RESET} "
 fi
-if ! command -v zoxide &> /dev/null ; then
-    eval "$(zoxide init bash --cmd cd)"
+
+if ! eval "$(zoxide init bash --cmd cd)" 2> /dev/null ; then
+    echo "'zoxide' not found."
 fi
 
 # vim: ft=sh
