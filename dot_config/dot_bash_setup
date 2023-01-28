@@ -13,6 +13,7 @@ alias dd='dirs -v'
 
 alias gad='git add'
 alias gcmt='git commit'
+alias gd='git diff'
 alias glg='git log --graph --pretty="%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ad) %C(bold blue)<%an>%Creset" --date=short'
 alias gst='git status'
 
