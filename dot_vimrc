@@ -30,11 +30,11 @@ set noshowmatch
 set novisualbell
 set number
 set pastetoggle=<F5>
-set scrolloff=3
+set scrolloff=8
 set showcmd
 set showtabline=2
 set sidescroll=1
-set sidescrolloff=5
+set sidescrolloff=10
 set smartindent cindent autoindent
 set smarttab shiftwidth=4 tabstop=4 softtabstop=4 expandtab
 set splitbelow
@@ -67,6 +67,7 @@ nnoremap k gk
 nnoremap 0 g0
 nnoremap $ g$
 nnoremap g$ $
+nnoremap g0 0
 nnoremap , ;
 inoremap <C-H> <LEFT>
 inoremap <C-J> <DOWN>
@@ -75,13 +76,35 @@ inoremap <C-L> <RIGHT>
 " edit
 nnoremap < <<
 nnoremap > >>
+vnoremap < <gv
+vnoremap > >gv
+nnoremap <silent> <A-j> :move +1<CR>zz
+nnoremap <silent> <A-k> :move -2<CR>zz
+vnoremap <silent> <A-j> :move '>+1<CR>gvzz
+vnoremap <silent> <A-k> :move '<-2<CR>gvzz
 nnoremap <silent> <leader>2t :setlocal shiftwidth=2 tabstop=2 softtabstop=2 tabstop?<CR>
 nnoremap <silent> <leader>3t :setlocal shiftwidth=3 tabstop=3 softtabstop=3 tabstop?<CR>
 nnoremap <silent> <leader>4t :setlocal shiftwidth=4 tabstop=4 softtabstop=4 tabstop?<CR>
 nnoremap <silent> <leader>8t :setlocal shiftwidth=8 tabstop=8 softtabstop=8 tabstop?<CR>
+nnoremap <silent> <leader>s" ""ciw"<C-R>""<ESC>
+nnoremap <silent> <leader>s' ""ciw'<C-R>"'<ESC>
+nnoremap <silent> <leader>s( ""ciw(<C-R>")<ESC>
+nnoremap <silent> <leader>s[ ""ciw[<C-R>"]<ESC>
+nnoremap <silent> <leader>s{ ""ciw{<C-R>"}<ESC>
+nnoremap <silent> <leader>s< ""ciw<<C-R>"><ESC>
+nnoremap <silent> <leader>s` ""ciw`<C-R>"`<ESC>
+vnoremap <silent> <leader>s" ""c"<C-R>""<ESC>
+vnoremap <silent> <leader>s' ""c'<C-R>"'<ESC>
+vnoremap <silent> <leader>s( ""c(<C-R>")<ESC>
+vnoremap <silent> <leader>s[ ""c[<C-R>"]<ESC>
+vnoremap <silent> <leader>s{ ""c{<C-R>"}<ESC>
+vnoremap <silent> <leader>s< ""c<<C-R>"><ESC>
+vnoremap <silent> <leader>s` ""c`<C-R>"`<ESC>
 " search
-nnoremap * *<C-O>
-nnoremap # #<C-O>
+nnoremap * *zz
+nnoremap # #zz
+nnoremap n nzz
+nnoremap N Nzz
 nnoremap <silent> <leader>n :nohlsearch<CR>
 " tab
 inoremap <silent> <F3> <C-O>:tabprevious<CR>
@@ -117,9 +140,12 @@ nnoremap <leader>v :Vexplore!<CR>
 if has("terminal")
     nnoremap <leader>T :tab terminal<CR>
     tnoremap <C-\> <C-\><C-N>
+elseif has("nvim")
+    nnoremap <leader>T :tabnew +terminal<CR>
+    tnoremap <C-\> <C-\><C-N>
 endif
 " misc
-nnoremap <silent> ZZ :echo "You've pressed ZZ!"<CR>
+nnoremap <silent> ZZ :echohl WarningMsg \| echo "ZZ is bad!" \| echohl None<CR>
 nnoremap <silent> <leader>l :setlocal list! list?<CR>
 nnoremap <silent> <leader>w :setlocal wrap! wrap?<CR>
 nnoremap <silent> <leader>c :call ColorColumnToggle()<CR>:set colorcolumn?<CR>
