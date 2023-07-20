@@ -1,9 +1,10 @@
-alias vims='vim ~/.config/.bash_setup'
-alias srcs='source ~/.config/.bash_setup'
+alias vims='vim ~/.bashrc'
+alias srcs='source ~/.bashrc'
 
 alias hh='history | tail -n 30'
 alias jj='jobs'
-alias ll='ls -alhF'
+alias ll='ls -lhF'
+alias pg='grep -P'
 alias so='source'
 alias tt='tmux'
 
@@ -12,24 +13,26 @@ alias po='popd'
 alias dd='dirs -v'
 
 alias gad='git add'
+alias gb='git branch'
 alias gcmt='git commit'
+alias gco='git checkout'
 alias gd='git diff'
 alias glg='git log --graph --pretty="%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ad) %C(bold blue)<%an>%Creset" --date=short'
 alias gst='git status'
 
 if ! source <(starship init bash) 2> /dev/null ; then
-    echo "'starship' not found."
+    echo "'starship' not found." 1>&2
     BOLD="\[$(tput bold)\]"
     GREEN="\[$(tput setaf 2)\]"
     YELLOW="\[$(tput setaf 3)\]"
-    CYAN="\[$(tput setaf 6)\]"
+    BLUE="\[$(tput setaf 4)\]"
     BG_BLACK="\[$(tput setab 0)\]"
     RESET="\[$(tput sgr0)\]"
-    PS1="\n${BOLD}${YELLOW}\u${RESET} @ ${BOLD}${GREEN}${BG_BLACK}\H${RESET} in ${BOLD}${CYAN}\w${RESET}\n${BOLD}${GREEN}>${RESET} "
+    PS1="\n${BOLD}${YELLOW}\u${RESET} @ ${BOLD}${GREEN}${BG_BLACK}\H${RESET} in ${BOLD}${BLUE}\w${RESET}\n${BOLD}${GREEN}>${RESET} "
 fi
 
-if ! eval "$(zoxide init bash --cmd cd)" 2> /dev/null ; then
-    echo "'zoxide' not found."
+if ! eval "$(zoxide init bash)" 2> /dev/null ; then
+    echo "'zoxide' not found." 1>&2
 fi
 
 # vim: ft=sh
