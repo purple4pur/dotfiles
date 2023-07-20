@@ -1,16 +1,16 @@
 set nocompatible
 
-filetype plugin indent on
-syntax on
-
+" ---------
+"   Theme
+" ---------
 set background=light
 colorscheme PaperColor
 
-let g:netrw_alto = 0
-let g:netrw_keepdir = 0
-let g:netrw_preview = 1
-let g:netrw_winsize = 30
-
+" ----------
+"   Common
+" ----------
+filetype plugin indent on
+syntax on
 set autochdir
 set autoread
 set autowrite
@@ -49,16 +49,29 @@ if (v:version >= 705)
     set nofixendofline
 endif
 
-" ********  gui configs  ********
+" ---------
+"   Netrw
+" ---------
+let g:netrw_alto = 0
+let g:netrw_keepdir = 0
+let g:netrw_preview = 1
+let g:netrw_winsize = 50
+
+" -------
+"   GUI
+" -------
 if has("gui_running")
     set guioptions-=T
     set mousemodel=popup
-    if has("gui_win32")
-        set guifont=更纱黑体_Mono_SC_Nerd:h11
+    if has("gui_win32") || has("nvim")
+        set guifont=终端更纱黑体-简_Nerd:h11,更纱黑体_Mono_SC_Nerd:h11
     endif
 endif
 
-" ********  keymaps  ********
+" ----------------
+"   Key Mappings
+" ----------------
+" command
 nnoremap ; :
 vnoremap ; :
 " movement
@@ -152,7 +165,9 @@ nnoremap <silent> <leader>c :call ColorColumnToggle()<CR>:set colorcolumn?<CR>
 nnoremap <silent> <leader>z /\s\+$<CR>
 nnoremap <silent> <leader>dz :%s/\s\+$//g<CR>
 
-" ********  map functions  ********
+" -------------
+"   Functions
+" -------------
 function! FixNetrwMap()
     if hasmapto('<Plug>NetrwRefresh')
         unmap <buffer> <C-L>
@@ -177,8 +192,9 @@ function! ColorColumnToggle()
 endfunction
 
 
-" ******************************************************
-" ******************  status line  *********************
+" ---------------
+"   Status Line
+" ---------------
 " modified from https://gist.github.com/suderman/1243665
 
 " statusline setup
@@ -202,4 +218,3 @@ set statusline+=%=\     " left/right separator
 set statusline+=%c,     " cursor column
 set statusline+=%l/%L   " cursor line/total lines
 set statusline+=\ %p%%  " percent through file
-" ******************************************************
