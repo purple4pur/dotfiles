@@ -95,10 +95,11 @@ nnoremap <silent> <A-j> :move +1<CR>zz
 nnoremap <silent> <A-k> :move -2<CR>zz
 vnoremap <silent> <A-j> :move '>+1<CR>gvzz
 vnoremap <silent> <A-k> :move '<-2<CR>gvzz
-nnoremap <silent> <leader>2t :setlocal shiftwidth=2 tabstop=2 softtabstop=2 tabstop?<CR>
-nnoremap <silent> <leader>3t :setlocal shiftwidth=3 tabstop=3 softtabstop=3 tabstop?<CR>
-nnoremap <silent> <leader>4t :setlocal shiftwidth=4 tabstop=4 softtabstop=4 tabstop?<CR>
-nnoremap <silent> <leader>8t :setlocal shiftwidth=8 tabstop=8 softtabstop=8 tabstop?<CR>
+nnoremap <silent> <leader>t? :setlocal tabstop?<CR>
+nnoremap <silent> <leader>t2 :setlocal shiftwidth=2 tabstop=2 softtabstop=2 tabstop?<CR>
+nnoremap <silent> <leader>t3 :setlocal shiftwidth=3 tabstop=3 softtabstop=3 tabstop?<CR>
+nnoremap <silent> <leader>t4 :setlocal shiftwidth=4 tabstop=4 softtabstop=4 tabstop?<CR>
+nnoremap <silent> <leader>t8 :setlocal shiftwidth=8 tabstop=8 softtabstop=8 tabstop?<CR>
 nnoremap <silent> <leader>s" ""ciw"<C-R>""<ESC>b
 nnoremap <silent> <leader>s' ""ciw'<C-R>"'<ESC>b
 nnoremap <silent> <leader>s( ""ciw(<C-R>")<ESC>b
@@ -127,6 +128,7 @@ nnoremap n nzz
 nnoremap N Nzz
 nnoremap <silent> <leader>n :nohlsearch<CR>
 " tab
+nnoremap <leader>sb :tab sbuffer<SPACE>
 inoremap <silent> <F3> <C-O>:tabprevious<CR>
 inoremap <silent> <F4> <C-O>:tabnext<CR>
 nnoremap <silent> <F3> :tabprevious<CR>
@@ -138,24 +140,27 @@ nnoremap <silent> <C-H> <C-W>h
 nnoremap <silent> <C-J> <C-W>j
 nnoremap <silent> <C-K> <C-W>k
 nnoremap <silent> <C-L> <C-W>l
-nnoremap <silent> <leader>, <C-W>10<
-nnoremap <silent> <leader>. <C-W>10>
+nnoremap <silent> <leader>< <C-W>10<
+nnoremap <silent> <leader>> <C-W>10>
 nnoremap <silent> <leader>- <C-W>5-
-nnoremap <silent> <leader>= <C-W>5+
+nnoremap <silent> <leader>+ <C-W>5+
+nnoremap <silent> <leader>= <C-W>=
 autocmd! FileType netrw call FixNetrwMap()
 " fold
 nnoremap <silent> <space> za
-nnoremap <silent> <leader>f :call FoldColumnToggle()<CR>:set foldcolumn?<CR>
-nnoremap <silent> <leader>mf :setlocal foldmethod=marker foldmethod?<CR>
-nnoremap <silent> <leader>sf :setlocal foldmethod=syntax foldmethod?<CR>
+nnoremap <silent> <leader>zf :call FoldColumnToggle()<CR>:set foldcolumn?<CR>
+nnoremap <silent> <leader>f? :setlocal foldmethod?<CR>
+nnoremap <silent> <leader>fi :setlocal foldmethod=indent foldmethod?<CR>
+nnoremap <silent> <leader>fm :setlocal foldmethod=marker foldmethod?<CR>
+nnoremap <silent> <leader>fs :setlocal foldmethod=syntax foldmethod?<CR>
 " diff
 nnoremap <leader>do :diffoff!<CR>
 nnoremap <leader>dt :diffthis<CR>
 nnoremap <leader>du :diffupdate!<CR>
 " netrw
-nnoremap <leader>e :Explore<CR>
-nnoremap <leader>t :Texplore<CR>
-nnoremap <leader>v :Vexplore!<CR>
+nnoremap <leader>ee :Explore<CR>
+nnoremap <leader>et :Texplore<CR>
+nnoremap <leader>ev :Vexplore!<CR>
 " terminal
 if has("terminal")
     nnoremap <leader>T :tab terminal<CR>
@@ -166,10 +171,10 @@ elseif has("nvim")
 endif
 " misc
 nnoremap <silent> ZZ :echohl WarningMsg \| echo "ZZ is bad!" \| echohl None<CR>
-nnoremap <silent> <leader>l :setlocal list! list?<CR>
-nnoremap <silent> <leader>w :setlocal wrap! wrap?<CR>
-nnoremap <silent> <leader>c :call ColorColumnToggle()<CR>:set colorcolumn?<CR>
-nnoremap <silent> <leader>z /\s\+$<CR>
+nnoremap <silent> <leader>zl :setlocal list! list?<CR>
+nnoremap <silent> <leader>zw :setlocal wrap! wrap?<CR>
+nnoremap <silent> <leader>zc :call ColorColumnToggle()<CR>:set colorcolumn?<CR>
+nnoremap <silent> <leader>zz /\s\+$<CR>
 nnoremap <silent> <leader>dz :%s/\s\+$//g<CR>
 
 " -------------
