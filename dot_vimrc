@@ -128,7 +128,8 @@ nnoremap n nzz
 nnoremap N Nzz
 nnoremap <silent> <leader>n :nohlsearch<CR>
 " tab
-nnoremap <leader>sb :tab sbuffer<SPACE>
+nnoremap <leader>te :tabe<SPACE>
+nnoremap <leader>tb :tab sbuffer<SPACE>
 inoremap <silent> <F3> <C-O>:tabprevious<CR>
 inoremap <silent> <F4> <C-O>:tabnext<CR>
 nnoremap <silent> <F3> :tabprevious<CR>
