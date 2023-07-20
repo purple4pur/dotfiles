@@ -99,13 +99,13 @@ nnoremap <silent> <leader>2t :setlocal shiftwidth=2 tabstop=2 softtabstop=2 tabs
 nnoremap <silent> <leader>3t :setlocal shiftwidth=3 tabstop=3 softtabstop=3 tabstop?<CR>
 nnoremap <silent> <leader>4t :setlocal shiftwidth=4 tabstop=4 softtabstop=4 tabstop?<CR>
 nnoremap <silent> <leader>8t :setlocal shiftwidth=8 tabstop=8 softtabstop=8 tabstop?<CR>
-nnoremap <silent> <leader>s" ""ciw"<C-R>""<ESC>
-nnoremap <silent> <leader>s' ""ciw'<C-R>"'<ESC>
-nnoremap <silent> <leader>s( ""ciw(<C-R>")<ESC>
-nnoremap <silent> <leader>s[ ""ciw[<C-R>"]<ESC>
-nnoremap <silent> <leader>s{ ""ciw{<C-R>"}<ESC>
-nnoremap <silent> <leader>s< ""ciw<<C-R>"><ESC>
-nnoremap <silent> <leader>s` ""ciw`<C-R>"`<ESC>
+nnoremap <silent> <leader>s" ""ciw"<C-R>""<ESC>b
+nnoremap <silent> <leader>s' ""ciw'<C-R>"'<ESC>b
+nnoremap <silent> <leader>s( ""ciw(<C-R>")<ESC>b
+nnoremap <silent> <leader>s[ ""ciw[<C-R>"]<ESC>b
+nnoremap <silent> <leader>s{ ""ciw{<C-R>"}<ESC>b
+nnoremap <silent> <leader>s< ""ciw<<C-R>"><ESC>b
+nnoremap <silent> <leader>s` ""ciw`<C-R>"`<ESC>b
 vnoremap <silent> <leader>s" ""c"<C-R>""<ESC>
 vnoremap <silent> <leader>s' ""c'<C-R>"'<ESC>
 vnoremap <silent> <leader>s( ""c(<C-R>")<ESC>
@@ -113,6 +113,13 @@ vnoremap <silent> <leader>s[ ""c[<C-R>"]<ESC>
 vnoremap <silent> <leader>s{ ""c{<C-R>"}<ESC>
 vnoremap <silent> <leader>s< ""c<<C-R>"><ESC>
 vnoremap <silent> <leader>s` ""c`<C-R>"`<ESC>
+nnoremap <silent> <leader>S" F"xf"xb
+nnoremap <silent> <leader>S' F'xf'xb
+nnoremap <silent> <leader>S( F(xf)xb
+nnoremap <silent> <leader>S[ F[xf]xb
+nnoremap <silent> <leader>S{ F{xf}xb
+nnoremap <silent> <leader>S< F<xf>xb
+nnoremap <silent> <leader>S` F`xf`xb
 " search
 nnoremap * *zz
 nnoremap # #zz
