@@ -1,37 +1,29 @@
-Function vims {
-    $a = $args -join " "
-    gvim ~\.config\.powershell_setup.ps1 $a &
-}
-Function srcs {
-    . ~\.config\.powershell_setup.ps1
-}
-Function jj {
-    Get-Job -State Running
-}
+# ----------
+#   Common
+# ----------
+$EDITOR = if (Test-Path variable:EDITOR) { $EDITOR } else { "notepad.exe" }
+Function vims { & $EDITOR $PROFILE $args }
 
-# ------  git alias  ------
-Function gst {
-    $a = $args -join " "
-    git status $a
-}
-Function glg {
-    $a = $args -join " "
-    git log --graph --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ad) %C(bold blue)<%an>%Creset' --date=short $a
-}
-Function gad {
-    $a = $args -join " "
-    git add $a
-}
-Function gcmt {
-    $a = $args -join " "
-    git commit $a
-}
+# -------------
+#   Git Alias
+# -------------
+Function gad { & git add $args }
+Function gb { & git branch $args }
+Function gcmt { & git commit $args }
+Function gco { & git checkout $args }
+Function gd { & git diff $args }
+Function glg { & git log --graph --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ad) %C(bold blue)<%an>%Creset' --date=short $args }
+Function gst { & git status $args }
 
-# ------  starship  ------
+# ------------
+#   Starship
+# ------------
 Invoke-Expression (&starship init powershell)
 
-# ------  zoxide  ------
+# ----------
+#   Zoxide
+# ----------
 Invoke-Expression (& {
     $hook = if ($PSVersionTable.PSVersion.Major -lt 6) { 'prompt' } else { 'pwd' }
-    (zoxide init --hook $hook powershell --cmd cd | Out-String)
+    (zoxide init --hook $hook powershell | Out-String)
 })
