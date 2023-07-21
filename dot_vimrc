@@ -81,16 +81,43 @@ nnoremap 0 g0
 nnoremap $ g$
 nnoremap g$ $
 nnoremap g0 0
+vnoremap j gj
+vnoremap k gk
+vnoremap 0 g0
+vnoremap $ g$
+vnoremap g$ $
+vnoremap g0 0
 nnoremap , ;
 inoremap <C-H> <LEFT>
-inoremap <C-J> <DOWN>
-inoremap <C-K> <UP>
+inoremap <C-J> <C-O>gj
+inoremap <C-K> <C-O>gk
 inoremap <C-L> <RIGHT>
 " edit
 nnoremap < <<
 nnoremap > >>
 vnoremap < <gv
 vnoremap > >gv
+nnoremap <leader>s" ""ciw"<C-R>""<ESC>b
+nnoremap <leader>s' ""ciw'<C-R>"'<ESC>b
+nnoremap <leader>s( ""ciw(<C-R>")<ESC>b
+nnoremap <leader>s[ ""ciw[<C-R>"]<ESC>b
+nnoremap <leader>s{ ""ciw{<C-R>"}<ESC>b
+nnoremap <leader>s< ""ciw<<C-R>"><ESC>b
+nnoremap <leader>s` ""ciw`<C-R>"`<ESC>b
+vnoremap <leader>s" ""c"<C-R>""<ESC>
+vnoremap <leader>s' ""c'<C-R>"'<ESC>
+vnoremap <leader>s( ""c(<C-R>")<ESC>
+vnoremap <leader>s[ ""c[<C-R>"]<ESC>
+vnoremap <leader>s{ ""c{<C-R>"}<ESC>
+vnoremap <leader>s< ""c<<C-R>"><ESC>
+vnoremap <leader>s` ""c`<C-R>"`<ESC>
+nnoremap <leader>S" F"xf"xb
+nnoremap <leader>S' F'xf'xb
+nnoremap <leader>S( F(xf)xb
+nnoremap <leader>S[ F[xf]xb
+nnoremap <leader>S{ F{xf}xb
+nnoremap <leader>S< F<xf>xb
+nnoremap <leader>S` F`xf`xb
 nnoremap <silent> <A-j> :move +1<CR>zz
 nnoremap <silent> <A-k> :move -2<CR>zz
 vnoremap <silent> <A-j> :move '>+1<CR>gvzz
@@ -100,27 +127,6 @@ nnoremap <silent> <leader>t2 :setlocal shiftwidth=2 tabstop=2 softtabstop=2 tabs
 nnoremap <silent> <leader>t3 :setlocal shiftwidth=3 tabstop=3 softtabstop=3 tabstop?<CR>
 nnoremap <silent> <leader>t4 :setlocal shiftwidth=4 tabstop=4 softtabstop=4 tabstop?<CR>
 nnoremap <silent> <leader>t8 :setlocal shiftwidth=8 tabstop=8 softtabstop=8 tabstop?<CR>
-nnoremap <silent> <leader>s" ""ciw"<C-R>""<ESC>b
-nnoremap <silent> <leader>s' ""ciw'<C-R>"'<ESC>b
-nnoremap <silent> <leader>s( ""ciw(<C-R>")<ESC>b
-nnoremap <silent> <leader>s[ ""ciw[<C-R>"]<ESC>b
-nnoremap <silent> <leader>s{ ""ciw{<C-R>"}<ESC>b
-nnoremap <silent> <leader>s< ""ciw<<C-R>"><ESC>b
-nnoremap <silent> <leader>s` ""ciw`<C-R>"`<ESC>b
-vnoremap <silent> <leader>s" ""c"<C-R>""<ESC>
-vnoremap <silent> <leader>s' ""c'<C-R>"'<ESC>
-vnoremap <silent> <leader>s( ""c(<C-R>")<ESC>
-vnoremap <silent> <leader>s[ ""c[<C-R>"]<ESC>
-vnoremap <silent> <leader>s{ ""c{<C-R>"}<ESC>
-vnoremap <silent> <leader>s< ""c<<C-R>"><ESC>
-vnoremap <silent> <leader>s` ""c`<C-R>"`<ESC>
-nnoremap <silent> <leader>S" F"xf"xb
-nnoremap <silent> <leader>S' F'xf'xb
-nnoremap <silent> <leader>S( F(xf)xb
-nnoremap <silent> <leader>S[ F[xf]xb
-nnoremap <silent> <leader>S{ F{xf}xb
-nnoremap <silent> <leader>S< F<xf>xb
-nnoremap <silent> <leader>S` F`xf`xb
 " search
 nnoremap * *zz
 nnoremap # #zz
@@ -130,53 +136,53 @@ nnoremap <silent> <leader>n :nohlsearch<CR>
 " tab
 nnoremap <leader>te :tabe<SPACE>
 nnoremap <leader>tb :tab sbuffer<SPACE>
+nnoremap <leader>gf <C-W>gf
 inoremap <silent> <F3> <C-O>:tabprevious<CR>
 inoremap <silent> <F4> <C-O>:tabnext<CR>
 nnoremap <silent> <F3> :tabprevious<CR>
 nnoremap <silent> <F4> :tabnext<CR>
-nnoremap <silent> <leader>gf <C-W>gf
 nnoremap <silent> <leader><C-]> :tab tag <C-R><C-W><CR>
 " window
-nnoremap <silent> <C-H> <C-W>h
-nnoremap <silent> <C-J> <C-W>j
-nnoremap <silent> <C-K> <C-W>k
-nnoremap <silent> <C-L> <C-W>l
-nnoremap <silent> <leader>< <C-W>10<
-nnoremap <silent> <leader>> <C-W>10>
-nnoremap <silent> <leader>- <C-W>5-
-nnoremap <silent> <leader>+ <C-W>5+
-nnoremap <silent> <leader>= <C-W>=
+nnoremap <C-H> <C-W>h
+nnoremap <C-J> <C-W>j
+nnoremap <C-K> <C-W>k
+nnoremap <C-L> <C-W>l
+nnoremap <leader>< <C-W>10<
+nnoremap <leader>> <C-W>10>
+nnoremap <leader>- <C-W>5-
+nnoremap <leader>+ <C-W>5+
+nnoremap <leader>= <C-W>=
 autocmd! FileType netrw call FixNetrwMap()
 " fold
-nnoremap <silent> <space> za
+nnoremap <space> za
 nnoremap <silent> <leader>zf :call FoldColumnToggle()<CR>:set foldcolumn?<CR>
 nnoremap <silent> <leader>f? :setlocal foldmethod?<CR>
 nnoremap <silent> <leader>fi :setlocal foldmethod=indent foldmethod?<CR>
 nnoremap <silent> <leader>fm :setlocal foldmethod=marker foldmethod?<CR>
 nnoremap <silent> <leader>fs :setlocal foldmethod=syntax foldmethod?<CR>
 " diff
-nnoremap <leader>do :diffoff!<CR>
-nnoremap <leader>dt :diffthis<CR>
-nnoremap <leader>du :diffupdate!<CR>
+nnoremap <silent> <leader>do :diffoff!<CR>
+nnoremap <silent> <leader>dt :diffthis<CR>
+nnoremap <silent> <leader>du :diffupdate!<CR>
 " netrw
-nnoremap <leader>ee :Explore<CR>
-nnoremap <leader>et :Texplore<CR>
-nnoremap <leader>ev :Vexplore!<CR>
+nnoremap <silent> <leader>ee :Explore<CR>
+nnoremap <silent> <leader>et :Texplore<CR>
+nnoremap <silent> <leader>ev :Vexplore!<CR>
 " terminal
 if has("terminal")
-    nnoremap <leader>T :tab terminal<CR>
+    nnoremap <silent> <leader>T :tab terminal<CR>
     tnoremap <C-\> <C-\><C-N>
 elseif has("nvim")
-    nnoremap <leader>T :tabnew +terminal<CR>
+    nnoremap <silent> <leader>T :tabnew +terminal<CR>
     tnoremap <C-\> <C-\><C-N>
 endif
 " misc
+nnoremap <leader>zz /\s\+$<CR>
+nnoremap <leader>dz :%s/\s\+$//g<CR>
 nnoremap <silent> ZZ :echohl WarningMsg \| echo "ZZ is bad!" \| echohl None<CR>
 nnoremap <silent> <leader>zl :setlocal list! list?<CR>
 nnoremap <silent> <leader>zw :setlocal wrap! wrap?<CR>
 nnoremap <silent> <leader>zc :call ColorColumnToggle()<CR>:set colorcolumn?<CR>
-nnoremap <silent> <leader>zz /\s\+$<CR>
-nnoremap <silent> <leader>dz :%s/\s\+$//g<CR>
 
 " -------------
 "   Functions
@@ -184,7 +190,7 @@ nnoremap <silent> <leader>dz :%s/\s\+$//g<CR>
 function! FixNetrwMap()
     if hasmapto('<Plug>NetrwRefresh')
         unmap <buffer> <C-L>
-        nnoremap <silent> <C-L> <C-W>l
+        nnoremap <C-L> <C-W>l
     endif
 endfunction
 
