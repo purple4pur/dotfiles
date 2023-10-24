@@ -64,7 +64,7 @@ if has("gui_running")
     set guioptions-=T
     set mousemodel=popup
     if has("gui_win32") || has("nvim")
-        set guifont=终端更纱黑体-简_Nerd:h11,更纱黑体_Mono_SC_Nerd:h11
+        set guifont=Sarasa_Term_SC_Nerd:h11,终端更纱黑体-简_Nerd:h11
     endif
 endif
 
@@ -88,10 +88,10 @@ vnoremap $ g$
 vnoremap g$ $
 vnoremap g0 0
 nnoremap , ;
-inoremap <C-H> <LEFT>
-inoremap <C-J> <C-O>gj
-inoremap <C-K> <C-O>gk
-inoremap <C-L> <RIGHT>
+inoremap <A-h> <LEFT>
+inoremap <A-j> <C-O>gj
+inoremap <A-k> <C-O>gk
+inoremap <A-l> <RIGHT>
 " edit
 nnoremap < <<
 nnoremap > >>
@@ -111,13 +111,13 @@ vnoremap <leader>s[ ""c[<C-R>"]<ESC>
 vnoremap <leader>s{ ""c{<C-R>"}<ESC>
 vnoremap <leader>s< ""c<<C-R>"><ESC>
 vnoremap <leader>s` ""c`<C-R>"`<ESC>
-nnoremap <leader>S" F"xf"xb
-nnoremap <leader>S' F'xf'xb
-nnoremap <leader>S( F(xf)xb
-nnoremap <leader>S[ F[xf]xb
-nnoremap <leader>S{ F{xf}xb
-nnoremap <leader>S< F<xf>xb
-nnoremap <leader>S` F`xf`xb
+nnoremap <leader>d" vi"<ESC>`>lx`<hx
+nnoremap <leader>d' vi'<ESC>`>lx`<hx
+nnoremap <leader>d( vi(<ESC>`>lx`<hx
+nnoremap <leader>d[ vi[<ESC>`>lx`<hx
+nnoremap <leader>d{ vi{<ESC>`>lx`<hx
+nnoremap <leader>d< vi<<ESC>`>lx`<hx
+nnoremap <leader>d` vi`<ESC>`>lx`<hx
 nnoremap <silent> <A-j> :move +1<CR>zz
 nnoremap <silent> <A-k> :move -2<CR>zz
 vnoremap <silent> <A-j> :move '>+1<CR>gvzz
@@ -129,7 +129,7 @@ nnoremap <silent> <leader>t4 :setlocal shiftwidth=4 tabstop=4 softtabstop=4 tabs
 nnoremap <silent> <leader>t8 :setlocal shiftwidth=8 tabstop=8 softtabstop=8 tabstop?<CR>
 " search
 nnoremap * *zz
-nnoremap # #zz
+nnoremap # *NNzz
 nnoremap n nzz
 nnoremap N Nzz
 nnoremap <silent> <leader>n :nohlsearch<CR>
