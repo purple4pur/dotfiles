@@ -1,5 +1,5 @@
-alias vims 'vim ~/.config/.tcsh_setup'
-alias srcs 'source ~/.config/.tcsh_setup'
+alias vims 'vim ~/.tcshrc'
+alias srcs 'source ~/.tcshrc'
 
 alias hh 'history | tail -n 30'
 alias jj 'jobs'
