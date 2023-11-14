@@ -5,6 +5,7 @@ alias hh='history | tail -n 30'
 alias jj='jobs'
 alias ll='ls -lhF'
 alias pg='grep -P'
+alias rl='readlink -f'
 alias so='source'
 alias tt='tmux'
 
