@@ -161,7 +161,8 @@ nnoremap <silent> <leader>fi :setlocal foldmethod=indent foldmethod?<CR>
 nnoremap <silent> <leader>fm :setlocal foldmethod=marker foldmethod?<CR>
 nnoremap <silent> <leader>fs :setlocal foldmethod=syntax foldmethod?<CR>
 " diff
-nnoremap <silent> <leader>do :diffoff!<CR>
+nnoremap <silent> <leader>do :diffoff<CR>
+nnoremap <silent> <leader>dO :diffoff!<CR>
 nnoremap <silent> <leader>dt :diffthis<CR>
 nnoremap <silent> <leader>du :diffupdate!<CR>
 " netrw
