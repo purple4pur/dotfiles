@@ -7,6 +7,17 @@ All files are managed by [chezmoi](https://www.chezmoi.io/) .
 
 Read more on [Wiki](https://github.com/purple4pur/dotfiles/wiki) !
 
+## Warning!
+
+Since there's file renaming/deletion in mpv script folder, but `chezmoi update/apply` will not remove the old files, which may cause mpv loading lua script you don't need, you are expected to:
+
+* manaully delete old files in `~/.config/mpv/scripts`
+* **OR** : delete the whole `~/.config/mpv/scripts` folder, then `chezmoi update/apply`
+
+Related commit:
+
+* [`7c510ab`](https://github.com/purple4pur/dotfiles/commit/7c510abfb002da0d8aebae8fb7a0f4dc827dda1d) (Nov 17, 2023)
+
 ## External Resources Used
 
 * [bloc97/Anime4K](https://github.com/bloc97/Anime4K) [`4029bf7(v4.0.1)`](https://github.com/bloc97/Anime4K/tree/4029bf701ecaa15f163cdc49cffe5501c1acf410)
