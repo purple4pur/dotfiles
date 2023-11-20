@@ -63,7 +63,7 @@ let g:netrw_winsize = 50
 if has("gui_running")
     set guioptions-=T
     set mousemodel=popup
-    if has("gui_win32") || has("nvim")
+    if has("gui_win32")
         set guifont=Sarasa_Term_SC_Nerd:h11,终端更纱黑体-简_Nerd:h11
     endif
 endif
@@ -172,9 +172,6 @@ nnoremap <silent> <leader>ev :Vexplore!<CR>
 " terminal
 if has("terminal")
     nnoremap <silent> <leader>T :tab terminal<CR>
-    tnoremap <C-\> <C-\><C-N>
-elseif has("nvim")
-    nnoremap <silent> <leader>T :tabnew +terminal<CR>
     tnoremap <C-\> <C-\><C-N>
 endif
 " misc
