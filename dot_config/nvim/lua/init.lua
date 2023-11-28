@@ -14,3 +14,4 @@ require('glow').setup({
     width_ratio = 0.8,
     height_ratio = 0.8,
 })
+vim.keymap.set('n', '<leader>p', '<cmd>Glow<CR>')
