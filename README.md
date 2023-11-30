@@ -16,3 +16,16 @@ Read more on [Wiki](https://github.com/purple4pur/dotfiles/wiki) !
 * [mg979/vim-visual-multi](https://github.com/mg979/vim-visual-multi) [`aec289a`](https://github.com/mg979/vim-visual-multi/tree/aec289a9fdabaa0ee6087d044d75b32e12084344)
 * [purple4pur/glow.nvim](https://github.com/purple4pur/glow.nvim) (forked from [ellisonleao/glow.nvim](https://github.com/ellisonleao/glow.nvim) , with custom changes)
 * [purple4pur/mini.nvim](https://github.com/purple4pur/mini.nvim) (forked from [echasnovski/mini.nvim](https://github.com/echasnovski/mini.nvim) )
+
+## Develop Note
+
+```bash
+git remote add glow-nvim https://github.com/purple4pur/glow.nvim.git
+git remote add mini-nvim https://github.com/purple4pur/mini.nvim.git
+
+git subtree add --prefix=dot_config/nvim/lua/glow.nvim --squash glow-nvim main
+git subtree add --prefix=dot_config/nvim/lua/mini.nvim --squash mini-nvim master
+
+git subtree pull --prefix=dot_config/nvim/lua/glow.nvim --squash glow-nvim main
+git subtree pull --prefix=dot_config/nvim/lua/mini.nvim --squash mini-nvim master
+```
