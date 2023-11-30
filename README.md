@@ -14,4 +14,5 @@ Read more on [Wiki](https://github.com/purple4pur/dotfiles/wiki) !
 * [`autoload.lua` from mpv-player/mpv](https://github.com/mpv-player/mpv/blob/master/TOOLS/lua/autoload.lua) [`d147a06`](https://github.com/mpv-player/mpv/blob/d147a06e60bfc10cb2fd7c66af7eb6871dba163e/TOOLS/lua/autoload.lua)
 * [purple4pur/mpv-scripts](https://github.com/purple4pur/mpv-scripts)
 * [mg979/vim-visual-multi](https://github.com/mg979/vim-visual-multi) [`aec289a`](https://github.com/mg979/vim-visual-multi/tree/aec289a9fdabaa0ee6087d044d75b32e12084344)
-* [purple4pur/glow.nvim](https://github.com/purple4pur/glow.nvim) (forked from [ellisonleao/glow.nvim](https://github.com/ellisonleao/glow.nvim))
+* [purple4pur/glow.nvim](https://github.com/purple4pur/glow.nvim) (forked from [ellisonleao/glow.nvim](https://github.com/ellisonleao/glow.nvim) , with custom changes)
+* [purple4pur/mini.nvim](https://github.com/purple4pur/mini.nvim) (forked from [echasnovski/mini.nvim](https://github.com/echasnovski/mini.nvim) )
