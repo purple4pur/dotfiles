@@ -7,6 +7,8 @@ All files are managed by [chezmoi](https://www.chezmoi.io/) .
 
 Read more on [Wiki](https://github.com/purple4pur/dotfiles/wiki) !
 
+For vim/nvim plugin common usages, please refer to [`~/.vimrc`](dot_vimrc) and [`~/.config/nvim/lua/init.lua`](dot_config/nvim/lua/init.lua) .
+
 ## External Resources Used
 
 * [bloc97/Anime4K](https://github.com/bloc97/Anime4K) [`4029bf7(v4.0.1)`](https://github.com/bloc97/Anime4K/tree/4029bf701ecaa15f163cdc49cffe5501c1acf410)
