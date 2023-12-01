@@ -62,7 +62,7 @@ let g:netrw_winsize = 50
 " -------
 if has("gui_running")
     set guioptions-=T
-    set mousemodel=popup
+    set mousemodel=extend
     if has("gui_win32")
         set guifont=Sarasa_Term_SC_Nerd:h11,终端更纱黑体-简_Nerd:h11
     endif
@@ -118,20 +118,17 @@ nnoremap <leader>d[ vi[<ESC>`>lx`<hx
 nnoremap <leader>d{ vi{<ESC>`>lx`<hx
 nnoremap <leader>d< vi<<ESC>`>lx`<hx
 nnoremap <leader>d` vi`<ESC>`>lx`<hx
-nnoremap <silent> <A-j> :move +1<CR>zz
-nnoremap <silent> <A-k> :move -2<CR>zz
-vnoremap <silent> <A-j> :move '>+1<CR>gvzz
-vnoremap <silent> <A-k> :move '<-2<CR>gvzz
+nnoremap <silent> <A-j> :move +1<CR>
+nnoremap <silent> <A-k> :move -2<CR>
+vnoremap <silent> <A-j> :move '>+1<CR>gv
+vnoremap <silent> <A-k> :move '<-2<CR>gv
 nnoremap <silent> <leader>t? :setlocal tabstop?<CR>
 nnoremap <silent> <leader>t2 :setlocal shiftwidth=2 tabstop=2 softtabstop=2 tabstop?<CR>
 nnoremap <silent> <leader>t3 :setlocal shiftwidth=3 tabstop=3 softtabstop=3 tabstop?<CR>
 nnoremap <silent> <leader>t4 :setlocal shiftwidth=4 tabstop=4 softtabstop=4 tabstop?<CR>
 nnoremap <silent> <leader>t8 :setlocal shiftwidth=8 tabstop=8 softtabstop=8 tabstop?<CR>
 " search
-nnoremap * *zz
-nnoremap # *NNzz
-nnoremap n nzz
-nnoremap N Nzz
+nnoremap # *NN
 nnoremap <silent> <leader>n :nohlsearch<CR>
 " tab
 nnoremap <leader>te :tabe<SPACE>
@@ -207,6 +204,25 @@ function! ColorColumnToggle()
         setlocal colorcolumn=72
     endif
 endfunction
+
+
+" -----------
+"   Plugins
+" -----------
+" plugins are automatically loaded from `~/.vim/pack/*/start/*` (runtimepath)
+"
+" * vim-visual-multi:
+"     [Normal] `<C-up/down>` to add a cursor
+"     [Normal] `<C-n>` to select current match
+"     [V-Multi] `<Tab>` to toggle visual mode
+"     [V-Multi] `n/N` to select current match and jump to next/previous one
+"     [V-Multi] `q/Q` to skip current match and jump to next/previous one
+"     [V-Multi] `\\a` to align at all cursors
+"     [V-Multi] `\\<` to align at cursors' lines with given char(s)
+"     [V-Multi] `\\>` to align at cursors' lines with given pattern
+"     [Both] `\\\` to add/remove cursor
+"     [Both] `\\A` to select all matches
+"     [Both] `\\/` to search a pattern
 
 
 " ---------------

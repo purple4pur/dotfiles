@@ -13,7 +13,7 @@ require('glow').setup({
     height = 100,
     width_ratio = 0.8,
     height_ratio = 0.8,
-})
+}) -- `<leader>p` to preview markdown
 vim.keymap.set('n', '<leader>p', '<cmd>Glow<CR><cmd>nohlsearch<CR>')
 
 vim.opt.runtimepath:append(vim.fn.stdpath('config') .. '/lua/mini.nvim')
