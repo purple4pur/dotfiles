@@ -33,6 +33,7 @@ require('mini.pairs').setup()
 require('mini.splitjoin').setup() -- `gS` to toggle
 require('mini.starter').setup()
 require('mini.statusline').setup()
+require('mini.surround').setup() -- `s<a/d/r/h/f/F>` to add/delete/replace/highlight/f(F)ind
 require('mini.trailspace').setup() -- `<leader>dz` to remove trailspaces/lines
 
 vim.keymap.set('n', '<leader>ee', '<cmd>lua MiniFiles.open()<CR>')
@@ -40,3 +41,13 @@ vim.keymap.set('n', '<leader>ev', '<cmd>vnew<CR><cmd>lua MiniFiles.open()<CR>')
 vim.keymap.set('n', '<leader>et', '<cmd>tabnew<CR><cmd>lua MiniFiles.open()<CR>')
 vim.keymap.set('n', '<leader>mm', '<cmd>lua MiniMap.toggle()<CR>')
 vim.keymap.set('n', '<leader>dz', '<cmd>lua MiniTrailspace.trim()<CR><cmd>lua MiniTrailspace.trim_last_lines()<CR>')
+
+vim.api.nvim_create_autocmd('User', {
+    pattern = 'MiniFilesWindowOpen',
+    callback = function(args)
+        local win_id = args.data.win_id
+
+        -- Customize window-local settings
+        vim.api.nvim_win_set_config(win_id, { border = 'rounded' })
+    end,
+})
