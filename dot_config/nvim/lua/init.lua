@@ -1,9 +1,14 @@
 -- font
 vim.o.guifont = 'Sarasa_Term_SC_Nerd:h11,终端更纱黑体-简_Nerd:h11'
 
--- keymap
+-- keymaps
 vim.keymap.set('n', '<leader>T', '<cmd>tabnew +terminal<CR>', { silent = true })
 vim.keymap.set('t', '<C-\\>', '<C-\\><C-N>')
+vim.api.nvim_create_user_command('Vims', 'edit ' .. vim.fn.stdpath('config') .. '/lua/init.lua', { bang = true })
+vim.api.nvim_create_user_command('Srcs', function(opts)
+    vim.cmd('source ' .. vim.fn.stdpath('config') .. '/init.vim')
+    vim.cmd('source ' .. vim.fn.stdpath('config') .. '/lua/init.lua')
+end, { bang = true })
 
 -- plugins
 vim.opt.runtimepath:append(vim.fn.stdpath('config') .. '/lua/glow.nvim')
@@ -46,8 +51,6 @@ vim.api.nvim_create_autocmd('User', {
     pattern = 'MiniFilesWindowOpen',
     callback = function(args)
         local win_id = args.data.win_id
-
-        -- Customize window-local settings
         vim.api.nvim_win_set_config(win_id, { border = 'rounded' })
     end,
 })

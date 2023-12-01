@@ -178,6 +178,8 @@ nnoremap <silent> ZZ :echohl WarningMsg \| echo "ZZ is bad!" \| echohl None<CR>
 nnoremap <silent> <leader>zl :setlocal list! list?<CR>
 nnoremap <silent> <leader>zw :setlocal wrap! wrap?<CR>
 nnoremap <silent> <leader>zc :call ColorColumnToggle()<CR>:set colorcolumn?<CR>
+command! Vims edit ~/.vimrc
+command! Srcs source ~/.vimrc
 
 " -------------
 "   Functions
