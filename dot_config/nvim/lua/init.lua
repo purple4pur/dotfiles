@@ -22,7 +22,12 @@ require('mini.cursorword').setup()
 require('mini.files').setup() -- `<leader>e<e/v/t>` to open
 require('mini.indentscope').setup()
 require('mini.jump2d').setup() -- `<CR>` to enter jump mode
-require('mini.map').setup({ window = { focusable = true } }) -- `<leader>mm` to toggle
+require('mini.map').setup({
+    symbols = {
+        encode = require('mini.map').gen_encode_symbols.dot('4x2'),
+    },
+    window = { focusable = true },
+}) -- `<leader>mm` to toggle
 require('mini.move').setup() -- `<M-h/j/k/l>` to move
 require('mini.pairs').setup()
 require('mini.splitjoin').setup() -- `gS` to toggle
