@@ -44,6 +44,7 @@ set t_ZH=[3m     " <C-V><ESC>[3m
 set t_ZR=[23m    " <C-V><ESC>[23m
 set tags+=../tags,../../tags
 set textwidth=0
+set title
 set virtualedit=block
 if (v:version >= 705)
     set nofixendofline

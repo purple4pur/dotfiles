@@ -47,7 +47,9 @@ if [[ $new_window -eq 1 ]]; then
     if [[ -e $stdin_file ]]; then
         args="$stdin_file -R $args"
     fi
-    $term --geometry 120x46 --hide-menubar --hide-scrollbar -T "neovim" -e "$nvim $args"
+    $term --geometry=120x46 --hide-menubar --hide-scrollbar \
+        --initial-title="NVIM" --dynamic-title-mode=replace \
+        -e="$nvim $args"
 else
     $nvim $args
 fi
