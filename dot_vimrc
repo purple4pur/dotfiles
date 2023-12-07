@@ -27,7 +27,9 @@ set listchars+=tab:>-,trail:~,extends:>,precedes:<
 set mouse=a
 set mousemodel=extend
 set noerrorbells
-set nofixendofline
+if (v:version >= 705)
+    set nofixendofline
+endif
 set noshowmatch
 set novisualbell
 set number
@@ -46,7 +48,6 @@ set t_ZH=[3m     " <C-V><ESC>[3m
 set t_ZR=[23m    " <C-V><ESC>[23m
 set tags+=../tags,../../tags
 set textwidth=0
-set title
 set virtualedit=block
 
 " ---------
@@ -62,6 +63,7 @@ let g:netrw_winsize = 50
 " -------
 if has("gui_running")
     set guioptions-=T
+    set title
     if has("gui_win32")
         set guifont=Sarasa_Term_SC_Nerd:h11,终端更纱黑体-简_Nerd:h11
     endif

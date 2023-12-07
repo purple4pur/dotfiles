@@ -49,7 +49,7 @@ if [[ $new_window -eq 1 ]]; then
     fi
     $term --geometry=120x46 --hide-menubar --hide-scrollbar \
         --initial-title="NVIM" --dynamic-title-mode=replace \
-        -e="$nvim $args"
+        -e="$nvim $args -c 'set title'"
 else
     $nvim $args
 fi
