@@ -25,7 +25,9 @@ set hidden
 set hlsearch ignorecase smartcase incsearch
 set listchars+=tab:>-,trail:~,extends:>,precedes:<
 set mouse=a
+set mousemodel=extend
 set noerrorbells
+set nofixendofline
 set noshowmatch
 set novisualbell
 set number
@@ -46,9 +48,6 @@ set tags+=../tags,../../tags
 set textwidth=0
 set title
 set virtualedit=block
-if (v:version >= 705)
-    set nofixendofline
-endif
 
 " ---------
 "   Netrw
@@ -63,7 +62,6 @@ let g:netrw_winsize = 50
 " -------
 if has("gui_running")
     set guioptions-=T
-    set mousemodel=extend
     if has("gui_win32")
         set guifont=Sarasa_Term_SC_Nerd:h11,终端更纱黑体-简_Nerd:h11
     endif
@@ -212,6 +210,7 @@ endfunction
 " -----------
 "   Plugins
 " -----------
+" (Vim8 or newer)
 " plugins are automatically loaded from `~/.vim/pack/*/start/*` (runtimepath)
 "
 " * vim-visual-multi:
