@@ -46,7 +46,7 @@ set splitright
 set t_Co=256
 set t_ZH=[3m     " <C-V><ESC>[3m
 set t_ZR=[23m    " <C-V><ESC>[23m
-set tags+=../tags,../../tags
+set tags+=./tags;,./TAGS;
 set textwidth=0
 set virtualedit=block
 
@@ -134,12 +134,10 @@ nnoremap <silent> <leader>n :nohlsearch<CR>
 " tab
 nnoremap <leader>te :tabe<SPACE>
 nnoremap <leader>tb :tab sbuffer<SPACE>
-nnoremap <leader>gf <C-W>gf
 inoremap <silent> <F3> <C-O>:tabprevious<CR>
 inoremap <silent> <F4> <C-O>:tabnext<CR>
 nnoremap <silent> <F3> :tabprevious<CR>
 nnoremap <silent> <F4> :tabnext<CR>
-nnoremap <silent> <leader><C-]> :tab tag <C-R><C-W><CR>
 " window
 nnoremap <C-H> <C-W>h
 nnoremap <C-J> <C-W>j
@@ -175,7 +173,10 @@ endif
 " misc
 nnoremap <leader>zz /\s\+$<CR>
 nnoremap <leader>dz :%s/\s\+$//g<CR>
+nnoremap <leader>gf <C-W>gf
 nnoremap <silent> ZZ :echohl WarningMsg \| echo "ZZ is bad!" \| echohl None<CR>
+nnoremap <silent> <C-]> :tjump <C-R><C-W><CR>
+nnoremap <silent> <leader><C-]> :tab tjump <C-R><C-W><CR>
 nnoremap <silent> <leader>zl :setlocal list! list?<CR>
 nnoremap <silent> <leader>zw :setlocal wrap! wrap?<CR>
 nnoremap <silent> <leader>zc :call ColorColumnToggle()<CR>:set colorcolumn?<CR>
