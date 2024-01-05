@@ -18,16 +18,16 @@ For vim/nvim plugin common usages, please refer to [`~/.vimrc`](dot_vimrc) and [
 * [mg979/vim-visual-multi](https://github.com/mg979/vim-visual-multi) [`aec289a`](https://github.com/mg979/vim-visual-multi/tree/aec289a9fdabaa0ee6087d044d75b32e12084344)
 * [purple4pur/glow.nvim](https://github.com/purple4pur/glow.nvim) (forked from [ellisonleao/glow.nvim](https://github.com/ellisonleao/glow.nvim) , with custom changes)
 * [purple4pur/mini.nvim](https://github.com/purple4pur/mini.nvim) (forked from [echasnovski/mini.nvim](https://github.com/echasnovski/mini.nvim) )
+* [purple4pur/nvim-lspconfig](https://github.com/purple4pur/nvim-lspconfig) (forked from [neovim/nvim-lspconfig](https://github.com/neovim/nvim-lspconfig) )
 
 ## Develop Note
 
 ```bash
 git remote add glow-nvim https://github.com/purple4pur/glow.nvim.git
 git remote add mini-nvim https://github.com/purple4pur/mini.nvim.git
+git remote add lspconfig https://github.com/purple4pur/nvim-lspconfig.git
 
-git subtree add --prefix=dot_config/nvim/lua/glow.nvim --squash glow-nvim main
-git subtree add --prefix=dot_config/nvim/lua/mini.nvim --squash mini-nvim master
-
-git subtree pull --prefix=dot_config/nvim/lua/glow.nvim --squash glow-nvim main
-git subtree pull --prefix=dot_config/nvim/lua/mini.nvim --squash mini-nvim master
+git subtree add/pull --prefix=dot_config/nvim/lua/glow.nvim --squash glow-nvim main
+git subtree add/pull --prefix=dot_config/nvim/lua/mini.nvim --squash mini-nvim master
+git subtree add/pull --prefix=dot_config/nvim/lua/nvim-lspconfig --squash lspconfig master
 ```
