@@ -4,19 +4,19 @@
 ##! \details This script is used on JS servers, where cannot install nvim with gui enabled.
 ##!          When '-g' flag is passed, nvim will open in a separate xfce4-terminal window,
 ##!          which looks like 'gvim'.
-##! \usage   1. put this in ~/bin, next to nvim.appimage
-##!          2. chmod +x
-##!          3. call it as nvim
+##! \usage   1. put/link this in ~/bin, next to nvim.appimage
+##!          2. make it executable
+##!          3. call it as 'nvim'
 ##!          4. set alias for 'nvim -g' could be useful
 ##! \bug     If string with spaces is passed, it may not work as expected.
 ##!          Example: nvim -c "set ff=unix"
 ##!          A workaround: just use nvim.appimage, not this script.
 
-nvim="$HOME/bin/nvim.appimage"  # path to nvim.appimage
-term=$(which xfce4-terminal)    # path to xfce4-terminal
-stdin_timeout=10                # timeout for reading piped input (only used in "GUI" mode)
-clean_countdown=3               # after this time, stdin temp file will be removed (only used in "GUI" mode)
-stdin_prefix="/tmp/stdin_"      # prefix of stdin temp file
+nvim=$(which nvim.appimage)  # path to nvim.appimage
+term=$(which xfce4-terminal) # path to xfce4-terminal
+stdin_timeout=10             # timeout for reading piped input (only used in "GUI" mode)
+clean_countdown=3            # after this time, stdin temp file will be removed (only used in "GUI" mode)
+stdin_prefix="/tmp/stdin_"   # prefix of stdin temp file
 
 new_window=0
 args=""
@@ -49,7 +49,7 @@ if [[ $new_window -eq 1 ]]; then
     fi
     $term --geometry=120x46 --hide-menubar --hide-scrollbar \
         --initial-title="NVIM" --dynamic-title-mode=replace \
-        -e="$nvim $args -c 'set title'"
+        -x env PATH=$PATH $nvim $args -c 'set title'
 else
     $nvim $args
 fi

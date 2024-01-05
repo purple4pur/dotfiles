@@ -18,6 +18,7 @@ alias gb='git branch'
 alias gcmt='git commit'
 alias gco='git checkout'
 alias gd='git diff'
+alias gdt='git difftool --dir-diff'
 alias glg='git log --graph --pretty="%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ad) %C(bold blue)<%an>%Creset" --date=short'
 alias gst='git status'
 
