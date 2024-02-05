@@ -1,0 +1,43 @@
+#!/usr/bin/env perl
+
+##! \brief   Prepend a path to $PATH.
+##! \details This script read the 1st arguement and prepend to $PATH. Then print out the new
+##!          $PATH to stdin. If the arguement has been set to $PATH, move it to the first index.
+##! \example     current $PATH  -> a:b:c:d
+##!          If: prepend-path e -> e:a:b:c:d
+##!          If: prepend-path c -> c:a:b:d
+##!          If: prepend-path   -> a:b:c:d
+
+if ($#ARGV == -1) {
+    # no given path, do nothing
+    print("$ENV{PATH}");
+    exit;
+}
+
+sub cleanse {
+    my $a = shift @_;
+    $a =~ s#^\s+|\s+$##g; # remove leading/trailing spaces
+    $a =~ s#/+#/#g;       # // -> /
+    $a =~ s#/$##;         # /bin/ -> /bin
+    return $a;
+}
+
+my $prependee = cleanse($ARGV[0]);
+if ($prependee eq "") {
+    # empty prependee, do nothing
+    print("$ENV{PATH}");
+    exit;
+}
+
+my @paths = split(":", $ENV{PATH});
+my @new_paths = ();
+
+for $path (@paths) {
+    $path = cleanse($path);
+    if ($path ne $prependee) {
+        push(@new_paths, $path);
+    }
+}
+unshift(@new_paths, $prependee);
+
+print(join(":", @new_paths));
