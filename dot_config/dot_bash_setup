@@ -1,7 +1,7 @@
 alias vims='vim ~/.bashrc'
 alias srcs='source ~/.bashrc'
 
-alias hh='history | tail -n 30'
+alias hh='history 30'
 alias jj='jobs'
 alias ll='ls -lhF'
 alias pg='grep -P'
