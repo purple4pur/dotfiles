@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+##! \brief   Invoke nvim with/without gui.
+##! \details This script is used on where cannot install/run nvim gui. When '-g' flag is
+##!          passed, nvim will open in a separate terminal window, which looks like 'gvim'.
+##! \usage   1. copy/link this script in ~/bin, next to nvim.appimage
+##!          2. make it executable
+##!          3. call it as 'nvim'
+##!          4. set alias for 'nvim -g' would be useful
+##! \bug     If string with spaces is passed, it may not work as expected.
+##!          Example: nvim -c "set ff=unix"
+##!          A workaround: just call 'nvim.appimage', not this script.
+
+nvim=$(which nvim.appimage)  # path to nvim.appimage
+term=$(which gnome-terminal) # path to gnome-terminal
+stdin_timeout=10             # timeout for reading piped input (only used in "GUI" mode)
+clean_countdown=3            # after this time, stdin temp file will be removed (only used in "GUI" mode)
+stdin_prefix="/tmp/stdin_"   # prefix of stdin temp file
+
+new_window=0
+args=""
+stdin_file=""
+
+# extract arguments, check for '-g' flag
+for arg in "$@"; do
+    if [[ "$arg" == "-g" ]]; then
+        new_window=1
+    else
+        args="$args $arg"
+    fi
+done
+
+# make a fake "pipe" in "GUI" mode
+if [[ $new_window -eq 1 && -p /dev/stdin ]]; then
+    stdin_file="${stdin_prefix}$(uuidgen -r | head -c 8)"
+    echo "nvim: waiting for stdin..."
+    timeout $stdin_timeout cat /dev/stdin > $stdin_file
+    if [[ $? -ne 0 ]]; then
+        echo "nvim: timeout"
+        echo "Try not to use '-g' for an actual pipe."
+    fi
+fi
+
+# invoke nvim with/without new window
+if [[ $new_window -eq 1 ]]; then
+    if [[ -e $stdin_file ]]; then
+        args="$stdin_file -R $args"
+    fi
+    $term --geometry=120x46 --hide-menubar \
+        --title="NVIM" \
+        -- env PATH=$PATH $nvim $args
+else
+    $nvim $args
+fi
+
+# remove temp file used for storing piped input
+clean() {
+    sleep $clean_countdown
+    rm -f ${stdin_prefix}*
+}
+clean &

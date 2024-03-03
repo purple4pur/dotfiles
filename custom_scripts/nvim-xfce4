@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 
 ##! \brief   Invoke nvim with/without gui.
-##! \details This script is used on JS servers, where cannot install nvim with gui enabled.
-##!          When '-g' flag is passed, nvim will open in a separate xfce4-terminal window,
-##!          which looks like 'gvim'.
-##! \usage   1. put/link this in ~/bin, next to nvim.appimage
+##! \details This script is used on where cannot install/run nvim gui. When '-g' flag is
+##!          passed, nvim will open in a separate terminal window, which looks like 'gvim'.
+##! \usage   1. copy/link this script in ~/bin, next to nvim.appimage
 ##!          2. make it executable
 ##!          3. call it as 'nvim'
-##!          4. set alias for 'nvim -g' could be useful
+##!          4. set alias for 'nvim -g' would be useful
 ##! \bug     If string with spaces is passed, it may not work as expected.
 ##!          Example: nvim -c "set ff=unix"
-##!          A workaround: just use nvim.appimage, not this script.
+##!          A workaround: just call 'nvim.appimage', not this script.
 
 nvim=$(which nvim.appimage)  # path to nvim.appimage
 term=$(which xfce4-terminal) # path to xfce4-terminal
