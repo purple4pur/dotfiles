@@ -48,7 +48,7 @@ if [[ $new_window -eq 1 ]]; then
     fi
     $term --geometry=120x46 --hide-menubar \
         --title="NVIM" \
-        -- env PATH=$PATH $nvim $args
+        -- env PATH=$PATH $nvim $args -c 'set title'
 else
     $nvim $args
 fi
