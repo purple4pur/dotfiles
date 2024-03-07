@@ -1,0 +1,51 @@
+#!/usr/bin/env perl
+
+##! \brief   Prepend a path to $PATH.
+##! \details This script read the 1st arguement and prepend to $PATH. Then print out the new
+##!          $PATH to stdin. If the arguement has been set to $PATH, move it to the first index.
+##! \example     current $PATH    -> a:b:c:d
+##!          If: prepend-path e   -> e:a:b:c:d
+##!          If: prepend-path c e -> c:e:a:b:d
+##!          If: prepend-path     -> a:b:c:d
+##! \usage   bash: export PATH=$(/path/to/prepend-path XXX)
+##!          tcsh: setenv PATH `/path/to/prepend-path XXX`
+
+if ($#ARGV == -1) {
+    # no given path, do nothing
+    print("$ENV{PATH}");
+    exit;
+}
+
+my @paths = split(":", $ENV{PATH});
+
+sub cleanse {
+    my $a = shift @_;
+    $a =~ s#^\s+|\s+$##g; # remove leading/trailing spaces
+    $a =~ s#/+#/#g;       # // -> /
+    $a =~ s#/$##;         # /bin/ -> /bin
+    return $a;
+}
+
+sub prepend_one {
+    my $prependee = cleanse(shift @_);
+    if ($prependee eq "") {
+        # empty prependee, do nothing
+        return;
+    }
+
+    my @new_paths = ();
+    for $path (@paths) {
+        $path = cleanse($path);
+        if ($path ne $prependee) {
+            push(@new_paths, $path);
+        }
+    }
+    unshift(@new_paths, $prependee);
+    @paths = @new_paths;
+}
+
+for $p (reverse @ARGV) {
+    # reverse @ARGV to keep the same order as input in the prepended PATH
+    prepend_one($p);
+}
+print(join(":", @paths));
