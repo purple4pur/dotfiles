@@ -1,0 +1,17 @@
+1. List all profiles and find uuid
+
+  ```
+  dconf dump /org/gnome/terminal/legacy/profiles:/
+  ```
+
+2. Export
+
+  ```
+  dconf dump /org/gnome/terminal/legacy/profiles:/:<UUID>/ > profile.dconf
+  ```
+
+3. Import
+
+  ```
+  ./import-profile.sh profile.dconf
+  ```

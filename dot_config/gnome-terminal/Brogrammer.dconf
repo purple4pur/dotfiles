@@ -1,0 +1,6 @@
+[/]
+background-color='rgb(255,255,255)'
+use-theme-colors=false
+palette=['rgb(31,31,31)', 'rgb(248,17,24)', 'rgb(45,197,94)', 'rgb(236,186,15)', 'rgb(42,132,210)', 'rgb(78,90,183)', 'rgb(16,129,214)', 'rgb(214,219,229)', 'rgb(214,219,229)', 'rgb(222,53,46)', 'rgb(29,211,97)', 'rgb(243,189,9)', 'rgb(16,129,214)', 'rgb(83,80,185)', 'rgb(15,125,219)', 'rgb(255,255,255)']
+foreground-color='rgb(13,13,13)'
+visible-name='Brogrammer'
