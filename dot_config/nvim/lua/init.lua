@@ -1,5 +1,5 @@
 -- common settings
-vim.o.guifont = 'Sarasa_Term_SC_Nerd:h11,终端更纱黑体-简_Nerd:h11'
+vim.o.guifont = '终端更纱黑体-简_Nerd:h11,Sarasa_Term_SC_Nerd:h11'
 
 
 -- keymaps
@@ -84,7 +84,10 @@ vim.opt.runtimepath:append(vim.fn.stdpath('config') .. '/lua/mini.nvim')
 require('mini.completion').setup()
 require('mini.cursorword').setup()
 require('mini.files').setup()      -- `<leader>e<e/v/t>` to open
-require('mini.indentscope').setup()
+require('mini.indentscope').setup({ draw = {
+    delay = 500,
+    animation = require('mini.indentscope').gen_animation.linear({ duration = 10 }),
+}})
 require('mini.jump2d').setup()     -- `<CR>` to enter jump mode
 require('mini.map').setup({
     symbols = {
