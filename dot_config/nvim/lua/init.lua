@@ -1,8 +1,6 @@
--- common settings
-vim.o.guifont = '终端更纱黑体-简_Nerd:h11,Sarasa_Term_SC_Nerd:h11'
-
-
+--------------------------------------------------------------------------------
 -- keymaps
+--------------------------------------------------------------------------------
 vim.keymap.set('n', '<leader>T', function() vim.cmd('tabnew +terminal') end, { silent = true })
 vim.keymap.set('t', '<C-\\>', '<C-\\><C-N>')
 vim.api.nvim_create_user_command('Vims', function()
@@ -11,13 +9,15 @@ end, { bang = true })
 vim.api.nvim_create_user_command('Srcs', function()
     vim.cmd('source ' .. vim.fn.stdpath('config') .. '/init.vim')
     vim.cmd('source ' .. vim.fn.stdpath('config') .. '/lua/init.lua')
-    -- workaround to refresh builtin statusline
+    -- workaround to flush built-in statusline
     vim.cmd('tabnew')
     vim.cmd('quit')
+    vim.cmd('tabprevious')
 end, { bang = true })
 
-
+--------------------------------------------------------------------------------
 -- lsp
+--------------------------------------------------------------------------------
 vim.opt.runtimepath:append(vim.fn.stdpath('config') .. '/lua/nvim-lspconfig')
 local lspconfig = require('lspconfig')
 --lspconfig.lua_ls.setup({
@@ -68,8 +68,9 @@ vim.api.nvim_create_autocmd('LspAttach', {
     end,
 })
 
-
+--------------------------------------------------------------------------------
 -- plugins
+--------------------------------------------------------------------------------
 vim.opt.runtimepath:append(vim.fn.stdpath('config') .. '/lua/glow.nvim')
 require('glow').setup({
     border = 'none',
@@ -96,7 +97,7 @@ require('mini.map').setup({
     window = { focusable = true },
 })                                 -- `<leader>mm` to toggle
 require('mini.move').setup()       -- `<M-h/j/k/l>` to move
-require('mini.pairs').setup()
+--require('mini.pairs').setup()
 require('mini.splitjoin').setup()  -- `gS` to toggle
 require('mini.starter').setup()
 require('mini.statusline').setup()
