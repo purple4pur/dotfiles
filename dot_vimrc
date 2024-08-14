@@ -17,6 +17,7 @@ set autowrite
 set backspace=indent,eol,start
 set clipboard+=unnamed
 set complete-=i
+set cursorcolumn
 set cursorline
 set fileencodings=ucs-bom,utf-8,cp936 fileencoding=utf-8
 set foldcolumn=0
