@@ -80,14 +80,14 @@ function fast_forward(params)
             end
 
             mp.set_property_native("speed", ffspeed)
-            mp.osd_message(string.format("Fast-forwarding (%.1fx) >>>>", ffspeed))
+            mp.osd_message(string.format("Fast-forwarding (%.2fx) >>>>", ffspeed))
             ffing = true
         end
 
     elseif params.event == "up" then
         -- reset to normal speed
         mp.set_property_native("speed", normal_speed)
-        mp.osd_message(string.format("Normal playback (%.1fx) >", normal_speed))
+        mp.osd_message(string.format("Normal playback (%.2fx) >", normal_speed))
         ffing = false
     end
     --}}}
