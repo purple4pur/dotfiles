@@ -259,3 +259,42 @@ set statusline+=%=\     " left/right separator
 set statusline+=%c,     " cursor column
 set statusline+=%l/%L   " cursor line/total lines
 set statusline+=\ %p%%  " percent through file
+
+" --------------------------------------------------------------------------------
+"   Tab Line
+" --------------------------------------------------------------------------------
+" modified from https://github.com/mkitt/tabline.vim
+
+function! Tabline()
+    let s = ''
+    for i in range(tabpagenr('$'))
+        let tab = i + 1
+        let winnr = tabpagewinnr(tab)
+        let buflist = tabpagebuflist(tab)
+        let bufcnt = len(buflist)
+        let bufnr = buflist[winnr - 1]
+        let bufname = bufname(bufnr)
+        let bufmodcnt = 0
+        for buf in buflist
+            if getbufvar(buf, "&mod")
+                let bufmodcnt += 1
+            endif
+        endfor
+
+        let s .= '%' . tab . 'T'
+        let s .= (tab == tabpagenr()) ? '%#TabLineSel#' : '%#TabLine#'
+        let s .= ' ' . tab .':'
+        if bufcnt > 1
+            let s .= '(' . bufcnt .')'
+        endif
+        let s .= '[' . fnamemodify(bufname, ':t') . ']'
+        if bufmodcnt > 0
+            let s .= '[' . ((bufmodcnt > 1) ? bufmodcnt : '') . '+]'
+        endif
+        let s .= ' '
+        let s .= '%#TabLineFill#'
+    endfor
+    return s
+endfunction
+
+set tabline=%!Tabline()
