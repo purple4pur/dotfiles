@@ -25,7 +25,7 @@
 ---       followed by balanced '()'). In "input" finds function call, in
 ---       "output" prompts user to enter function name.
 ---     - 't' - tag. In "input" finds tag with same identifier, in "output"
----       prompts user to enter tag name.
+---       prompts user to enter tag name with possible attributes.
 ---     - All symbols in brackets '()', '[]', '{}', '<>". In "input' represents
 ---       balanced brackets (open - with whitespace pad, close - without), in
 ---       "output" - left and right parts of brackets.
@@ -52,7 +52,7 @@
 ---   Overall it is pretty good, but certain cases won't work. Like self-nested
 ---   tags won't match correctly on both ends: '<a><a></a></a>'.
 ---
---- # Setup~
+--- # Setup ~
 ---
 --- This module needs a setup with `require('mini.surround').setup({})`
 --- (replace `{}` with your `config` table). It will create global Lua table
@@ -67,7 +67,7 @@
 ---
 --- To stop module from showing non-error feedback, set `config.silent = true`.
 ---
---- # Example usage~
+--- # Example usage ~
 ---
 --- Regular mappings:
 --- - `saiw)` - add (`sa`) for inner word (`iw`) parenthesis (`)`).
@@ -82,12 +82,12 @@
 ---
 --- Extended mappings (temporary force "prev"/"next" search methods):
 --- - `sdnf` - delete (`sd`) next (`n`) function call (`f`).
---- - `srlf(` - replace (`sd`) last (`l`) function call (`f`) with padded
+--- - `srlf(` - replace (`sr`) last (`l`) function call (`f`) with padded
 ---   bracket (`(`).
---- - `2sfnt` - find (`sf`) second (2) next (`n`) tag (`t`).
---- - `shl}` - highlight (`sh`) last (`l`) second (`2`) curly bracket (`}`).
+--- - `2sfnt` - find (`sf`) second (`2`) next (`n`) tag (`t`).
+--- - `2shl}` - highlight (`sh`) last (`l`) second (`2`) curly bracket (`}`).
 ---
---- # Comparisons~
+--- # Comparisons ~
 ---
 --- - 'tpope/vim-surround':
 ---     - 'vim-surround' has completely different, with other focus set of
@@ -123,13 +123,13 @@
 ---         - Default behavior in 'mini.ai' selects one of the edges into `a`
 ---           textobject, while 'mini.surround' - both.
 ---
---- # Highlight groups~
+--- # Highlight groups ~
 ---
 --- * `MiniSurround` - highlighting of requested surrounding.
 ---
 --- To change any highlight group, modify it directly with |:highlight|.
 ---
---- # Disabling~
+--- # Disabling ~
 ---
 --- To disable, set `vim.g.minisurround_disable` (globally) or
 --- `vim.b.minisurround_disable` (for a buffer) to `true`. Considering high
@@ -137,7 +137,7 @@
 --- rules for disabling module's functionality is left to user. See
 --- |mini.nvim-disabling-recipes| for common recipes.
 
---- Builtin surroundings~
+--- Builtin surroundings ~
 ---
 --- This table describes all builtin surroundings along with what they
 --- represent. Explanation:
@@ -281,8 +281,8 @@
 ---       arguments and should return one of:
 ---         - Composed pattern. Useful for implementing user input. Example of
 ---           simplified variant of input surrounding for function call with
----           name taken from user prompt:
---- >
+---           name taken from user prompt: >
+---
 ---           function()
 ---             local left_edge = vim.pesc(vim.fn.input('Function name: '))
 ---             return { string.format('%s+%%b()', left_edge), '^.-%(().*()%)$' }
@@ -290,8 +290,8 @@
 --- <
 ---         - Single region pair (see |MiniSurround-glossary|). Useful to allow
 ---           full control over surrounding. Will be taken as is. Example of
----           returning first and last lines of a buffer:
---- >
+---           returning first and last lines of a buffer: >
+---
 ---           function()
 ---             local n_lines = vim.fn.line('$')
 ---             return {
@@ -311,8 +311,8 @@
 ---           best region pair will be picked in the same manner as with composed
 ---           pattern (respecting options `n_lines`, `search_method`, etc.) using
 ---           output region (from start of left region to end of right region).
----           Example using edges of "best" line with display width more than 80:
---- >
+---           Example using edges of "best" line with display width more than 80: >
+---
 ---           function()
 ---             local make_line_region_pair = function(n)
 ---               local left = { line = n, col = 1 }
@@ -339,8 +339,8 @@
 ---       !IMPORTANT NOTE!: it means that output's `from` shouldn't be strictly
 ---       to the left of `init` (it will lead to infinite loop). Not allowed as
 ---       last item (as it should be pattern with captures).
----       Example of matching only balanced parenthesis with big enough width:
---- >
+---       Example of matching only balanced parenthesis with big enough width: >
+---
 ---         {
 ---           '%b()',
 ---           function(s, init)
@@ -349,7 +349,7 @@
 ---           end,
 ---           '^.().*().$'
 ---         }
---- >
+--- <
 --- More examples:
 --- - See |MiniSurround.gen_spec| for function wrappers to create commonly used
 ---   surrounding specifications.
@@ -361,13 +361,19 @@
 ---
 --- # Output surrounding ~
 ---
---- A table with <left> (plain text string) and <right> (plain text string)
---- fields. Strings can contain new lines character `\n` to add multiline parts.
+--- Specification for output can be either a table with <left> and <right> fields,
+--- or a callable returning such table (will be called with no arguments).
+--- Strings can contain new lines character "\n" to add multiline parts.
 ---
 --- Examples:
 --- - Lua block string: `{ left = '[[', right = ']]' }`
 --- - Brackets on separate lines (indentation is not preserved):
 ---   `{ left = '(\n', right = '\n)' }`
+--- - Function call: >
+---   function()
+---     local function_name = MiniSurround.user_input('Function name')
+---     return { left = function_name .. '(', right = ')' }
+---   end
 ---@tag MiniSurround-surround-specification
 
 --- Count with actions
@@ -438,6 +444,15 @@ local H = {}
 ---
 ---@usage `require('mini.surround').setup({})` (replace `{}` with your `config` table)
 MiniSurround.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.surround) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniSurround = MiniSurround
 
@@ -456,7 +471,7 @@ end
 --- Default values:
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 ---@text                                               *MiniSurround-vim-surround-config*
---- # Setup similar to 'tpope/vim-surround'~
+--- # Setup similar to 'tpope/vim-surround' ~
 ---
 --- This module is primarily designed after 'machakann/vim-sandwich'. To get
 --- behavior closest to 'tpope/vim-surround' (but not identical), use this setup:
@@ -485,9 +500,19 @@ end
 ---   -- Make special mapping for "add surrounding for line"
 ---   vim.keymap.set('n', 'yss', 'ys_', { remap = true })
 --- <
---- # Options~
+--- # Options ~
 ---
---- ## Custom surroundings~
+--- ## Mappings ~
+---
+--- `config.mappings` defines what mappings are set up for particular actions.
+--- By default it uses "prefix style" left hand side starting with "s" (for
+--- "surround"): `sa` - "surround add", `sd` - "surround delete", etc.
+---
+--- Note: if 'timeoutlen' is low enough to cause occasional usage of |s| key
+--- (that deletes character under cursor), disable it with the following call:
+---     `vim.keymap.set({ 'n', 'x' }, 's', '<Nop>')`
+---
+--- ## Custom surroundings ~
 ---
 --- User can define own surroundings by supplying `config.custom_surroundings`.
 --- It should be a **table** with keys being single character surrounding
@@ -593,7 +618,7 @@ end
 --- - `'prev'`:          `(a) bbb (c)` -> `[a] bbb (c)`. Same outcome for `(bbb)`.
 --- - `'nearest'`: depends on cursor position (same as in `'cover_or_nearest'`).
 ---
---- ## Search suffixes~
+--- ## Search suffixes ~
 ---
 --- To provide more searching possibilities, 'mini.surround' creates extended
 --- mappings force "prev" and "next" methods for particular search. It does so
@@ -920,11 +945,12 @@ MiniSurround.gen_spec = { input = {}, output = {} }
 ---
 --- In order for this to work, apart from working treesitter parser for desired
 --- language, user should have a reachable language-specific 'textobjects'
---- query (see |get_query()|). The most straightforward way for this is to have
---- 'textobjects.scm' query file with treesitter captures stored in some
---- recognized path. This is primarily designed to be compatible with
---- 'nvim-treesitter/nvim-treesitter-textobjects' plugin, but can be used
---- without it.
+--- query (see |vim.treesitter.query.get()| or |get_query()|, depending on your
+--- Neovim version).
+--- The most straightforward way for this is to have 'textobjects.scm' query
+--- file with treesitter captures stored in some recognized path. This is
+--- primarily designed to be compatible with plugin
+--- 'nvim-treesitter/nvim-treesitter-textobjects', but can be used without it.
 ---
 --- Two most common approaches for having a query file:
 --- - Install 'nvim-treesitter/nvim-treesitter-textobjects'. It has curated and
@@ -946,8 +972,7 @@ MiniSurround.gen_spec = { input = {}, output = {} }
 ---       f = ts_input({ outer = '@call.outer', inner = '@call.inner' }),
 ---     }
 ---   })
---- >
----
+--- <
 --- Notes:
 --- - By default query is done using 'nvim-treesitter' plugin if it is present
 ---   (falls back to builtin methods otherwise). This allows for a more
@@ -984,7 +1009,7 @@ MiniSurround.gen_spec.input.treesitter = function(captures, opts)
 
   return function()
     -- Get array of matched treesitter nodes
-    local has_nvim_treesitter, _ = pcall(require, 'nvim-treesitter')
+    local has_nvim_treesitter = pcall(require, 'nvim-treesitter') and pcall(require, 'nvim-treesitter.query')
     local node_pair_querier = (has_nvim_treesitter and opts.use_nvim_treesitter) and H.get_matched_node_pairs_plugin
       or H.get_matched_node_pairs_builtin
     local matched_node_pairs = node_pair_querier(captures)
@@ -1070,7 +1095,7 @@ H.builtin_surroundings = {
   ['t'] = {
     input = { '<(%w-)%f[^<%w][^<>]->.-</%1>', '^<.->().*()</[^/]->$' },
     output = function()
-      local tag_full = MiniSurround.user_input('Tag name')
+      local tag_full = MiniSurround.user_input('Tag')
       if tag_full == nil then return nil end
       local tag_name = tag_full:match('^%S*')
       return { left = '<' .. tag_full .. '>', right = '</' .. tag_name .. '>' }
@@ -1254,8 +1279,7 @@ H.get_surround_spec = function(sur_type, use_cache)
   -- confused with list of patterns.
   if H.is_composed_pattern(res) then res = vim.tbl_map(H.wrap_callable_table, res) end
 
-  -- Track identifier for possible messages. Use metatable to pass
-  -- `vim.tbl_islist()` check.
+  -- Track id for possible messages. Use metatable to pass "islist" check.
   res = setmetatable(res, { __index = { id = char } })
 
   -- Cache result
@@ -1312,7 +1336,7 @@ H.is_region_pair = function(x)
 end
 
 H.is_region_pair_array = function(x)
-  if not vim.tbl_islist(x) then return false end
+  if not H.islist(x) then return false end
   for _, v in ipairs(x) do
     if not H.is_region_pair(v) then return false end
   end
@@ -1320,7 +1344,7 @@ H.is_region_pair_array = function(x)
 end
 
 H.is_composed_pattern = function(x)
-  if not (vim.tbl_islist(x) and #x > 0) then return false end
+  if not (H.islist(x) and #x > 0) then return false end
   for _, val in ipairs(x) do
     local val_type = type(val)
     if not (val_type == 'table' or val_type == 'string' or vim.is_callable(val)) then return false end
@@ -1450,7 +1474,6 @@ H.prepare_captures = function(captures)
 end
 
 H.get_matched_node_pairs_plugin = function(captures)
-  -- Hope that 'nvim-treesitter.query' is stable enough
   local ts_queries = require('nvim-treesitter.query')
   local ts_parsers = require('nvim-treesitter.parsers')
 
@@ -1489,7 +1512,8 @@ H.get_matched_node_pairs_builtin = function(captures)
   local ok, parser = pcall(vim.treesitter.get_parser, 0, lang)
   if not ok then H.error_treesitter('parser', lang) end
 
-  local query = vim.treesitter.get_query(lang, 'textobjects')
+  local get_query = vim.fn.has('nvim-0.9') == 1 and vim.treesitter.query.get or vim.treesitter.get_query
+  local query = get_query(lang, 'textobjects')
   if query == nil then H.error_treesitter('query', lang) end
 
   -- Remove leading '@'
@@ -2204,7 +2228,7 @@ end
 ---@private
 H.cartesian_product = function(arr)
   if not (type(arr) == 'table' and #arr > 0) then return {} end
-  arr = vim.tbl_map(function(x) return vim.tbl_islist(x) and x or { x } end, arr)
+  arr = vim.tbl_map(function(x) return H.islist(x) and x or { x } end, arr)
 
   local res, cur_item = {}, {}
   local process
@@ -2213,7 +2237,7 @@ H.cartesian_product = function(arr)
       table.insert(cur_item, arr[level][i])
       if level == #arr then
         -- Flatten array to allow tables as elements of step tables
-        table.insert(res, vim.tbl_flatten(cur_item))
+        table.insert(res, H.tbl_flatten(cur_item))
       else
         process(level + 1)
       end
@@ -2229,5 +2253,10 @@ H.wrap_callable_table = function(x)
   if vim.is_callable(x) and type(x) == 'table' then return function(...) return x(...) end end
   return x
 end
+
+-- TODO: Remove after compatibility with Neovim=0.9 is dropped
+H.islist = vim.fn.has('nvim-0.10') == 1 and vim.islist or vim.tbl_islist
+H.tbl_flatten = vim.fn.has('nvim-0.10') == 1 and function(x) return vim.iter(x):flatten(math.huge):totable() end
+  or vim.tbl_flatten
 
 return MiniSurround

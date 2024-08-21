@@ -13,7 +13,7 @@
 ---
 --- - Trim all trailing empty lines with |MiniTrailspace.trim_last_lines()|.
 ---
---- # Setup~
+--- # Setup ~
 ---
 --- This module needs a setup with `require('mini.trailspace').setup({})`
 --- (replace `{}` with your `config` table). It will create global Lua table
@@ -26,13 +26,13 @@
 --- `vim.b.minitrailspace_config` which should have same structure as
 --- `MiniTrailspace.config`. See |mini.nvim-buffer-local-config| for more details.
 ---
---- # Highlight groups~
+--- # Highlight groups ~
 ---
 --- * `MiniTrailspace` - highlight group for trailing space.
 ---
 --- To change any highlight group, modify it directly with |:highlight|.
 ---
---- # Disabling~
+--- # Disabling ~
 ---
 --- To disable, set `vim.g.minitrailspace_disable` (globally) or
 --- `vim.b.minitrailspace_disable` (for a buffer) to `true`. Considering high
@@ -52,6 +52,15 @@ local H = {}
 ---
 ---@usage `require('mini.trailspace').setup({})` (replace `{}` with your `config` table)
 MiniTrailspace.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.trailspace) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniTrailspace = MiniTrailspace
 

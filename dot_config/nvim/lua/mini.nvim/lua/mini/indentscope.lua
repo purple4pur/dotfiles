@@ -30,7 +30,7 @@
 --- - There are textobjects and motions to operate on scope. Support |count|
 ---   and dot-repeat (in operator pending mode).
 ---
---- # Setup~
+--- # Setup ~
 ---
 --- This module needs a setup with `require('mini.indentscope').setup({})`
 --- (replace `{}` with your `config` table). It will create global Lua table
@@ -43,7 +43,7 @@
 --- `vim.b.miniindentscope_config` which should have same structure as
 --- `MiniIndentscope.config`. See |mini.nvim-buffer-local-config| for more details.
 ---
---- # Comparisons~
+--- # Comparisons ~
 ---
 --- - 'lukas-reineke/indent-blankline.nvim':
 ---     - Its main functionality is about showing static guides of indent levels.
@@ -52,7 +52,7 @@
 ---       even on blank lines). They can be used simultaneously, but it will
 ---       lead to one of the visualizations being on top (hiding) of another.
 ---
---- # Highlight groups~
+--- # Highlight groups ~
 ---
 --- * `MiniIndentscopeSymbol` - symbol showing on every line of scope if its
 ---   indent is multiple of 'shiftwidth'.
@@ -62,7 +62,7 @@
 ---
 --- To change any highlight group, modify it directly with |:highlight|.
 ---
---- # Disabling~
+--- # Disabling ~
 ---
 --- To disable autodrawing, set `vim.g.miniindentscope_disable` (globally) or
 --- `vim.b.miniindentscope_disable` (for a buffer) to `true`. Considering high
@@ -87,7 +87,7 @@
 ---   a discrete inverse version of its derivative. Such interface proved to be
 ---   more appropriate for kind of task at hand.
 ---
---- Special cases~
+--- Special cases ~
 ---
 --- - When scope to be drawn intersects (same indent, ranges overlap) currently
 ---   visible one (at process or finished drawing), drawing is done immediately
@@ -108,6 +108,15 @@ local H = {}
 ---
 ---@usage `require('mini.indentscope').setup({})` (replace `{}` with your `config` table)
 MiniIndentscope.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.indentscope) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniIndentscope = MiniIndentscope
 
@@ -139,8 +148,8 @@ end
 ---   It also controls how empty lines are treated: they are included in scope
 ---   only if followed by a border. Another way of looking at it is that indent
 ---   of blank line is computed based on value of `border` option.
----   Here is an illustration of how `border` works in presence of empty lines:
---- >
+---   Here is an illustration of how `border` works in presence of empty lines: >
+---
 ---                              |both|bottom|top|none|
 ---   1|function foo()           | 0  |  0   | 0 | 0  |
 ---   2|                         | 4  |  0   | 4 | 0  |
@@ -160,8 +169,8 @@ end
 ---   computation of scope. If `true`, reference indent is a minimum of
 ---   reference line's indent and cursor column. In main example, here how
 ---   scope's body range differs depending on cursor column and `indent_at_cursor`
----   value (assuming cursor is on line 3 and it is whole buffer):
---- >
+---   value (assuming cursor is on line 3 and it is whole buffer): >
+---
 ---     Column\Option true|false
 ---        1 and 2    2-5 | 2-4
 ---      3 and more   2-4 | 2-4
@@ -239,7 +248,7 @@ MiniIndentscope.config = {
 ---   Useful to define local behavior (for example, for a certain filetype).
 --- - Global options from |MiniIndentscope.config|.
 ---
---- Algorithm overview~
+--- Algorithm overview ~
 ---
 --- - Compute reference "indent at column". Reference line is an input `line`
 ---   which might be modified to one of its neighbors if `try_as_border` option
@@ -257,7 +266,7 @@ MiniIndentscope.config = {
 ---   indent minus one in case of no border). This is used during drawing
 ---   visual indicator.
 ---
---- Indent computation~
+--- Indent computation ~
 ---
 --- For every line indent is intended to be computed unambiguously:
 --- - For "normal" lines indent is an output of |indent()|.
@@ -393,40 +402,45 @@ end
 ---@param opts __indentscope_animation_opts
 ---
 ---@return __indentscope_animation_return
-MiniIndentscope.gen_animation.linear =
-  function(opts) return H.animation_arithmetic_powers(0, H.normalize_animation_opts(opts)) end
+MiniIndentscope.gen_animation.linear = function(opts)
+  return H.animation_arithmetic_powers(0, H.normalize_animation_opts(opts))
+end
 
 --- Generate quadratic progression
 ---
 ---@param opts __indentscope_animation_opts
 ---
 ---@return __indentscope_animation_return
-MiniIndentscope.gen_animation.quadratic =
-  function(opts) return H.animation_arithmetic_powers(1, H.normalize_animation_opts(opts)) end
+MiniIndentscope.gen_animation.quadratic = function(opts)
+  return H.animation_arithmetic_powers(1, H.normalize_animation_opts(opts))
+end
 
 --- Generate cubic progression
 ---
 ---@param opts __indentscope_animation_opts
 ---
 ---@return __indentscope_animation_return
-MiniIndentscope.gen_animation.cubic =
-  function(opts) return H.animation_arithmetic_powers(2, H.normalize_animation_opts(opts)) end
+MiniIndentscope.gen_animation.cubic = function(opts)
+  return H.animation_arithmetic_powers(2, H.normalize_animation_opts(opts))
+end
 
 --- Generate quartic progression
 ---
 ---@param opts __indentscope_animation_opts
 ---
 ---@return __indentscope_animation_return
-MiniIndentscope.gen_animation.quartic =
-  function(opts) return H.animation_arithmetic_powers(3, H.normalize_animation_opts(opts)) end
+MiniIndentscope.gen_animation.quartic = function(opts)
+  return H.animation_arithmetic_powers(3, H.normalize_animation_opts(opts))
+end
 
 --- Generate exponential progression
 ---
 ---@param opts __indentscope_animation_opts
 ---
 ---@return __indentscope_animation_return
-MiniIndentscope.gen_animation.exponential =
-  function(opts) return H.animation_geometrical_powers(H.normalize_animation_opts(opts)) end
+MiniIndentscope.gen_animation.exponential = function(opts)
+  return H.animation_geometrical_powers(H.normalize_animation_opts(opts))
+end
 
 --- Move cursor within scope
 ---
@@ -553,7 +567,9 @@ H.blank_indent_funs = {
 H.border_from_body = {
   ['none'] = function(body, opts) return {} end,
   ['top'] = function(body, opts) return { top = body.top - 1, indent = H.get_line_indent(body.top - 1, opts) } end,
-  ['bottom'] = function(body, opts) return { bottom = body.bottom + 1, indent = H.get_line_indent(body.bottom + 1, opts) } end,
+  ['bottom'] = function(body, opts)
+    return { bottom = body.bottom + 1, indent = H.get_line_indent(body.bottom + 1, opts) }
+  end,
   ['both'] = function(body, opts)
     return {
       top = body.top - 1,
@@ -586,6 +602,9 @@ H.border_correctors = {
     return line - 1
   end,
 }
+
+-- Whether or not Nvim supports the virt_text_repeat_linebreak extmark feature
+H.has_wrapped_virt_text = vim.fn.has('nvim-0.10') == 1
 
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
@@ -930,6 +949,8 @@ H.make_draw_function = function(indicator, opts)
     virt_text_win_col = indicator.virt_text_win_col,
     virt_text_pos = 'overlay',
   }
+
+  if H.has_wrapped_virt_text and vim.wo.breakindent then extmark_opts.virt_text_repeat_linebreak = true end
 
   local current_event_id = opts.event_id
 

@@ -74,7 +74,7 @@
 ---       some edge cases, but **requires** tree-sitter parser.
 ---     - Doesn't work inside comments or strings.
 ---
---- # Disabling~
+--- # Disabling ~
 ---
 --- To disable, set `g:minisplitjoin_disable` (globally) or `b:minisplitjoin_disable`
 --- (for a buffer) to `v:true`. Considering high number of different scenarios
@@ -121,6 +121,15 @@ local H = {}
 ---
 ---@usage `require('mini.splitjoin').setup({})` (replace `{}` with your `config` table)
 MiniSplitjoin.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.splitjoin) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniSplitjoin = MiniSplitjoin
 
@@ -981,8 +990,7 @@ H.get_neighborhood = function()
   end
 
   -- Convert 2d region to 1d span
-  local region_to_span =
-    function(region) return { from = pos_to_offset(region.from), to = pos_to_offset(region.to) } end
+  local region_to_span = function(region) return { from = pos_to_offset(region.from), to = pos_to_offset(region.to) } end
 
   -- Convert 1d span to 2d region
   local span_to_region = function(span) return { from = offset_to_pos(span.from), to = offset_to_pos(span.to) } end

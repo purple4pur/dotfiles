@@ -38,7 +38,7 @@
 --- What is doesn't do:
 --- - It doesn't support fuzzy query for items. And probably will never do.
 ---
---- # Setup~
+--- # Setup ~
 ---
 --- This module needs a setup with `require('mini.starter').setup({})`
 --- (replace `{}` with your `config` table). It will create global Lua table
@@ -57,7 +57,7 @@
 ---
 --- To stop module from showing non-error feedback, set `config.silent = true`.
 ---
---- # Highlight groups~
+--- # Highlight groups ~
 ---
 --- * `MiniStarterCurrent` - current item.
 --- * `MiniStarterFooter` - footer units.
@@ -71,7 +71,7 @@
 ---
 --- To change any highlight group, modify it directly with |:highlight|.
 ---
---- # Disabling~
+--- # Disabling ~
 ---
 --- To disable core functionality, set `vim.g.ministarter_disable` (globally) or
 --- `vim.b.ministarter_disable` (for a buffer) to `true`. Considering high number
@@ -169,7 +169,7 @@
 --- <
 ---@tag MiniStarter-example-config
 
---- # Lifecycle of Starter buffer~
+--- # Lifecycle of Starter buffer ~
 ---
 --- - Open with |MiniStarter.open()|. It includes creating buffer with
 ---   appropriate options, mappings, behavior; call to |MiniStarter.refresh()|;
@@ -200,6 +200,15 @@ local H = {}
 ---
 ---@usage `require('mini.starter').setup({})` (replace `{}` with your `config` table)
 MiniStarter.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.starter) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniStarter = MiniStarter
 
@@ -310,8 +319,10 @@ MiniStarter.open = function(buf_id)
   -- Populate buffer
   MiniStarter.refresh()
 
-  -- Issue custom event
-  vim.cmd('doautocmd User MiniStarterOpened')
+  -- Issue custom event. Delay at startup, as it is executed with `noautocmd`.
+  local trigger_event = function() vim.api.nvim_exec_autocmds('User', { pattern = 'MiniStarterOpened' }) end
+  if H.is_in_vimenter then trigger_event = vim.schedule_wrap(trigger_event) end
+  trigger_event()
 
   -- Ensure not being in VimEnter
   H.is_in_vimenter = false
@@ -537,23 +548,49 @@ MiniStarter.sections.recent_files = function(n, current_dir, show_path)
   end
 end
 
--- stylua: ignore start
+-- stylua: ignore
+--- Section with 'mini.pick' pickers
+---
+--- Notes:
+--- - All actions require |mini.pick| module of 'mini.nvim'.
+--- - "Command history", "Explorer", and "Visited paths" items
+---   require |mini.extra| module of 'mini.nvim'.
+--- - "Visited paths" items requires |mini.visits| module of 'mini.nvim'.
+---
+---@return __starter_section_fun
+MiniStarter.sections.pick = function()
+  return function()
+    return {
+      { action = 'Pick history scope=":"', name = 'Command history', section = 'Pick' },
+      { action = 'Pick explorer',          name = 'Explorer',        section = 'Pick' },
+      { action = 'Pick files',             name = 'Files',           section = 'Pick' },
+      { action = 'Pick grep_live',         name = 'Grep live',       section = 'Pick' },
+      { action = 'Pick help',              name = 'Help tags',       section = 'Pick' },
+      { action = 'Pick visit_paths',       name = 'Visited paths',   section = 'Pick' },
+    }
+  end
+end
+
+-- stylua: ignore
 --- Section with basic Telescope pickers relevant to start screen
+---
+--- Notes:
+--- - All actions require 'nvim-telescope/telescope.nvim' plugin.
+--- - "Browser" item requires 'nvim-telescope/telescope-file-browser.nvim'.
 ---
 ---@return __starter_section_fun
 MiniStarter.sections.telescope = function()
   return function()
     return {
-      {action = 'Telescope file_browser',    name = 'Browser',         section = 'Telescope'},
-      {action = 'Telescope command_history', name = 'Command history', section = 'Telescope'},
-      {action = 'Telescope find_files',      name = 'Files',           section = 'Telescope'},
-      {action = 'Telescope help_tags',       name = 'Help tags',       section = 'Telescope'},
-      {action = 'Telescope live_grep',       name = 'Live grep',       section = 'Telescope'},
-      {action = 'Telescope oldfiles',        name = 'Old files',       section = 'Telescope'},
+      { action = 'Telescope file_browser',    name = 'Browser',         section = 'Telescope' },
+      { action = 'Telescope command_history', name = 'Command history', section = 'Telescope' },
+      { action = 'Telescope find_files',      name = 'Files',           section = 'Telescope' },
+      { action = 'Telescope help_tags',       name = 'Help tags',       section = 'Telescope' },
+      { action = 'Telescope live_grep',       name = 'Live grep',       section = 'Telescope' },
+      { action = 'Telescope oldfiles',        name = 'Old files',       section = 'Telescope' },
     }
   end
 end
--- stylua: ignore end
 
 -- Content hooks --------------------------------------------------------------
 --- Table with pre-configured content hook generators
@@ -1027,7 +1064,8 @@ H.create_autocommands = function(config)
 
       -- Set indicator used to make different decision on startup
       H.is_in_vimenter = true
-      MiniStarter.open()
+      -- Use 'noautocmd' for better startup time
+      vim.cmd('noautocmd lua MiniStarter.open()')
     end
 
     vim.api.nvim_create_autocmd(
@@ -1308,9 +1346,15 @@ H.apply_buffer_options = function(buf_id)
   --   mapping is present (maybe due to non-blocking nature of `nvim_input()`).
   vim.api.nvim_feedkeys('\28\14', 'nx', false)
 
-  -- Set buffer name
+  -- Set unique buffer name. Prefer "Starter" prefix as more user friendly.
   H.buffer_number = H.buffer_number + 1
   local name = H.buffer_number <= 1 and 'Starter' or ('Starter_' .. H.buffer_number)
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t') == name then
+      name = 'starter://' .. H.buffer_number
+      break
+    end
+  end
   vim.api.nvim_buf_set_name(buf_id, name)
 
   -- Having `noautocmd` is crucial for performance: ~9ms without it, ~1.6ms with it
@@ -1413,13 +1457,8 @@ end
 H.is_something_shown = function()
   -- Don't open Starter buffer if Neovim is opened to show something. That is
   -- when at least one of the following is true:
-  -- - Current buffer has any lines (something opened explicitly).
-  -- NOTE: Usage of `line2byte(line('$') + 1) < 0` seemed to be fine, but it
-  -- doesn't work if some automated changed was made to buffer while leaving it
-  -- empty (returns 2 instead of -1). This was also the reason of not being
-  -- able to test with child Neovim process from 'tests/helpers'.
-  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, true)
-  if #lines > 1 or (#lines == 1 and lines[1]:len() > 0) then return true end
+  -- - There are files in arguments (like `nvim foo.txt` with new file).
+  if vim.fn.argc() > 0 then return true end
 
   -- - Several buffers are listed (like session with placeholder buffers). That
   --   means unlisted buffers (like from `nvim-tree`) don't affect decision.
@@ -1429,8 +1468,18 @@ H.is_something_shown = function()
   )
   if #listed_buffers > 1 then return true end
 
-  -- - There are files in arguments (like `nvim foo.txt` with new file).
-  if vim.fn.argc() > 0 then return true end
+  -- - Current buffer is meant to show something else
+  if vim.bo.filetype ~= '' then return true end
+
+  -- - Current buffer has any lines (something opened explicitly).
+  -- NOTE: Usage of `line2byte(line('$') + 1) < 0` seemed to be fine, but it
+  -- doesn't work if some automated changed was made to buffer while leaving it
+  -- empty (returns 2 instead of -1). This was also the reason of not being
+  -- able to test with child Neovim process from 'tests/helpers'.
+  local n_lines = vim.api.nvim_buf_line_count(0)
+  if n_lines > 1 then return true end
+  local first_line = vim.api.nvim_buf_get_lines(0, 0, 1, true)[1]
+  if string.len(first_line) > 0 then return true end
 
   return false
 end
@@ -1489,7 +1538,8 @@ end
 -- Use `priority` because of the regression bug (highlights are not stacked
 -- properly): https://github.com/neovim/neovim/issues/17358
 H.buf_hl = function(buf_id, ns_id, hl_group, line, col_start, col_end, priority)
-  vim.highlight.range(buf_id, ns_id, hl_group, { line, col_start }, { line, col_end }, { priority = priority })
+  local opts = { end_row = line, end_col = col_end, hl_group = hl_group, priority = priority }
+  vim.api.nvim_buf_set_extmark(buf_id, ns_id, line, col_start, opts)
 end
 
 H.get_buffer_windows = function(buf_id)

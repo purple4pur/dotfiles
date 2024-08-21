@@ -25,7 +25,9 @@
 ---     - Argument.
 ---     - Tag.
 ---     - Derived from user prompt.
----     - Default for punctuation, digit, or whitespace single character.
+---     - Default for punctuation, digit, space, or tab.
+---
+---     For more textobjects see |MiniExtra.gen_ai_spec|.
 ---
 --- - Motions for jumping to left/right edge of textobject.
 ---
@@ -59,7 +61,7 @@
 ---   in 'targets.vim'). Whitespace handling is assumed to be done inside
 ---   textobject specification (like `i(` and `i)` handle whitespace differently).
 ---
---- # Setup~
+--- # Setup ~
 ---
 --- This module needs a setup with `require('mini.ai').setup({})` (replace
 --- `{}` with your `config` table). It will create global Lua table `MiniAi`
@@ -73,7 +75,7 @@
 ---
 --- To stop module from showing non-error feedback, set `config.silent = true`.
 ---
---- # Comparisons~
+--- # Comparisons ~
 ---
 --- - 'wellle/targets.vim':
 ---     - Has limited support for creating own textobjects: it is constrained
@@ -103,7 +105,7 @@
 ---     - Doesn't support multiple search method (basically, only 'cover').
 ---     - Doesn't support consecutive application of target textobject.
 ---
---- # Disabling~
+--- # Disabling ~
 ---
 --- To disable, set `vim.g.miniai_disable` (globally) or `vim.b.miniai_disable`
 --- (for a buffer) to `true`. Considering high number of different scenarios
@@ -111,12 +113,12 @@
 --- functionality is left to user. See |mini.nvim-disabling-recipes| for common
 --- recipes.
 
---- Builtin textobjects~
+--- Builtin textobjects ~
 ---
 --- This table describes all builtin textobjects along with what they
 --- represent. Explanation:
---- - `Key` represents the textobject identifier: single character which should
----   be typed after `a`/`i`.
+--- - `Key` represents the textobject identifier: single alphanumeric,
+---   punctuation, space, or tab character which should be typed after `a`/`i`.
 --- - `Name` is a description of textobject.
 --- - `Example line` contains a string for which examples are constructed. The
 ---   `*` denotes the cursor position.
@@ -246,16 +248,16 @@
 ---       arguments as |MiniAi.find_textobject()| and should return one of:
 ---         - Composed pattern. Useful for implementing user input. Example of
 ---           simplified variant of textobject for function call with name taken
----           from user prompt:
---- >
+---           from user prompt: >
+---
 ---           function()
 ---             local left_edge = vim.pesc(vim.fn.input('Function name: '))
 ---             return { string.format('%s+%%b()', left_edge), '^.-%(().*()%)$' }
 ---           end
 --- <
 ---         - Single output region. Useful to allow full control over
----           textobject. Will be taken as is. Example of returning whole buffer:
---- >
+---           textobject. Will be taken as is. Example of returning whole buffer: >
+---
 ---           function()
 ---             local from = { line = 1, col = 1 }
 ---             local to = {
@@ -269,8 +271,8 @@
 ---           instruments, like treesitter (see |MiniAi.gen_spec.treesitter()|).
 ---           The best region will be picked in the same manner as with composed
 ---           pattern (respecting options `n_lines`, `search_method`, etc.).
----           Example of selecting "best" line with display width more than 80:
---- >
+---           Example of selecting "best" line with display width more than 80: >
+---
 ---           function(_, _, _)
 ---             local res = {}
 ---             for i = 1, vim.api.nvim_buf_line_count(0) do
@@ -293,8 +295,8 @@
 ---       !IMPORTANT NOTE!: it means that output's `from` shouldn't be strictly
 ---       to the left of `init` (it will lead to infinite loop). Not allowed as
 ---       last item (as it should be pattern with captures).
----       Example of matching only balanced parenthesis with big enough width:
---- >
+---       Example of matching only balanced parenthesis with big enough width: >
+---
 ---         {
 ---           '%b()',
 ---           function(s, init)
@@ -303,7 +305,7 @@
 ---           end,
 ---           '^.().*().$'
 ---         }
---- >
+--- <
 --- More examples:
 --- - See |MiniAi.gen_spec| for function wrappers to create commonly used
 ---   textobject specifications.
@@ -384,6 +386,15 @@ local H = {}
 ---
 ---@usage `require('mini.ai').setup({})` (replace `{}` with your `config` table)
 MiniAi.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.ai) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniAi = MiniAi
 
@@ -445,7 +456,7 @@ end
 --- <
 --- There are more example specifications in |MiniAi-textobject-specification|.
 ---
---- ## Search method~
+--- ## Search method ~
 ---
 --- Value of `config.search_method` defines how best match search is done.
 --- Based on its value, one of the following matches will be selected:
@@ -486,7 +497,7 @@ end
 --- - `'prev'`: `(a) bbb (c)` -> `(a)`. Same outcome for `(bbb)`.
 --- - `'nearest'`: depends on cursor position (same as in `'cover_or_nearest'`).
 ---
---- ## Mappings~
+--- ## Mappings ~
 ---
 --- Mappings `around_next`/`inside_next` and `around_last`/`inside_last` are
 --- essentially `around`/`inside` but using search method `'next'` and `'prev'`.
@@ -863,11 +874,12 @@ end
 ---
 --- In order for this to work, apart from working treesitter parser for desired
 --- language, user should have a reachable language-specific 'textobjects'
---- query (see |get_query()|). The most straightforward way for this is to have
---- 'textobjects.scm' query file with treesitter captures stored in some
---- recognized path. This is primarily designed to be compatible with
---- 'nvim-treesitter/nvim-treesitter-textobjects' plugin, but can be used
---- without it.
+--- query (see |vim.treesitter.query.get()| or |get_query()|, depending on your
+--- Neovim version).
+--- The most straightforward way for this is to have 'textobjects.scm' query
+--- file with treesitter captures stored in some recognized path. This is
+--- primarily designed to be compatible with plugin
+--- 'nvim-treesitter/nvim-treesitter-textobjects', but can be used without it.
 ---
 --- Two most common approaches for having a query file:
 --- - Install 'nvim-treesitter/nvim-treesitter-textobjects'. It has curated and
@@ -893,8 +905,7 @@ end
 ---       })
 ---     }
 ---   })
---- >
----
+--- <
 --- Notes:
 --- - By default query is done using 'nvim-treesitter' plugin if it is present
 ---   (falls back to builtin methods otherwise). This allows for a more
@@ -931,7 +942,7 @@ MiniAi.gen_spec.treesitter = function(ai_captures, opts)
   return function(ai_type, _, _)
     -- Get array of matched treesitter nodes
     local target_captures = ai_captures[ai_type]
-    local has_nvim_treesitter, _ = pcall(require, 'nvim-treesitter')
+    local has_nvim_treesitter = pcall(require, 'nvim-treesitter') and pcall(require, 'nvim-treesitter.query')
     local node_querier = (has_nvim_treesitter and opts.use_nvim_treesitter) and H.get_matched_nodes_plugin
       or H.get_matched_nodes_builtin
     local matched_nodes = node_querier(target_captures)
@@ -1157,8 +1168,9 @@ end
 
 H.is_disabled = function() return vim.g.miniai_disable == true or vim.b.miniai_disable == true end
 
-H.get_config =
-  function(config) return vim.tbl_deep_extend('force', MiniAi.config, vim.b.miniai_config or {}, config or {}) end
+H.get_config = function(config)
+  return vim.tbl_deep_extend('force', MiniAi.config, vim.b.miniai_config or {}, config or {})
+end
 
 H.is_search_method = function(x, x_name)
   x = x or H.get_config().search_method
@@ -1182,7 +1194,7 @@ end
 H.expr_textobject = function(mode, ai_type, opts)
   local tobj_id = H.user_textobject_id(ai_type)
 
-  if tobj_id == nil then return '' end
+  if tobj_id == nil then return mode == 'o' and '<Esc>' or '' end
 
   -- Possibly fall back to builtin `a`/`i` textobjects
   if H.is_disabled() or not H.is_valid_textobject_id(tobj_id) then
@@ -1222,7 +1234,7 @@ H.expr_textobject = function(mode, ai_type, opts)
     .. string.format(
       [[MiniAi.select_textobject('%s', '%s', { search_method = '%s', n_times = %d, reference_region = %s, operator_pending = %s, vis_mode = %s })]],
       ai_type,
-      vim.fn.escape(tobj_id, "'"),
+      vim.fn.escape(tobj_id, "'\\"),
       opts.search_method,
       vim.v.count1,
       reference_region_field,
@@ -1249,7 +1261,7 @@ H.expr_motion = function(side)
     .. string.format(
       [[MiniAi.move_cursor('%s', 'a', '%s', { n_times = %d })]],
       side,
-      vim.fn.escape(tobj_id, "'"),
+      vim.fn.escape(tobj_id, "'\\"),
       vim.v.count1
     )
     .. '<CR>'
@@ -1307,7 +1319,7 @@ H.is_region = function(x)
 end
 
 H.is_region_array = function(x)
-  if not vim.tbl_islist(x) then return false end
+  if not H.islist(x) then return false end
   for _, v in ipairs(x) do
     if not H.is_region(v) then return false end
   end
@@ -1315,7 +1327,7 @@ H.is_region_array = function(x)
 end
 
 H.is_composed_pattern = function(x)
-  if not (vim.tbl_islist(x) and #x > 0) then return false end
+  if not (H.islist(x) and #x > 0) then return false end
   for _, val in ipairs(x) do
     local val_type = type(val)
     if not (val_type == 'table' or val_type == 'string' or vim.is_callable(val)) then return false end
@@ -1444,7 +1456,7 @@ end
 H.prepare_ai_captures = function(ai_captures)
   local is_capture = function(x)
     if type(x) == 'string' then x = { x } end
-    if not vim.tbl_islist(x) then return false end
+    if not H.islist(x) then return false end
 
     for _, v in ipairs(x) do
       if not (type(v) == 'string' and v:sub(1, 1) == '@') then return false end
@@ -1465,7 +1477,6 @@ H.prepare_ai_captures = function(ai_captures)
 end
 
 H.get_matched_nodes_plugin = function(captures)
-  -- Hope that 'nvim-treesitter.query' is stable enough
   local ts_queries = require('nvim-treesitter.query')
   return vim.tbl_map(
     function(match) return match.node end,
@@ -1480,7 +1491,8 @@ H.get_matched_nodes_builtin = function(captures)
   local ok, parser = pcall(vim.treesitter.get_parser, 0, lang)
   if not ok then H.error_treesitter('parser', lang) end
 
-  local query = vim.treesitter.get_query(lang, 'textobjects')
+  local get_query = vim.fn.has('nvim-0.9') == 1 and vim.treesitter.query.get or vim.treesitter.get_query
+  local query = get_query(lang, 'textobjects')
   if query == nil then H.error_treesitter('query', lang) end
 
   -- Compute matched captures
@@ -1858,8 +1870,8 @@ H.user_textobject_id = function(ai_type)
   -- Terminate if couldn't get input (like with <C-c>) or it is `<Esc>`
   if not ok or char == '\27' then return nil end
 
-  if char:find('^[%w%p%s]$') == nil then
-    H.message('Input must be single character: alphanumeric, punctuation, or space.')
+  if char:find('^[%w%p \t]$') == nil then
+    H.message('Input must be single character: alphanumeric, punctuation, space, or tab.')
     return nil
   end
 
@@ -1994,7 +2006,7 @@ end
 ---@private
 H.cartesian_product = function(arr)
   if not (type(arr) == 'table' and #arr > 0) then return {} end
-  arr = vim.tbl_map(function(x) return vim.tbl_islist(x) and x or { x } end, arr)
+  arr = vim.tbl_map(function(x) return H.islist(x) and x or { x } end, arr)
 
   local res, cur_item = {}, {}
   local process
@@ -2003,7 +2015,7 @@ H.cartesian_product = function(arr)
       table.insert(cur_item, arr[level][i])
       if level == #arr then
         -- Flatten array to allow tables as elements of step tables
-        table.insert(res, vim.tbl_flatten(cur_item))
+        table.insert(res, H.tbl_flatten(cur_item))
       else
         process(level + 1)
       end
@@ -2019,5 +2031,10 @@ H.wrap_callable_table = function(x)
   if vim.is_callable(x) and type(x) == 'table' then return function(...) return x(...) end end
   return x
 end
+
+-- TODO: Remove after compatibility with Neovim=0.9 is dropped
+H.islist = vim.fn.has('nvim-0.10') == 1 and vim.islist or vim.tbl_islist
+H.tbl_flatten = vim.fn.has('nvim-0.10') == 1 and function(x) return vim.iter(x):flatten(math.huge):totable() end
+  or vim.tbl_flatten
 
 return MiniAi

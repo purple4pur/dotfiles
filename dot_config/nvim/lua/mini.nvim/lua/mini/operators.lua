@@ -108,6 +108,7 @@
 ---
 --- All operators are automatically mapped during |MiniOperators.setup()| execution.
 --- Mappings keys are deduced from `prefix` field of corresponding `config` entry.
+--- All built-in conflicting mappings are removed (like |gra|, |grn| in Neovim>=0.11).
 ---
 --- For each operator the following mappings are created:
 ---
@@ -167,6 +168,15 @@ local H = {}
 ---
 ---@usage `require('mini.operators').setup({})` (replace `{}` with your `config` table).
 MiniOperators.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.operators) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniOperators = MiniOperators
 
@@ -617,7 +627,7 @@ MiniOperators.default_sort_func = function(content, opts)
   if not vim.is_callable(compare_fun) then H.error('`opts.compare_fun` should be callable.') end
 
   local split_patterns = opts.split_patterns or { '%s*,%s*', '%s*;%s*', '%s+', '' }
-  if not vim.tbl_islist(split_patterns) then H.error('`opts.split_patterns` should be array.') end
+  if not H.islist(split_patterns) then H.error('`opts.split_patterns` should be array.') end
 
   -- Prepare lines to sort
   local lines, submode = content.lines, content.submode
@@ -694,11 +704,25 @@ end
 H.apply_config = function(config)
   MiniOperators.config = config
 
+  local remove_lsp_mapping = function(mode, lhs)
+    local map_desc = vim.fn.maparg(lhs, mode, false, true).desc
+    if map_desc == nil or string.find(map_desc, 'vim%.lsp') == nil then return end
+    vim.keymap.del(mode, lhs)
+  end
+
   -- Make mappings
   local map_all = function(operator_name)
     -- Map only valid LHS
     local prefix = config[operator_name].prefix
     if type(prefix) ~= 'string' or prefix == '' then return end
+
+    -- Remove conflicting built-in mappings
+    if prefix == 'gr' and vim.fn.has('nvim-0.11') == 1 then
+      remove_lsp_mapping('n', 'gra')
+      remove_lsp_mapping('x', 'gra')
+      remove_lsp_mapping('n', 'grr')
+      remove_lsp_mapping('n', 'grn')
+    end
 
     local lhs_tbl = {
       textobject = prefix,
@@ -721,8 +745,9 @@ H.get_config = function(config)
   return vim.tbl_deep_extend('force', MiniOperators.config, vim.b.minioperators_config or {}, config or {})
 end
 
-H.create_default_hl =
-  function() vim.api.nvim_set_hl(0, 'MiniOperatorsExchangeFrom', { default = true, link = 'IncSearch' }) end
+H.create_default_hl = function()
+  vim.api.nvim_set_hl(0, 'MiniOperatorsExchangeFrom', { default = true, link = 'IncSearch' })
+end
 
 -- Evaluate -------------------------------------------------------------------
 H.eval_lua_lines = function(lines)
@@ -1125,7 +1150,7 @@ H.do_between_marks = function(operator, data)
   vim.o.selection = cache_selection
 end
 
-H.is_content = function(x) return type(x) == 'table' and vim.tbl_islist(x.lines) and type(x.submode) == 'string' end
+H.is_content = function(x) return type(x) == 'table' and H.islist(x.lines) and type(x.submode) == 'string' end
 
 -- Registers ------------------------------------------------------------------
 H.get_reg_type = function(regname) return vim.fn.getregtype(regname):sub(1, 1) end
@@ -1273,5 +1298,8 @@ H.cmd_normal = function(command, opts)
 
   if cancel_redo then H.cancel_redo() end
 end
+
+-- TODO: Remove after compatibility with Neovim=0.9 is dropped
+H.islist = vim.fn.has('nvim-0.10') == 1 and vim.islist or vim.tbl_islist
 
 return MiniOperators

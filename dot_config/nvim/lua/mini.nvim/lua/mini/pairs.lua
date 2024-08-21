@@ -31,7 +31,7 @@
 ---       does by default).
 ---     - Disable module for buffer (see 'Disabling' section).
 ---
---- # Setup~
+--- # Setup ~
 ---
 --- This module needs a setup with `require('mini.pairs').setup({})`
 --- (replace `{}` with your `config` table). It will create global Lua table
@@ -43,7 +43,7 @@
 --- This module doesn't have runtime options, so using `vim.b.minipairs_config`
 --- will have no effect here.
 ---
---- # Example mappings~
+--- # Example mappings ~
 ---
 --- - Register quotes inside `config` of |MiniPairs.setup|: >
 ---   mappings = {
@@ -58,7 +58,7 @@
 --- - Create symmetrical `$$` pair only in Tex files: >
 ---   au FileType tex lua MiniPairs.map_buf(0, 'i', '$', {action = 'closeopen', pair = '$$'})
 --- <
---- # Notes~
+--- # Notes ~
 ---
 --- - Make sure to make proper mapping of `<CR>` in order to support completion
 ---   plugin of your choice:
@@ -70,7 +70,7 @@
 ---     - Autopairing capabilities of interpretators (`ipython`, `radian`).
 ---     - Vim mode of terminal itself.
 ---
---- # Disabling~
+--- # Disabling ~
 ---
 --- To disable, set `vim.g.minipairs_disable` (globally) or `vim.b.minipairs_disable`
 --- (for a buffer) to `true`. Considering high number of different scenarios
@@ -95,6 +95,15 @@ local H = {}
 ---
 ---@usage `require('mini.completion').setup({})` (replace `{}` with your `config` table)
 MiniPairs.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.pairs) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniPairs = MiniPairs
 
@@ -353,6 +362,9 @@ end
 --- if it is registered for global or current buffer mapping. Pair is
 --- registered as a result of calling |MiniPairs.map| or |MiniPairs.map_buf|.
 ---
+--- Note: some relevant mode changing events are temporarily ignored
+--- (with |eventignore|) to counter effect of using |i_CTRL-O|.
+---
 --- Mapped by default inside |MiniPairs.setup|.
 ---
 ---@param key string|nil Key to use. Default: `<CR>`.
@@ -363,6 +375,12 @@ MiniPairs.cr = function(key)
 
   local neigh = H.get_cursor_neigh(0, 1)
   if not H.is_disabled() and H.is_pair_registered(neigh, vim.fn.mode(), 0, 'cr') then
+    -- Temporarily ignore mode change to not trigger some common expensive
+    -- autocommands (like diagnostic check, etc.)
+    local cache_eventignore = vim.o.eventignore
+    vim.o.eventignore = 'InsertLeave,InsertLeavePre,InsertEnter,ModeChanged'
+    H.restore_eventignore(cache_eventignore)
+
     res = ('%s%s'):format(res, H.keys.above)
   end
 
@@ -610,5 +628,7 @@ H.map = function(mode, lhs, rhs, opts)
   opts = vim.tbl_deep_extend('force', { silent = true }, opts or {})
   vim.keymap.set(mode, lhs, rhs, opts)
 end
+
+H.restore_eventignore = vim.schedule_wrap(function(val) vim.o.eventignore = val end)
 
 return MiniPairs

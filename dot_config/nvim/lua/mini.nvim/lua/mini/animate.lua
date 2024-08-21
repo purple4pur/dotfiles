@@ -84,7 +84,7 @@
 ---       similarly to 'windows.nvim' in Neovim>=0.9 with appropriate
 ---       'winheight' / 'winwidth' and 'winminheight' / 'winminwidth').
 ---
---- # Highlight groups~
+--- # Highlight groups ~
 ---
 --- * `MiniAnimateCursor` - highlight of cursor during its animated movement.
 --- * `MiniAnimateNormalFloat` - highlight of floating window for `open` and
@@ -92,7 +92,7 @@
 ---
 --- To change any highlight group, modify it directly with |:highlight|.
 ---
---- # Disabling~
+--- # Disabling ~
 ---
 --- To disable, set `vim.g.minianimate_disable` (globally) or
 --- `vim.b.minianimate_disable` (for a buffer) to `true`. Considering high
@@ -112,6 +112,15 @@ local H = {}
 ---
 ---@usage `require('mini.animate').setup({})` (replace `{}` with your `config` table)
 MiniAnimate.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.animate) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniAnimate = MiniAnimate
 
@@ -451,7 +460,9 @@ MiniAnimate.config = {
 
     -- Floating window config generator visualizing specific window
     --minidoc_replace_start winconfig = --<function: implements static window for 25 steps>,
-    winconfig = function(win_id) return H.winconfig_static(win_id, { predicate = H.default_winconfig_predicate, n_steps = 25 }) end,
+    winconfig = function(win_id)
+      return H.winconfig_static(win_id, { predicate = H.default_winconfig_predicate, n_steps = 25 })
+    end,
     --minidoc_replace_end
 
     -- 'winblend' (window transparency) generator for floating window
@@ -472,7 +483,9 @@ MiniAnimate.config = {
 
     -- Floating window config generator visualizing specific window
     --minidoc_replace_start winconfig = --<function: implements static window for 25 steps>,
-    winconfig = function(win_id) return H.winconfig_static(win_id, { predicate = H.default_winconfig_predicate, n_steps = 25 }) end,
+    winconfig = function(win_id)
+      return H.winconfig_static(win_id, { predicate = H.default_winconfig_predicate, n_steps = 25 })
+    end,
     --minidoc_replace_end
 
     -- 'winblend' (window transparency) generator for floating window
@@ -1394,8 +1407,7 @@ H.auto_openclose = function(action_type)
 end
 
 -- General animation ----------------------------------------------------------
-H.trigger_done_event =
-  function(animation_type) vim.cmd('doautocmd User ' .. H.animation_done_events[animation_type]) end
+H.trigger_done_event = function(animation_type) vim.cmd('doautocmd User ' .. H.animation_done_events[animation_type]) end
 
 -- Cursor ---------------------------------------------------------------------
 H.make_cursor_step = function(state_from, state_to, opts)

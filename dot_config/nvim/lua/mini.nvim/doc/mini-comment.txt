@@ -29,7 +29,7 @@ Notes:
   should be `''` (empty string). This is the default value in Neovim>=0.9,
   so make sure to not set it manually.
 
-# Setup~
+# Setup ~
 
 This module needs a setup with `require('mini.comment').setup({})` (replace
 `{}` with your `config` table). It will create global Lua table
@@ -42,7 +42,7 @@ You can override runtime config settings locally to buffer inside
 `vim.b.minicomment_config` which should have same structure as
 `MiniComment.config`. See |mini.nvim-buffer-local-config| for more details.
 
-# Disabling~
+# Disabling ~
 
 To disable core functionality, set `vim.g.minicomment_disable` (globally) or
 `vim.b.minicomment_disable` (for a buffer) to `true`. Considering high number
@@ -55,10 +55,10 @@ for disabling module's functionality is left to user. See
                          `MiniComment.setup`({config})
 Module setup
 
-Parameters~
+Parameters ~
 {config} `(table|nil)` Module config table. See |MiniComment.config|.
 
-Usage~
+Usage ~
 `require('mini.comment').setup({})` (replace `{}` with your `config` table)
 
 ------------------------------------------------------------------------------
@@ -74,13 +74,13 @@ Default values:
       -- Function to compute custom 'commentstring' (optional)
       custom_commentstring = nil,
 
-      -- Whether to ignore blank lines
+      -- Whether to ignore blank lines when commenting
       ignore_blank_line = false,
 
       -- Whether to recognize as comment only lines without indent
       start_of_line = false,
 
-      -- Whether to ensure single space pad for comment parts
+      -- Whether to force single space inner padding for comment parts
       pad_comment_parts = true,
     },
 
@@ -97,6 +97,7 @@ Default values:
       comment_visual = 'gc',
 
       -- Define 'comment' textobject (like `dgc` - delete whole comment block)
+      -- Works also in Visual mode if mapping differs from `comment_visual`
       textobject = 'gc',
     },
 
@@ -133,6 +134,21 @@ even in case of present active tree-sitter parser: >
     }
   })
 
+# Hooks ~
+
+`hooks.pre` and `hooks.post` functions are executed before and after successful
+commenting action (toggle or computing textobject). They will be called
+with a single table argument which has the following fields:
+- <action> `(string)` - action name. One of "toggle" (when actual toggle
+  direction is yet unknown), "comment", "uncomment", "textobject".
+- <line_start> `(number|nil)` - action start line. Can be absent if yet unknown.
+- <line_end> `(number|nil)` - action end line. Can be absent if yet unknown.
+- <ref_position> `(table|nil)` - reference position.
+
+Notes:
+- Changing 'commentstring' in `hooks.pre` is allowed and will take effect.
+- If hook returns `false`, any further action is terminated.
+
 ------------------------------------------------------------------------------
                                                         *MiniComment.operator()*
                          `MiniComment.operator`({mode})
@@ -146,10 +162,10 @@ It has a somewhat unintuitive logic (because of how expression mapping with
 dot-repeatability works): it should be called without arguments inside
 expression mapping and with argument when action should be performed.
 
-Parameters~
+Parameters ~
 {mode} `(string|nil)` Optional string with 'operatorfunc' mode (see |g@|).
 
-Return~
+Return ~
 `(string|nil)` 'g@' if called without argument, '' otherwise (but after
   performing action).
 
@@ -163,19 +179,14 @@ otherwise. It respects indentation and doesn't insert trailing
 whitespace. Toggle commenting not in visual mode is also dot-repeatable
 and respects |count|.
 
-Before successful commenting it executes `config.hooks.pre`.
-After successful commenting it executes `config.hooks.post`.
-If hook returns `false`, any further action is terminated.
-
 # Notes ~
 
 - Comment structure is inferred from buffer's 'commentstring' option or
   local language of tree-sitter parser (if active; only on Neovim>=0.9).
 
-- Currently call to this function will remove marks inside written range.
-  Use |lockmarks| to preserve marks.
+- Call to this function will remove all |extmarks| from target range.
 
-Parameters~
+Parameters ~
 {line_start} `(number)` Start line number (inclusive from 1 to number of lines).
 {line_end} `(number)` End line number (inclusive from 1 to number of lines).
 {opts} `(table|nil)` Options. Possible fields:
@@ -191,10 +202,6 @@ Select comment textobject
 This selects all commented lines adjacent to cursor line (if it itself is
 commented). Designed to be used with operator mode mappings (see |mapmode-o|).
 
-Before successful selection it executes `config.hooks.pre`.
-After successful selection it executes `config.hooks.post`.
-If hook returns `false`, any further action is terminated.
-
 ------------------------------------------------------------------------------
                                                *MiniComment.get_commentstring()*
                 `MiniComment.get_commentstring`({ref_position})
@@ -209,12 +216,12 @@ It has the following logic:
 
 - If first step is not successful, use buffer's 'commentstring' directly.
 
-Parameters~
+Parameters ~
 {ref_position} `(table)` Reference position inside current buffer at which
   to compute 'commentstring'. Same structure as `opts.ref_position`
   in |MiniComment.toggle_lines()|.
 
-Return~
+Return ~
 `(string)` Relevant value of 'commentstring'.
 
 

@@ -78,6 +78,15 @@ local H = {}
 ---
 ---@usage `require('mini.extra').setup({})` (replace `{}` with your `config` table).
 MiniExtra.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.extra) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniExtra = MiniExtra
 
@@ -224,7 +233,7 @@ MiniExtra.gen_ai_spec.number = function()
     local from, to = line:find(digits_pattern, init)
     if from == nil then return nil, nil end
 
-    -- Make sure that hese digits were not processed before. This can happen
+    -- Make sure that these digits were not processed before. This can happen
     -- because 'miin.ai' does next with `init = from + 1`, meaning that
     -- "-12.34" was already matched, then it would try to match starting from
     -- "1": we want to avoid matching that right away and avoid matching "34"
@@ -273,7 +282,7 @@ MiniExtra.gen_highlighter = {}
 --- Notes:
 --- - Words should start and end with alphanumeric symbol (latin letter or digit).
 --- - Words will be highlighted only in full and not if part bigger word, i.e.
----   there should not be alphanumeric symbole before and after it.
+---   there should not be alphanumeric symbol before and after it.
 ---
 ---@param words table Array of words to highlight. Will be matched as is, not
 ---   as Lua pattern.
@@ -282,7 +291,7 @@ MiniExtra.gen_highlighter = {}
 ---@param extmark_opts any Proper `extmark_opts` field for `highlighter`.
 ---   See |MiniHipatterns.config|.
 MiniExtra.gen_highlighter.words = function(words, group, extmark_opts)
-  if not vim.tbl_islist(words) then H.error('`words` should be an array.') end
+  if not H.islist(words) then H.error('`words` should be an array.') end
   if not (type(group) == 'string' or vim.is_callable(group)) then H.error('`group` should be string or callable.') end
   local pattern = vim.tbl_map(function(x)
     if type(x) ~= 'string' then H.error('All elements of `words` should be strings.') end
@@ -617,13 +626,18 @@ MiniExtra.pickers.git_commits = function(local_opts, opts)
   if local_opts.path == nil then path = repo_dir end
 
   -- Define source
-  local show_patch = function(buf_id, item)
+  local preview = function(buf_id, item)
     if type(item) ~= 'string' then return end
+    -- Only define syntax highlighting to avoid costly `FileType` autocommands
     vim.bo[buf_id].syntax = 'git'
     H.cli_show_output(buf_id, { 'git', '-C', repo_dir, '--no-pager', 'show', item:match('^(%S+)') })
   end
-  local preview = show_patch
-  local choose = H.make_show_in_target_win('git_commits', show_patch)
+  local choose_show = function(buf_id, item)
+    preview(buf_id, item)
+    -- Set filetype on opened buffer to trigger appropriate `FileType` event
+    vim.bo[buf_id].filetype = 'git'
+  end
+  local choose = H.make_show_in_target_win('git_commits', choose_show)
 
   local command = { 'git', 'log', [[--format=format:%h %s]], '--', path }
 
@@ -771,7 +785,7 @@ MiniExtra.pickers.hipatterns = function(local_opts, opts)
   if not has_hipatterns then H.error([[`pickers.hipatterns` requires 'mini.hipatterns' which can not be found.]]) end
 
   local_opts = vim.tbl_deep_extend('force', { highlighters = nil, scope = 'all' }, local_opts or {})
-  if local_opts.highlighters ~= nil and not vim.tbl_islist(local_opts.highlighters) then
+  if local_opts.highlighters ~= nil and not H.islist(local_opts.highlighters) then
     H.error('`local_opts.highlighters` should be an array of highlighter identifiers.')
   end
   local highlighters = local_opts.highlighters
@@ -1156,7 +1170,7 @@ end
 MiniExtra.pickers.oldfiles = function(local_opts, opts)
   local pick = H.validate_pick('oldfiles')
   local oldfiles = vim.v.oldfiles
-  if not vim.tbl_islist(oldfiles) then H.error('`pickers.oldfiles` picker needs valid `v:oldfiles`.') end
+  if not H.islist(oldfiles) then H.error('`pickers.oldfiles` picker needs valid `v:oldfiles`.') end
 
   local items = vim.schedule_wrap(function()
     local cwd = pick.get_picker_opts().source.cwd
@@ -1479,8 +1493,9 @@ MiniExtra.pickers.visit_labels = function(local_opts, opts)
 
   -- Define source
   local list_label_paths = function(label)
-    local new_filter =
-      function(path_data) return filter(path_data) and type(path_data.labels) == 'table' and path_data.labels[label] end
+    local new_filter = function(path_data)
+      return filter(path_data) and type(path_data.labels) == 'table' and path_data.labels[label]
+    end
     local all_paths = visits.list_paths(local_opts.cwd, { filter = new_filter, sort = local_opts.sort })
     return vim.tbl_map(function(path) return H.short_path(path, picker_cwd) end, all_paths)
   end
@@ -1674,8 +1689,9 @@ H.make_show_in_target_win = function(fun_name, show_fun)
   end
 end
 
-H.show_with_icons =
-  function(buf_id, items, query) require('mini.pick').default_show(buf_id, items, query, { show_icons = true }) end
+H.show_with_icons = function(buf_id, items, query)
+  require('mini.pick').default_show(buf_id, items, query, { show_icons = true })
+end
 
 H.choose_with_buflisted = function(item)
   local pick = require('mini.pick')
@@ -2014,5 +2030,8 @@ H.short_path = function(path, cwd)
   local res = path:sub(cwd:len() + 1):gsub('^/+', ''):gsub('/+$', '')
   return res
 end
+
+-- TODO: Remove after compatibility with Neovim=0.9 is dropped
+H.islist = vim.fn.has('nvim-0.10') == 1 and vim.islist or vim.tbl_islist
 
 return MiniExtra

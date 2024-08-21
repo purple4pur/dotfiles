@@ -43,8 +43,8 @@ For more details see:
 Notes:
 - Works on all supported versions but using Neovim>=0.9 is recommended.
 
-- There is no functionality to create mappings in order to clearly separate
-  two different tasks.
+- There is no functionality to create mappings while defining clues.
+  This is done to clearly separate these two different actions.
   The best suggested practice is to manually create mappings with
   descriptions (`desc` field in options), as they will be automatically
   used inside clue window.
@@ -72,7 +72,7 @@ Notes:
       Mapping for trigger should be the first listed.
 
       This module makes the best effort to work out of the box and cover
-      most common cases, but it is not full proof. The solution here is to
+      most common cases, but it is not foolproof. The solution here is to
       ensure that triggers are created after making all buffer-local mappings:
       run either |MiniClue.setup()| or |MiniClue.ensure_buf_triggers()|.
 
@@ -81,7 +81,7 @@ Notes:
   relevant as possible. To add/customize description of an already existing
   mapping, use |MiniClue.set_mapping_desc()|.
 
-- Due to technical difficulties, there is no full proof support for
+- Due to technical difficulties, there is no foolproof support for
   Operator-pending mode triggers (like `a`/`i` from |mini.ai|):
     - Doesn't work as part of a command in "temporary Normal mode" (like
       after |i_CTRL-O|) due to implementation difficulties.
@@ -136,7 +136,7 @@ more details.
 
 To change any highlight group, modify it directly with |:highlight|.
 
-# Disabling~
+# Disabling ~
 
 To disable creating triggers, set `vim.g.miniclue_disable` (globally) or
 `vim.b.miniclue_disable` (for a buffer) to `true`. Considering high number
@@ -168,7 +168,7 @@ Main goals of its existence are:
 
 This process is primarily designed for nested `<Leader>` mappings in Normal
 mode but works in all other main modes: Visual, Insert, Operator-pending
-(with caveats; no full proof guarantees), Command-line, Terminal.
+(with caveats; no foolproof guarantees), Command-line, Terminal.
 
 ## Lifecycle ~
 
@@ -194,6 +194,7 @@ mode but works in all other main modes: Visual, Insert, Operator-pending
         - If a key for scrolling clue window (`scroll_down` / `scroll_up`
           in `config.window`; `<C-d>` / `<C-u>` by default), scroll clue window
           and wait for the next user key.
+          Note: if clue window is not shown, treated as a not special key.
 
     - Not special key. Add key to the query while filtering all available
       key combinations to start with the current key query. Advance:
@@ -470,10 +471,10 @@ In this module submode can be implemented following these steps:
                            `MiniClue.setup`({config})
 Module setup
 
-Parameters~
+Parameters ~
 {config} `(table|nil)` Module config table. See |MiniClue.config|.
 
-Usage~
+Usage ~
 `require('mini.clue').setup({})` (replace `{}` with your `config` table).
 **Needs to have triggers configured**.
 
@@ -590,7 +591,7 @@ Enable triggers in all listed buffers
                     `MiniClue.enable_buf_triggers`({buf_id})
 Enable triggers in buffer
 
-Parameters~
+Parameters ~
 {buf_id} `(number|nil)` Buffer identifier. Default: current buffer.
 
 ------------------------------------------------------------------------------
@@ -603,7 +604,7 @@ Disable triggers in all buffers
                    `MiniClue.disable_buf_triggers`({buf_id})
 Disable triggers in buffer
 
-Parameters~
+Parameters ~
 {buf_id} `(number|nil)` Buffer identifier. Default: current buffer.
 
 ------------------------------------------------------------------------------
@@ -616,7 +617,7 @@ Ensure all triggers are valid
                     `MiniClue.ensure_buf_triggers`({buf_id})
 Ensure buffer triggers are valid
 
-Parameters~
+Parameters ~
 {buf_id} `(number|nil)` Buffer identifier. Default: current buffer.
 
 ------------------------------------------------------------------------------
@@ -629,7 +630,7 @@ Notes:
   mappings with same mode and LHS. Similar to |maparg()|.
 - Requires Neovim>=0.8.
 
-Parameters~
+Parameters ~
 {mode} `(string)` Mapping mode (as in `maparg()`).
 {lhs} `(string)` Mapping left hand side (as `name` in `maparg()`).
 {desc} `(string)` New description to set.
@@ -650,7 +651,7 @@ Contains clues for the following triggers: >
 
   { mode = 'i', keys = '<C-x>' }
 
-Return~
+Return ~
 `(table)` Array of clues.
 
 ------------------------------------------------------------------------------
@@ -663,7 +664,7 @@ Contains clues for the following triggers: >
   { mode = 'n', keys = 'g' }
   { mode = 'x', keys = 'g' }
 
-Return~
+Return ~
 `(table)` Array of clues.
 
 ------------------------------------------------------------------------------
@@ -685,10 +686,10 @@ Contains clues for the following triggers: >
 Note: if you use "g" as trigger (like to enable |MiniClue.gen_clues.g()|),
 don't add "g'" and "g`" as triggers: they already will be taken into account.
 
-Return~
+Return ~
 `(table)` Array of clues.
 
-See also~
+See also ~
 |mark-motions|
 
 ------------------------------------------------------------------------------
@@ -703,16 +704,16 @@ Contains clues for the following triggers: >
   { mode = 'i', keys = '<C-r>' }
   { mode = 'c', keys = '<C-r>' }
 
-Parameters~
+Parameters ~
 {opts} `(table|nil)` Options. Possible keys:
   - <show_contents> `(boolean)` - whether to show contents of all possible
     registers. If `false`, only description of special registers is shown.
     Default: `false`.
 
-Return~
+Return ~
 `(table)` Array of clues.
 
-See also~
+See also ~
 |registers|
 
 ------------------------------------------------------------------------------
@@ -726,7 +727,7 @@ Contains clues for the following triggers: >
 
 Note: only non-duplicated commands are included. For full list see |CTRL-W|.
 
-Parameters~
+Parameters ~
 {opts} `(table|nil)` Options. Possible keys:
   - <submode_move> `(boolean)` - whether to make move (change layout)
     commands a submode by using `postkeys` field. Default: `false`.
@@ -735,7 +736,7 @@ Parameters~
   - <submode_resize> `(boolean)` - whether to make resize (change size)
     commands a submode by using `postkeys` field. Default: `false`.
 
-Return~
+Return ~
 `(table)` Array of clues.
 
 ------------------------------------------------------------------------------
@@ -748,7 +749,7 @@ Contains clues for the following triggers: >
   { mode = 'n', keys = 'z' }
   { mode = 'x', keys = 'z' }
 
-Return~
+Return ~
 `(table)` Array of clues.
 
 

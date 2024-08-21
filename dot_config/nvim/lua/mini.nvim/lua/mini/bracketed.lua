@@ -98,7 +98,7 @@
 ---       indent scope, like how to treat empty lines near border or whether to
 ---       compute indent at cursor.
 ---
---- # Disabling~
+--- # Disabling ~
 ---
 --- To disable, set `vim.g.minibracketed_disable` (globally) or
 --- `vim.b.minibracketed_disable` (for a buffer) to `true`. Considering high
@@ -126,6 +126,15 @@ local H = {}
 ---
 ---@usage `require('mini.bracketed').setup({})` (replace `{}` with your `config` table)
 MiniBracketed.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.bracketed) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniBracketed = MiniBracketed
 
@@ -1813,9 +1822,9 @@ H.qf_loc_implementation = function(list_type, direction, opts)
 end
 
 -- Treesitter -----------------------------------------------------------------
-if vim.treesitter.get_node ~= nil then
+if vim.fn.has('nvim-0.9') == 1 then
   H.get_treesitter_node = function(row, col) return vim.treesitter.get_node({ pos = { row, col } }) end
-elseif vim.treesitter.get_node_at_pos ~= nil then
+elseif vim.fn.has('nvim-0.8') == 1 then
   H.get_treesitter_node = function(row, col) return vim.treesitter.get_node_at_pos(0, row, col, {}) end
 end
 

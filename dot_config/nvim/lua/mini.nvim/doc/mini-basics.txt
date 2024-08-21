@@ -60,10 +60,10 @@ To stop module from showing non-error feedback, set `config.silent = true`.
                           `MiniBasics.setup`({config})
 Module setup
 
-Parameters~
+Parameters ~
 {config} `(table|nil)` Module config table. See |MiniBasics.config|.
 
-Usage~
+Usage ~
 `require('mini.basics').setup({})` (replace `{}` with your `config` table)
 
 ------------------------------------------------------------------------------
@@ -76,7 +76,7 @@ Default values:
   MiniBasics.config = {
     -- Options. Set to `false` to disable.
     options = {
-      -- Basic options ('termguicolors', 'number', 'ignorecase', and many more)
+      -- Basic options ('number', 'ignorecase', and many more)
       basic = true,
 
       -- Extra UI features ('winblend', 'cmdheight=0', ...)
@@ -157,7 +157,7 @@ Here is the list of affected options (put cursor on it and press |CTRL-]|):
     - |splitbelow|
     - |splitkeep| (on Neovim>=0.9)
     - |splitright|
-    - |termguicolors|
+    - |termguicolors| (on Neovim<0.10; later versions have it smartly enabled)
     - |wrap|
 - Editing
     - |completeopt|
@@ -273,7 +273,7 @@ Here is a list of suffixes for created toggling mappings (all in Normal mode):
 - `b` - |'background'|.
 - `c` - |'cursorline'|.
 - `C` - |'cursorcolumn'|.
-- `d` - diagnostic (via |vim.diagnostic.enable()| and |vim.diagnostic.disable()|).
+- `d` - diagnostic (via |vim.diagnostic| functions).
 - `h` - |'hlsearch'| (or |v:hlsearch| to be precise).
 - `i` - |'ignorecase'|.
 - `l` - |'list'|.
@@ -345,10 +345,9 @@ otherwise. See |ModeChanged|.
                         `MiniBasics.toggle_diagnostic`()
 Toggle diagnostic for current buffer
 
-This uses |vim.diagnostic.enable()| and |vim.diagnostic.disable()| on
-per buffer basis.
+This uses |vim.diagnostic| functions per buffer.
 
-Return~
+Return ~
 `(string)` String indicator for new state. Similar to what |:set| `{option}?` shows.
 
 
