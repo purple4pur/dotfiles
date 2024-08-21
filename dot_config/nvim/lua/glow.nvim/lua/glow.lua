@@ -26,7 +26,7 @@ local glow = {}
 ---@field height integer floating window height
 -- default configurations
 local config = {
-  glow_path = "",
+  glow_path = vim.fn.exepath("glow"),
   install_path = vim.env.HOME .. "/.local/bin",
   border = "shadow",
   style = vim.o.background,
@@ -98,6 +98,8 @@ local function open_window(cmd_args)
   local width_ratio = glow.config.width_ratio or 0.7
   local win_height = math.ceil(height * height_ratio)
   local win_width = math.ceil(width * width_ratio)
+  local row = math.ceil((height - win_height) / 2 - 1)
+  local col = math.ceil((width - win_width) / 2)
 
   if glow.config.width and glow.config.width < win_width then
     win_width = glow.config.width
@@ -106,9 +108,6 @@ local function open_window(cmd_args)
   if glow.config.height and glow.config.height < win_height then
     win_height = glow.config.height
   end
-
-  local row = math.ceil((height - win_height) / 2 - 1)
-  local col = math.ceil((width - win_width) / 2)
 
   -- pass through calculated window width
   table.insert(cmd_args, "-w")
@@ -180,6 +179,48 @@ local function open_window(cmd_args)
   if glow.config.pager then
     vim.cmd("startinsert")
   end
+end
+
+---@return string
+local function release_file_url()
+  local os, arch
+  local version = "1.5.1"
+
+  -- check pre-existence of required programs
+  if vim.fn.executable("curl") == 0 or vim.fn.executable("tar") == 0 then
+    err("curl and/or tar are required")
+    return ""
+  end
+
+  -- local raw_os = jit.os
+  local raw_os = vim.loop.os_uname().sysname
+  local raw_arch = jit.arch
+  local os_patterns = {
+    ["Windows"] = "Windows",
+    ["Windows_NT"] = "Windows",
+    ["Linux"] = "Linux",
+    ["Darwin"] = "Darwin",
+    ["BSD"] = "Freebsd",
+  }
+
+  local arch_patterns = {
+    ["x86"] = "i386",
+    ["x64"] = "x86_64",
+    ["arm"] = "arm7",
+    ["arm64"] = "arm64",
+  }
+
+  os = os_patterns[raw_os]
+  arch = arch_patterns[raw_arch]
+
+  if os == nil or arch == nil then
+    err("os not supported or could not be parsed")
+    return ""
+  end
+
+  -- create the url, filename based on os and arch
+  local filename = "glow_" .. os .. "_" .. arch .. (os == "Windows" and ".zip" or ".tar.gz")
+  return "https://github.com/charmbracelet/glow/releases/download/v" .. version .. "/" .. filename
 end
 
 ---@return boolean
@@ -255,12 +296,63 @@ local function run(opts)
   open_window(cmd_args)
 end
 
+local function install_glow(opts)
+  local release_url = release_file_url()
+  if release_url == "" then
+    return
+  end
+
+  local install_path = glow.config.install_path
+  local download_command = { "curl", "-sL", "-o", "glow.tar.gz", release_url }
+  local extract_command = { "tar", "-zxf", "glow.tar.gz", "-C", install_path }
+  local output_filename = "glow.tar.gz"
+  ---@diagnostic disable-next-line: missing-parameter
+  local binary_path = vim.fn.expand(table.concat({ install_path, "glow" }, "/"))
+
+  -- check for existing files / folders
+  if vim.fn.isdirectory(install_path) == 0 then
+    vim.loop.fs_mkdir(glow.config.install_path, tonumber("777", 8))
+  end
+
+  ---@diagnostic disable-next-line: missing-parameter
+  if vim.fn.filereadable(binary_path) == 1 then
+    local success = vim.loop.fs_unlink(binary_path)
+    if not success then
+      err("glow binary could not be removed!")
+      return
+    end
+  end
+
+  -- download and install the glow binary
+  local callbacks = {
+    on_sterr = vim.schedule_wrap(function(_, data, _)
+      local out = table.concat(data, "\n")
+      err(out)
+    end),
+    on_exit = vim.schedule_wrap(function()
+      vim.fn.system(extract_command)
+      -- remove the archive after completion
+      if vim.fn.filereadable(output_filename) == 1 then
+        local success = vim.loop.fs_unlink(output_filename)
+        if not success then
+          err("existing archive could not be removed")
+          return
+        end
+      end
+      glow.config.glow_path = binary_path
+      run(opts)
+    end),
+  }
+  vim.fn.jobstart(download_command, callbacks)
+end
+
 ---@return string
 local function get_executable()
-  if glow.config.glow_path == nil or glow.config.glow_path == "" then
-    glow.config.glow_path = vim.fn.exepath("glow")
+  if glow.config.glow_path ~= "" then
+    return glow.config.glow_path
   end
-  return glow.config.glow_path
+
+  return vim.fn.exepath("glow")
 end
 
 local function create_autocmds()
