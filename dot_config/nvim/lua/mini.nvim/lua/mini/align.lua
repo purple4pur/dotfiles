@@ -40,7 +40,7 @@
 --- - Every user interaction is accompanied with helper status message showing
 ---   relevant information about current alignment process.
 ---
---- # Setup~
+--- # Setup ~
 ---
 --- This module needs a setup with `require('mini.align').setup({})` (replace
 --- `{}` with your `config` table). It will create global Lua table `MiniAlign`
@@ -54,7 +54,7 @@
 ---
 --- To stop module from showing non-error feedback, set `config.silent = true`.
 ---
---- # Comparisons~
+--- # Comparisons ~
 ---
 --- - 'junegunn/vim-easy-align':
 ---     - 'mini.align' is mostly designed after 'junegunn/vim-easy-align', so
@@ -86,7 +86,7 @@
 ---       desirable. 'mini.align' does not by design: use Visual selection or
 ---       textobject/motion to explicitly define region to align.
 ---
---- # Disabling~
+--- # Disabling ~
 ---
 --- To disable, set `vim.g.minialign_disable` (globally) or `vim.b.minialign_disable`
 --- (for a buffer) to `true`. Considering high number of different scenarios
@@ -415,6 +415,15 @@ local H = {}
 ---
 ---@usage `require('mini.align').setup({})` (replace `{}` with your `config` table)
 MiniAlign.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.align) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniAlign = MiniAlign
 
@@ -442,14 +451,14 @@ end
 --- - Has signature `(steps, opts)` and should modify any of its input in place.
 ---
 --- Examples:
---- - Modifier function used for default 'i' modifier:
---- >
+--- - Modifier function used for default 'i' modifier: >
+---
 ---   function(steps, _)
 ---     table.insert(steps.pre_split, MiniAlign.gen_step.ignore_split())
 ---   end
 --- <
---- - Tweak 't' modifier to use highest indentation instead of keeping it:
---- >
+--- - Tweak 't' modifier to use highest indentation instead of keeping it: >
+---
 ---   require('mini.align').setup({
 ---     modifiers = {
 ---       t = function(steps, _)
@@ -460,8 +469,8 @@ end
 ---   })
 --- <
 --- - Tweak `j` modifier to cycle through available "justify_side" option
----   values (like in 'junegunn/vim-easy-align'):
---- >
+---   values (like in 'junegunn/vim-easy-align'): >
+---
 ---   require('mini.align').setup({
 ---     modifiers = {
 ---       j = function(_, opts)
@@ -490,8 +499,8 @@ end
 --- alignment process.
 ---
 --- Examples:
---- - Align by default only first pair of columns:
---- >
+--- - Align by default only first pair of columns: >
+---
 ---   local align = require('mini.align')
 ---   align.setup({
 ---     steps = {
@@ -1324,8 +1333,9 @@ end
 
 H.is_disabled = function() return vim.g.minialign_disable == true or vim.b.minialign_disable == true end
 
-H.get_config =
-  function(config) return vim.tbl_deep_extend('force', MiniAlign.config, vim.b.minialign_config or {}, config or {}) end
+H.get_config = function(config)
+  return vim.tbl_deep_extend('force', MiniAlign.config, vim.b.minialign_config or {}, config or {})
+end
 
 -- Mappings -------------------------------------------------------------------
 H.make_action_normal = function(with_preview)
@@ -1845,7 +1855,7 @@ end
 
 -- Predicates -----------------------------------------------------------------
 H.is_array_of = function(x, predicate)
-  if not vim.tbl_islist(x) then return false end
+  if not H.islist(x) then return false end
   for _, v in ipairs(x) do
     if not predicate(v) then return false end
   end
@@ -2025,5 +2035,8 @@ H.undo = function()
     vim.cmd('silent! lockmarks normal! u')
   end
 end
+
+-- TODO: Remove after compatibility with Neovim=0.9 is dropped
+H.islist = vim.fn.has('nvim-0.10') == 1 and vim.islist or vim.tbl_islist
 
 return MiniAlign

@@ -23,7 +23,7 @@
 --- 'smartcase' is also set, f, F, t, T will only match lowercase
 --- characters case-insensitively.
 ---
---- # Setup~
+--- # Setup ~
 ---
 --- This module needs a setup with `require('mini.jump').setup({})`
 --- (replace `{}` with your `config` table). It will create global Lua table
@@ -38,13 +38,13 @@
 ---
 --- To stop module from showing non-error feedback, set `config.silent = true`.
 ---
---- # Highlight groups~
+--- # Highlight groups ~
 ---
 --- * `MiniJump` - all possible cursor positions.
 ---
 --- To change any highlight group, modify it directly with |:highlight|.
 ---
---- # Disabling~
+--- # Disabling ~
 ---
 --- To disable core functionality, set `vim.g.minijump_disable` (globally) or
 --- `vim.b.minijump_disable` (for a buffer) to `true`. Considering high number of
@@ -70,6 +70,15 @@ local H = {}
 ---
 ---@usage `require('mini.jump').setup({})` (replace `{}` with your `config` table)
 MiniJump.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.jump) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniJump = MiniJump
 
@@ -168,8 +177,7 @@ MiniJump.jump = function(target, backward, till, n_times)
 
   -- Determine if target is present anywhere in order to correctly enter
   -- jumping mode. If not, jumping mode is not possible.
-  local escaped_target = vim.fn.escape(MiniJump.state.target, [[\]])
-  local search_pattern = ([[\V%s]]):format(escaped_target)
+  local search_pattern = [[\V]] .. vim.fn.escape(MiniJump.state.target, [[\]])
   local target_is_present = vim.fn.search(search_pattern, 'wn') ~= 0
   if not target_is_present then return end
 
@@ -192,6 +200,7 @@ MiniJump.jump = function(target, backward, till, n_times)
 
   -- Make jump(s)
   H.cache.n_cursor_moved = 0
+  local init_cursor_data = H.get_cursor_data()
   MiniJump.state.jumping = true
   for _ = 1, MiniJump.state.n_times do
     vim.fn.search(pattern, flags)
@@ -202,6 +211,7 @@ MiniJump.jump = function(target, backward, till, n_times)
 
   -- Track cursor position to account for movement not caught by `CursorMoved`
   H.cache.latest_cursor = H.get_cursor_data()
+  H.cache.has_changed_cursor = not vim.deep_equal(H.cache.latest_cursor, init_cursor_data)
 end
 
 --- Make smart jump
@@ -346,8 +356,9 @@ H.create_default_hl = function() vim.api.nvim_set_hl(0, 'MiniJump', { default = 
 
 H.is_disabled = function() return vim.g.minijump_disable == true or vim.b.minijump_disable == true end
 
-H.get_config =
-  function(config) return vim.tbl_deep_extend('force', MiniJump.config, vim.b.minijump_config or {}, config or {}) end
+H.get_config = function(config)
+  return vim.tbl_deep_extend('force', MiniJump.config, vim.b.minijump_config or {}, config or {})
+end
 
 -- Mappings -------------------------------------------------------------------
 H.make_expr_jump = function(backward, till)
@@ -363,6 +374,10 @@ H.make_expr_jump = function(backward, till)
     if target == nil then return '<Esc>' end
     H.update_state(target, backward, till, vim.v.count1)
 
+    vim.schedule(function()
+      if H.cache.has_changed_cursor then return end
+      vim.cmd('undo' .. (vim.fn.has('nvim-0.8') == 1 and '!' or ''))
+    end)
     return 'v<Cmd>lua MiniJump.jump()<CR>'
   end
 end

@@ -47,11 +47,10 @@
 ---     - 'rcarriga/nvim-notify'
 ---     - 'rlane/pounce.nvim'
 ---     - 'romgrk/barbar.nvim'
----     - 'simrat39/symbols-outline.nvim'
 ---     - 'stevearc/aerial.nvim'
 ---     - 'williamboman/mason.nvim'
 ---
---- # Setup~
+--- # Setup ~
 ---
 --- This module needs a setup with `require('mini.base16').setup({})` (replace
 --- `{}` with your `config` table). It will create global Lua table
@@ -91,7 +90,7 @@
 ---     },
 ---   })
 --- <
---- # Notes~
+--- # Notes ~
 ---
 --- 1. This is used to create plugin's colorschemes (see |mini.nvim-color-schemes|).
 --- 2. Using `setup()` doesn't actually create a |colorscheme|. It basically
@@ -111,7 +110,7 @@
 --- <
 --- Activate them as regular |colorscheme| (for example, `:colorscheme minischeme`).
 ---
---- ## minischeme~
+--- ## minischeme ~
 ---
 --- Blue and yellow main colors with high contrast and saturation palette.
 --- Palettes are:
@@ -120,7 +119,7 @@
 --- - For light 'background':
 ---   `MiniBase16.mini_palette('#e2e5ca', '#002a83', 75)`
 ---
---- ## minicyan~
+--- ## minicyan ~
 ---
 --- Cyan and grey main colors with moderate contrast and saturation palette.
 --- Palettes are:
@@ -156,6 +155,15 @@ local H = {}
 ---@usage `require('mini.base16').setup({})` (replace `{}` with your `config`
 ---   table; `config.palette` should be a table with colors)
 MiniBase16.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.base16) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniBase16 = MiniBase16
 
@@ -213,7 +221,7 @@ MiniBase16.config = {
 --- background and foreground with optional setting of accent chroma (see
 --- details).
 ---
---- # Algorithm design~
+--- # Algorithm design ~
 ---
 --- - Main operating color space is
 ---   [CIELCh(uv)](https://en.wikipedia.org/wiki/CIELUV#Cylindrical_representation_(CIELCh))
@@ -569,12 +577,15 @@ H.apply_palette = function(palette, use_cterm)
   hi('TooLong',    {fg=p.base08, bg=nil, attr=nil,         sp=nil})
   hi('Underlined', {fg=nil,      bg=nil, attr='underline', sp=nil})
 
-  -- Git diff
-  hi('DiffAdded',   {fg=p.base0B, bg=p.base00, attr=nil, sp=nil})
-  hi('DiffFile',    {fg=p.base08, bg=p.base00, attr=nil, sp=nil})
-  hi('DiffLine',    {fg=p.base0D, bg=p.base00, attr=nil, sp=nil})
-  hi('DiffNewFile', {link='DiffAdded'})
-  hi('DiffRemoved', {link='DiffFile'})
+  -- Patch diff
+  hi('diffAdded',   {fg=p.base0B, bg=nil, attr=nil, sp=nil})
+  hi('diffChanged', {fg=p.base0E, bg=nil, attr=nil, sp=nil})
+  hi('diffFile',    {fg=p.base09, bg=nil, attr=nil, sp=nil})
+  hi('diffLine',    {fg=p.base0C, bg=nil, attr=nil, sp=nil})
+  hi('diffRemoved', {fg=p.base08, bg=nil, attr=nil, sp=nil})
+  hi('Added',       {fg=p.base0B, bg=nil, attr=nil, sp=nil})
+  hi('Changed',     {fg=p.base0E, bg=nil, attr=nil, sp=nil})
+  hi('Removed',     {fg=p.base08, bg=nil, attr=nil, sp=nil})
 
   -- Git commit
   hi('gitcommitBranch',        {fg=p.base09, bg=nil, attr='bold', sp=nil})
@@ -653,6 +664,16 @@ H.apply_palette = function(palette, use_cterm)
     hi('@lsp.mod.deprecated',     {fg=p.base08, bg=nil, attr=nil, sp=nil})
   end
 
+  -- New tree-sitter groups
+  if vim.fn.has('nvim-0.10') == 1 then
+    -- Source: `:h treesitter-highlight-groups`
+    -- Included only those differing from default links
+    hi('@markup.strong',        {link='@text.strong'})
+    hi('@markup.italic',        {link='@text.emphasis'})
+    hi('@markup.strikethrough', {link='@text.strikethrough'})
+    hi('@markup.underline',     {link='@text.underline'})
+  end
+
   -- Plugins
   -- echasnovski/mini.nvim
   if H.has_integration('echasnovski/mini.nvim') then
@@ -671,6 +692,25 @@ H.apply_palette = function(palette, use_cterm)
 
     hi('MiniCursorword',        {fg=nil, bg=nil, attr='underline', sp=nil})
     hi('MiniCursorwordCurrent', {fg=nil, bg=nil, attr='underline', sp=nil})
+
+    hi('MiniDepsChangeAdded',   {link='diffAdded'})
+    hi('MiniDepsChangeRemoved', {link='diffRemoved'})
+    hi('MiniDepsHint',          {link='DiagnosticHint'})
+    hi('MiniDepsInfo',          {link='DiagnosticInfo'})
+    hi('MiniDepsMsgBreaking',   {link='DiagnosticWarn'})
+    hi('MiniDepsPlaceholder',   {link='Comment'})
+    hi('MiniDepsTitle',         {link='Title'})
+    hi('MiniDepsTitleError',    {link='DiffDelete'})
+    hi('MiniDepsTitleSame',     {link='DiffText'})
+    hi('MiniDepsTitleUpdate',   {link='DiffAdd'})
+
+    hi('MiniDiffSignAdd',     {fg=p.base0B, bg=p.base01, attr=nil, sp=nil})
+    hi('MiniDiffSignChange',  {fg=p.base0E, bg=p.base01, attr=nil, sp=nil})
+    hi('MiniDiffSignDelete',  {fg=p.base08, bg=p.base01, attr=nil, sp=nil})
+    hi('MiniDiffOverAdd',     {link='DiffAdd'})
+    hi('MiniDiffOverChange',  {link='DiffText'})
+    hi('MiniDiffOverContext', {link='DiffChange'})
+    hi('MiniDiffOverDelete',  {link='DiffDelete'})
 
     hi('MiniFilesBorder',         {link='NormalFloat'})
     hi('MiniFilesBorderModified', {link='DiagnosticFloatingWarn'})
@@ -700,6 +740,10 @@ H.apply_palette = function(palette, use_cterm)
     hi('MiniMapSymbolCount', {fg=p.base0C, bg=nil,      attr=nil, sp=nil})
     hi('MiniMapSymbolLine',  {fg=p.base0D, bg=nil,      attr=nil, sp=nil})
     hi('MiniMapSymbolView',  {fg=p.base0F, bg=nil,      attr=nil, sp=nil})
+
+    hi('MiniNotifyBorder', {link='NormalFloat'})
+    hi('MiniNotifyNormal', {link='NormalFloat'})
+    hi('MiniNotifyTitle',  {link='FloatTitle'})
 
     hi('MiniOperatorsExchangeFrom', {link='IncSearch'})
 
@@ -824,10 +868,10 @@ H.apply_palette = function(palette, use_cterm)
   end
 
   if H.has_integration('ggandor/leap.nvim') then
-    hi('LeapMatch',          {fg=p.base0E, bg=nil, attr='bold,nocombine', sp=nil})
-    hi('LeapLabelPrimary',   {fg=p.base08, bg=nil, attr='bold,nocombine', sp=nil})
-    hi('LeapLabelSecondary', {fg=p.base05, bg=nil, attr='bold,nocombine', sp=nil})
-    hi('LeapLabelSelected',  {fg=p.base09, bg=nil, attr='bold,nocombine', sp=nil})
+    hi('LeapMatch',          {fg=p.base0E, bg=nil, attr='bold,nocombine,underline', sp=nil})
+    hi('LeapLabelPrimary',   {fg=p.base08, bg=nil, attr='bold,nocombine',           sp=nil})
+    hi('LeapLabelSecondary', {fg=p.base05, bg=nil, attr='bold,nocombine',           sp=nil})
+    hi('LeapLabelSelected',  {fg=p.base09, bg=nil, attr='bold,nocombine',           sp=nil})
     hi('LeapBackdrop',       {link='Comment'})
   end
 
@@ -979,23 +1023,9 @@ H.apply_palette = function(palette, use_cterm)
   end
 
   if H.has_integration('neoclide/coc.nvim') then
-    hi('CocErrorHighlight',   {link='DiagnosticError'})
-    hi('CocHintHighlight',    {link='DiagnosticHint'})
-    hi('CocInfoHighlight',    {link='DiagnosticInfo'})
-    hi('CocWarningHighlight', {link='DiagnosticWarn'})
-
-    hi('CocErrorFloat',   {link='DiagnosticFloatingError'})
-    hi('CocHintFloat',    {link='DiagnosticFloatingHint'})
-    hi('CocInfoFloat',    {link='DiagnosticFloatingInfo'})
-    hi('CocWarningFloat', {link='DiagnosticFloatingWarn'})
-
-    hi('CocErrorSign',   {link='DiagnosticSignError'})
-    hi('CocHintSign',    {link='DiagnosticSignHint'})
-    hi('CocInfoSign',    {link='DiagnosticSignInfo'})
-    hi('CocWarningSign', {link='DiagnosticSignWarn'})
-
     hi('CocCodeLens',             {link='LspCodeLens'})
     hi('CocDisabled',             {link='Comment'})
+    hi('CocFadeOut',              {link='Comment'})
     hi('CocMarkdownLink',         {fg=p.base0F, bg=nil,      attr=nil, sp=nil})
     hi('CocMenuSel',              {fg=nil,      bg=p.base02, attr=nil, sp=nil})
     hi('CocNotificationProgress', {link='CocMarkdownLink'})
@@ -1144,9 +1174,6 @@ H.apply_palette = function(palette, use_cterm)
     hi('BufferVisibleSign',   {link='BufferVisible'})
     hi('BufferVisibleTarget', {fg=p.base0E, bg=p.base01, attr='bold', sp=nil})
   end
-
-  -- simrat39/symbols-outline.nvim
-  -- Everything works correctly out of the box
 
   -- stevearc/aerial.nvim
   -- Everything works correctly out of the box

@@ -10,12 +10,13 @@
 :VMSearch	vm-ex-commands.txt	/*:VMSearch*
 :VMSort	vm-ex-commands.txt	/*:VMSort*
 :VMTheme	vm-settings.txt	/*:VMTheme*
+VM_Cursor	vm-settings.txt	/*VM_Cursor*
+VM_Extend	vm-settings.txt	/*VM_Extend*
+VM_Insert	vm-settings.txt	/*VM_Insert*
+VM_Mono	vm-settings.txt	/*VM_Mono*
 VM_recursive_operations_at_cursors	vm-settings.txt	/*VM_recursive_operations_at_cursors*
 b:visual_multi	vm-troubleshooting.txt	/*b:visual_multi*
-g:VM_Cursor_hl	vm-settings.txt	/*g:VM_Cursor_hl*
-g:VM_Extend_hl	vm-settings.txt	/*g:VM_Extend_hl*
-g:VM_Insert_hl	vm-settings.txt	/*g:VM_Insert_hl*
-g:VM_Mono_hl	vm-settings.txt	/*g:VM_Mono_hl*
+g:VM_add_cursor_at_pos_no_mappings	vm-settings.txt	/*g:VM_add_cursor_at_pos_no_mappings*
 g:VM_case_setting	vm-settings.txt	/*g:VM_case_setting*
 g:VM_custom_motions	vm-settings.txt	/*g:VM_custom_motions*
 g:VM_custom_noremaps	vm-settings.txt	/*g:VM_custom_noremaps*

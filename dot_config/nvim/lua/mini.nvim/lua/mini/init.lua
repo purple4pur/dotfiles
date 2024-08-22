@@ -25,10 +25,13 @@
 ---   Comment lines ............................................... |mini.comment|
 ---   Completion and signature help ............................ |mini.completion|
 ---   Autohighlight word under cursor .......................... |mini.cursorword|
+---   Plugin manager ................................................. |mini.deps|
+---   Work with diff hunks ........................................... |mini.diff|
 ---   Generate Neovim help files ...................................... |mini.doc|
 ---   Extra 'mini.nvim' functionality ............................... |mini.extra|
 ---   Navigate and manipulate file system............................ |mini.files|
 ---   Fuzzy matching ................................................ |mini.fuzzy|
+---   Git integration ................................................. |mini.git|
 ---   Highlight patterns in text ............................... |mini.hipatterns|
 ---   Generate configurable color scheme ............................. |mini.hues|
 ---   Visualize and work with indent scope .................... |mini.indentscope|
@@ -37,6 +40,7 @@
 ---   Window with buffer text overview ................................ |mini.map|
 ---   Miscellaneous functions ........................................ |mini.misc|
 ---   Move any selection in any direction ............................ |mini.move|
+---   Show notifications ........................................... |mini.notify|
 ---   Text edit operators ....................................... |mini.operators|
 ---   Autopairs ..................................................... |mini.pairs|
 ---   Pick anything .................................................. |mini.pick|
@@ -50,7 +54,7 @@
 ---   Trailspace (highlight and remove)......................... |mini.trailspace|
 ---   Track and reuse file system visits ........................... |mini.visits|
 ---
---- # General principles~
+--- # General principles ~
 ---
 --- - <Design>. Each module is designed to solve a particular problem targeting
 ---   balance between feature-richness (handling as many edge-cases as
@@ -114,7 +118,7 @@
 ---   non-bugfix backward-incompatible change will be released gradually as
 ---   much as possible.
 ---
---- # List of modules~
+--- # List of modules ~
 ---
 --- - |MiniAi| - extend and create `a`/`i` textobjects (like in `di(` or
 ---   `va"`). It enhances some builtin |text-objects| (like |a(|, |a)|, |a'|,
@@ -172,6 +176,14 @@
 ---   after customizable delay). Current word under cursor can be highlighted
 ---   differently.
 ---
+--- - |MiniDeps| - plugin manager for plugins outside of 'mini.nvim'. Uses Git and
+---   built-in packages to install, update, clean, and snapshot plugins.
+---
+--- - |MiniDiff| - visualize difference between buffer text and its reference
+---   interactively (with colored signs or line numbers). Uses Git index as
+---   default reference. Provides toggleable overview in text area, built-in
+---   apply/reset/textobject/goto mappings.
+---
 --- - |MiniDoc| - generation of help files from EmmyLua-like annotations.
 ---   Allows flexible customization of output via hook functions. Used for
 ---   documenting this plugin.
@@ -187,6 +199,10 @@
 --- - |MiniFuzzy| - functions for fast and simple fuzzy matching. It has
 ---   not only functions to perform fuzzy matching of one string to others, but
 ---   also a sorter for |telescope.nvim|.
+---
+--- - |MiniGit| - Git integration (https://git-scm.com/). Implements tracking of
+---   Git related data (root, branch, etc.), |:Git| command for better integration
+---   with running Neovim instance, and various helpers to explore Git history.
 ---
 --- - |MiniHipatterns| - highlight patterns in text with configurable highlighters
 ---   (pattern and/or highlight group can be string or callable).
@@ -216,13 +232,17 @@
 ---   and `put_text()` which print Lua objects to command line and current
 ---   buffer respectively.
 ---
---- - |MiniOperators| - various text edit operators: replace, exchange,
----   multiply, sort, evaluate. Creates mappings to operate on textobject,
----   line, and visual selection. Supports |[count]| and dot-repeat.
----
 --- - |MiniMove| - move any selection in any direction. Supports any Visual
 ---   mode (charwise, linewise, blockwise) and Normal mode (current line) for
 ---   all four directions (left, right, down, up). Respects `count` and undo.
+---
+--- - |MiniNotify| - show one or more highlighted notifications in a single window.
+---   Provides both low-level functions (add, update, remove, clear) and maker
+---   of |vim.notify()| implementation. Sets up automated LSP progress updates.
+---
+--- - |MiniOperators| - various text edit operators: replace, exchange,
+---   multiply, sort, evaluate. Creates mappings to operate on textobject,
+---   line, and visual selection. Supports |[count]| and dot-repeat.
 ---
 --- - |MiniPairs| - autopairs plugin which has minimal defaults and
 ---   functionality to do per-key expression mappings.
@@ -295,7 +315,7 @@
 --- Considering high number of different scenarios and customization intentions,
 --- writing exact rules for disabling module's functionality is left to user.
 ---
---- # Manual disabling~
+--- # Manual disabling ~
 ---
 --- - Disable globally:
 ---   Lua       - `:lua vim.g.minicursorword_disable=true`
@@ -307,7 +327,7 @@
 ---   Globally   - `:lua vim.g.minicursorword_disable = not vim.g.minicursorword_disable`
 ---   For buffer - `:lua vim.b.minicursorword_disable = not vim.b.minicursorword_disable`
 ---
---- # Automated disabling~
+--- # Automated disabling ~
 ---
 --- - Disable for a certain |filetype| (for example, "markdown"):
 ---   `autocmd Filetype markdown lua vim.b.minicursorword_disable = true`

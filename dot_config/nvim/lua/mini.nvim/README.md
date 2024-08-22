@@ -6,7 +6,7 @@
 [![Current version](https://badgen.net/badge/Current%20version/development/cyan)](https://github.com/echasnovski/mini.nvim/blob/main/CHANGELOG.md)
 <!-- badges: end -->
 
-Library of 35+ independent Lua modules improving overall [Neovim](https://github.com/neovim/neovim) (version 0.7 and higher) experience with minimal effort. They all share same configuration approaches and general design principles.
+Library of 40+ independent Lua modules improving overall [Neovim](https://github.com/neovim/neovim) (version 0.8 and higher) experience with minimal effort. They all share same configuration approaches and general design principles.
 
 Think about this project as "Swiss Army knife" among Neovim plugins: it has many different independent tools (modules) suitable for most common tasks. Each module can be used separately without any startup and usage overhead.
 
@@ -29,19 +29,31 @@ There are two branches to install from:
 
 Here are code snippets for some common installation methods:
 
+- Manually with `git clone` (compatible with [mini.deps](https://github.com/echasnovski/mini.nvim/blob/main/readmes/mini-deps.md)):
+
+```lua
+-- Put this at the top of 'init.lua'
+local path_package = vim.fn.stdpath('data') .. '/site'
+local mini_path = path_package .. '/pack/deps/start/mini.nvim'
+if not vim.loop.fs_stat(mini_path) then
+  vim.cmd('echo "Installing `mini.nvim`" | redraw')
+  local clone_cmd = {
+    'git', 'clone', '--filter=blob:none',
+    -- Uncomment next line to use 'stable' branch
+    -- '--branch', 'stable',
+    'https://github.com/echasnovski/mini.nvim', mini_path
+  }
+  vim.fn.system(clone_cmd)
+  vim.cmd('packadd mini.nvim | helptags ALL')
+end
+```
+
 - With [folke/lazy.nvim](https://github.com/folke/lazy.nvim):
 
 | Branch | Code snippet                                         |
 |--------|------------------------------------------------------|
 | Main   | `{ 'echasnovski/mini.nvim', version = false },`      |
 | Stable | `{ 'echasnovski/mini.nvim', version = '*' },`        |
-
-- With [wbthomason/packer.nvim](https://github.com/wbthomason/packer.nvim):
-
-| Branch | Code snippet                                         |
-|--------|------------------------------------------------------|
-| Main   | `use 'echasnovski/mini.nvim'`                        |
-| Stable | `use { 'echasnovski/mini.nvim', branch = 'stable' }` |
 
 - With [junegunn/vim-plug](https://github.com/junegunn/vim-plug):
 
@@ -62,9 +74,9 @@ Here are code snippets for some common installation methods:
 
 If you are browsing without particular objective and don't know which module to look at:
 
-- To improve your editing experience, start with 'mini.ai', 'mini.operators', 'mini.surround'.
+- To improve your editing experience, start with 'mini.ai', 'mini.operators', 'mini.pairs', 'mini.surround'.
 - To improve your general workflow, start with 'mini.bracketed', 'mini.files', 'mini.jump2d', 'mini.pick'.
-- To make your Neovim more beautiful, start with 'mini.animate', 'mini.hipatterns', 'mini.hues'.
+- To make your Neovim more beautiful, start with 'mini.animate', 'mini.hipatterns', 'mini.hues', 'mini.notify'.
 
 | Module           | Description                              | Overview                              | Details                               |
 |------------------|------------------------------------------|---------------------------------------|---------------------------------------|
@@ -80,10 +92,13 @@ If you are browsing without particular objective and don't know which module to 
 | mini.comment     | Comment lines                            | [README](readmes/mini-comment.md)     | [Help file](doc/mini-comment.txt)     |
 | mini.completion  | Completion and signature help            | [README](readmes/mini-completion.md)  | [Help file](doc/mini-completion.txt)  |
 | mini.cursorword  | Autohighlight word under cursor          | [README](readmes/mini-cursorword.md)  | [Help file](doc/mini-cursorword.txt)  |
+| mini.deps        | Plugin manager                           | [README](readmes/mini-deps.md)        | [Help file](doc/mini-deps.txt)        |
+| mini.diff        | Work with diff hunks                     | [README](readmes/mini-diff.md)        | [Help file](doc/mini-diff.txt)        |
 | mini.doc         | Generate Neovim help files               | [README](readmes/mini-doc.md)         | [Help file](doc/mini-doc.txt)         |
 | mini.extra       | Extra 'mini.nvim' functionality          | [README](readmes/mini-extra.md)       | [Help file](doc/mini-extra.txt)       |
 | mini.files       | Navigate and manipulate file system      | [README](readmes/mini-files.md)       | [Help file](doc/mini-files.txt)       |
 | mini.fuzzy       | Fuzzy matching                           | [README](readmes/mini-fuzzy.md)       | [Help file](doc/mini-fuzzy.txt)       |
+| mini.git         | Git integration                          | [README](readmes/mini-git.md)         | [Help file](doc/mini-git.txt)         |
 | mini.hipatterns  | Highlight patterns in text               | [README](readmes/mini-hipatterns.md)  | [Help file](doc/mini-hipatterns.txt)  |
 | mini.hues        | Generate configurable color scheme       | [README](readmes/mini-hues.md)        | [Help file](doc/mini-hues.txt)        |
 | mini.indentscope | Visualize and work with indent scope     | [README](readmes/mini-indentscope.md) | [Help file](doc/mini-indentscope.txt) |
@@ -92,6 +107,7 @@ If you are browsing without particular objective and don't know which module to 
 | mini.map         | Window with buffer text overview         | [README](readmes/mini-map.md)         | [Help file](doc/mini-map.txt)         |
 | mini.misc        | Miscellaneous functions                  | [README](readmes/mini-misc.md)        | [Help file](doc/mini-misc.txt)        |
 | mini.move        | Move any selection in any direction      | [README](readmes/mini-move.md)        | [Help file](doc/mini-move.txt)        |
+| mini.notify      | Show notifications                       | [README](readmes/mini-notify.md)      | [Help file](doc/mini-notify.txt)      |
 | mini.operators   | Text edit operators                      | [README](readmes/mini-operators.md)   | [Help file](doc/mini-operators.txt)   |
 | mini.pairs       | Autopairs                                | [README](readmes/mini-pairs.md)       | [Help file](doc/mini-pairs.txt)       |
 | mini.pick        | Pick anything                            | [README](readmes/mini-pick.md)        | [Help file](doc/mini-pick.txt)        |
@@ -114,13 +130,13 @@ If you are browsing without particular objective and don't know which module to 
 - **Structure**. Each module is a submodule for a placeholder "mini" module. So, for example, "surround" module should be referred to as "mini.surround".  As later will be explained, this plugin can also be referred to as "MiniSurround".
 
 - **Setup**:
-    - Each module (if needed) should be setup separately with `require(<name of module>).setup({})` (possibly replace {} with your config table or omit to use defaults).  You can supply only values which differ from defaults, which will be used for the rest ones.
+    - Each module you want to use should be enabled separately with `require(<name of module>).setup({})`. Possibly replace `{}` with your config table or omit altogether to use defaults. You can supply only parts of config, the rest will be inferred from defaults.
 
     - Call to module's `setup()` always creates a global Lua object with coherent camel-case name: `require('mini.surround').setup()` creates `_G.MiniSurround`. This allows for a simpler usage of plugin functionality: instead of `require('mini.surround')` use `MiniSurround` (or manually `:lua MiniSurround.*` in command line); available from `v:lua` like `v:lua.MiniSurround`. Considering this, "module" and "Lua object" names can be used interchangeably: 'mini.surround' and 'MiniSurround' will mean the same thing.
 
     - Each supplied `config` table is stored in `config` field of global object. Like `MiniSurround.config`.
 
-    - Values of `config`, which affect runtime activity, can be changed on the fly to have effect. For example, `MiniSurround.config.n_lines` can be changed during runtime; but changing `MiniSurround.config.mappings` won't have any effect (as mappings are created once during `setup()`).
+    - Values of `config` which affect runtime activity can be changed on the fly to have effect. For example, `MiniSurround.config.n_lines` can be changed during runtime; but changing `MiniSurround.config.mappings` won't have any effect (as mappings are created once during `setup()`).
 
 - **Buffer local configuration**. Each module can be additionally configured to use certain runtime config settings locally to buffer. See `mini.nvim-buffer-local-config` section in help file for more information.
 
@@ -131,6 +147,8 @@ If you are browsing without particular objective and don't know which module to 
 - **Highlight groups**. Appearance of module's output is controlled by certain highlight group (see `:h highlight-groups`). To customize them, use `highlight` command. **Note**: currently not many Neovim themes support this plugin's highlight groups; fixing this situation is highly appreciated. To see a more calibrated look, use 'mini.hues', 'mini.base16', or any of plugin's colorscheme.
 
 - **Stability**. Each module upon release is considered to be relatively stable: both in terms of setup and functionality. Any non-bugfix backward-incompatible change will be released gradually as much as possible.
+
+- **Not filetype/language specific**. Including functionality which needs several filetype/language specific implementations is an explicit no-goal of this project. This is mostly due to the potential increase in maintenance to keep implementation up to date. However, any part which might need filetype/language specific tuning should be designed to allow it by letting user set proper buffer options and/or local configuration.
 
 ## Plugin colorschemes
 
@@ -147,9 +165,7 @@ Activate them as regular `colorscheme` (for example, `:colorscheme randomhue` or
 This is the list of modules I currently intend to implement eventually (as my free time and dedication will allow), in alphabetical order:
 
 - 'mini.cycle' - cycle through alternatives with pre-defined rules. Something like [monaqa/dial.nvim](https://github.com/monaqa/dial.nvim) and [AndrewRadev/switch.vim](https://github.com/AndrewRadev/switch.vim)
-- 'mini.git' - utilities for more convenient work with Git. Actual scope is to be defined.
 - 'mini.keymap' - utilities to make non-trivial mappings (like [max397574/better-escape.nvim](https://github.com/max397574/better-escape.nvim) and dot-repeatable mappings).
-- 'mini.notify' - minimal UI to show Neovim notifications (like coming from LSP server, etc.).
 - 'mini.snippets' - work with snippets. Something like [L3MON4D3/LuaSnip](https://github.com/L3MON4D3/LuaSnip) but only with more straightforward functionality.
 - 'mini.statuscolumn' - customizable 'statuscolumn'.
 - 'mini.terminals' - coherently manage terminal windows and send text from buffers to terminal windows. Something like [kassio/neoterm](https://github.com/kassio/neoterm).

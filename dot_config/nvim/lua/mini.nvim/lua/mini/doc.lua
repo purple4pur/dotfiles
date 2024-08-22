@@ -30,7 +30,7 @@
 ---   tasks (parsing annotations, formatting, auto-generating tags, etc.). This
 ---   is done to manage complexity and be dependency free.
 ---
---- # Setup~
+--- # Setup ~
 ---
 --- This module needs a setup with `require('mini.doc').setup({})` (replace
 --- `{}` with your `config` table). It will create global Lua table `MiniDoc`
@@ -44,7 +44,7 @@
 ---
 --- To stop module from showing non-error feedback, set `config.silent = true`.
 ---
---- # Tips~
+--- # Tips ~
 ---
 --- - Some settings tips that might make writing annotation comments easier:
 ---     - Set up appropriate 'comments' for `lua` file type to respect
@@ -61,7 +61,7 @@
 ---   best practice when using this module is this whole plugin. Look at source
 ---   code for the reference.
 ---
---- # Comparisons~
+--- # Comparisons ~
 ---
 --- - 'tjdevries/tree-sitter-lua':
 ---     - Its key design is to use treesitter grammar to parse both Lua code
@@ -146,6 +146,15 @@ local H = {}
 ---
 ---@usage `require('mini.doc').setup({})` (replace `{}` with your `config` table)
 MiniDoc.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.doc) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniDoc = MiniDoc
 
@@ -413,11 +422,8 @@ MiniDoc.config = {
       end
 
       -- Notify
-      local msg = ('Help file %s is successfully generated (%s).'):format(
-        vim.inspect(output),
-        vim.fn.strftime('%Y-%m-%d %H:%M:%S')
-      )
-      H.echo(msg)
+      local msg = ('Help file %s is successfully generated.'):format(vim.inspect(output))
+      vim.notify(msg, vim.log.levels.INFO)
     end,
     --minidoc_replace_end
   },
@@ -484,7 +490,7 @@ MiniDoc.default_hooks = MiniDoc.config.hooks
 -- Module functionality =======================================================
 --- Generate help file
 ---
---- # Algorithm~
+--- # Algorithm ~
 ---
 --- - Main parameters for help generation are an array of input file paths and
 ---   path to output help file.
@@ -531,7 +537,7 @@ MiniDoc.default_hooks = MiniDoc.config.hooks
 ---   feedback and making actions involving newly updated help file (like
 ---   generate tags, etc.).
 ---
---- # Project specific script~
+--- # Project specific script ~
 ---
 --- If all arguments have default `nil` values, first there is an attempt to
 --- source project specific script. This is basically a `luafile
@@ -656,7 +662,7 @@ end
 ---   afterlines as code block in help file. If `nil`, input is not valid.
 MiniDoc.afterlines_to_code = function(struct)
   if not (type(struct) == 'table' and (struct.type == 'section' or struct.type == 'block')) then
-    H.message('Input to `MiniDoc.afterlines_to_code()` should be either section or block.')
+    vim.notify('Input to `MiniDoc.afterlines_to_code()` should be either section or block.', vim.log.levels.WARN)
     return
   end
 
@@ -769,8 +775,9 @@ end
 
 H.apply_config = function(config) MiniDoc.config = config end
 
-H.get_config =
-  function(config) return vim.tbl_deep_extend('force', MiniDoc.config, vim.b.minidoc_config or {}, config or {}) end
+H.get_config = function(config)
+  return vim.tbl_deep_extend('force', MiniDoc.config, vim.b.minidoc_config or {}, config or {})
+end
 
 -- Work with project specific script ==========================================
 H.execute_project_script = function(input, output, config)
@@ -827,7 +834,7 @@ H.default_input = function()
     table.insert(res, files)
   end
 
-  return vim.tbl_flatten(res)
+  return H.tbl_flatten(res)
 end
 
 H.default_output = function()
@@ -1006,7 +1013,7 @@ H.toc_insert = function(s)
     toc_entry:clear_lines()
   end
 
-  for _, l in ipairs(vim.tbl_flatten(toc_lines)) do
+  for _, l in ipairs(H.tbl_flatten(toc_lines)) do
     s:insert(l)
   end
 end
@@ -1015,7 +1022,7 @@ H.add_section_heading = function(s, heading)
   if #s == 0 or s.type ~= 'section' then return end
 
   -- Add heading
-  s:insert(1, ('%s~'):format(heading))
+  s:insert(1, ('%s ~'):format(heading))
 end
 
 H.mark_optional = function(s)
@@ -1260,34 +1267,6 @@ H.match_first_pattern = function(text, pattern_set, init)
 end
 
 -- Utilities ------------------------------------------------------------------
-H.echo = function(msg, is_important)
-  if H.get_config().silent then return end
-
-  -- Construct message chunks
-  msg = type(msg) == 'string' and { { msg } } or msg
-  table.insert(msg, 1, { '(mini.doc) ', 'WarningMsg' })
-
-  -- Avoid hit-enter-prompt
-  local chunks = msg
-  if not is_important then
-    chunks = {}
-    local max_width = vim.o.columns * math.max(vim.o.cmdheight - 1, 0) + vim.v.echospace
-    local tot_width = 0
-    for _, ch in ipairs(msg) do
-      local new_ch = { vim.fn.strcharpart(ch[1], 0, max_width - tot_width), ch[2] }
-      table.insert(chunks, new_ch)
-      tot_width = tot_width + vim.fn.strdisplaywidth(new_ch[1])
-      if tot_width >= max_width then break end
-    end
-  end
-
-  -- Echo. Force redraw to ensure that it is effective (`:h echo-redraw`)
-  vim.cmd([[echo '' | redraw]])
-  vim.api.nvim_echo(chunks, is_important, {})
-end
-
-H.message = function(msg) H.echo(msg, true) end
-
 H.apply_recursively = function(f, x)
   f(x)
 
@@ -1307,7 +1286,7 @@ H.collect_strings = function(x)
     end
   end, x)
   -- Flatten to only have strings and not table of strings (from `vim.split`)
-  return vim.tbl_flatten(res)
+  return H.tbl_flatten(res)
 end
 
 H.file_read = function(path)
@@ -1330,7 +1309,7 @@ end
 H.full_path = function(path) return vim.fn.resolve(vim.fn.fnamemodify(path, ':p')) end
 
 H.is_array_of = function(x, predicate)
-  if not vim.tbl_islist(x) then return false end
+  if not H.islist(x) then return false end
   for _, v in ipairs(x) do
     if not predicate(v) then return false end
   end
@@ -1338,5 +1317,10 @@ H.is_array_of = function(x, predicate)
 end
 
 H.is_string = function(x) return type(x) == 'string' end
+
+-- TODO: Remove after compatibility with Neovim=0.9 is dropped
+H.islist = vim.fn.has('nvim-0.10') == 1 and vim.islist or vim.tbl_islist
+H.tbl_flatten = vim.fn.has('nvim-0.10') == 1 and function(x) return vim.iter(x):flatten(math.huge):totable() end
+  or vim.tbl_flatten
 
 return MiniDoc

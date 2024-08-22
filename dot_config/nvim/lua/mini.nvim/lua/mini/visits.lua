@@ -150,7 +150,7 @@
 ---   for some inspiration.
 ---
 --- - Utilizing custom data. Visit index can be manipulated manually using
----   `_index()` set of functions. All "storeable" (i.e. not functions or
+---   `_index()` set of functions. All "storable" (i.e. not functions or
 ---   metatables) user data inside index is then stored on disk, so it can be
 ---   used to create any kind of workflow user wants.
 ---
@@ -362,6 +362,15 @@ local H = {}
 ---
 ---@usage `require('mini.visits').setup({})` (replace `{}` with your `config` table).
 MiniVisits.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.visits) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniVisits = MiniVisits
 
@@ -1129,6 +1138,7 @@ MiniVisits.gen_normalize = {}
 ---       entry from particular cwd (it can still be present in others).
 ---     - If either first (cwd) or second (path) level key doesn't represent an
 ---       actual path on disk, remove the whole associated value.
+---     - NOTE: if visit has any label, it is not automatically pruned.
 ---
 --- - Decay visits, i.e. possibly make visits more outdated. This is an important
 ---   part to the whole usability: together with pruning it results into automated
@@ -1375,7 +1385,9 @@ H.index_prune = function(index, prune_paths, threshold)
     for path, path_tbl in pairs(cwd_tbl) do
       local should_prune_path = prune_paths and not (vim.fn.filereadable(path) == 1 or vim.fn.isdirectory(path) == 1)
       local should_prune = should_prune_path or path_tbl.count < threshold
-      if should_prune then cwd_tbl[path] = nil end
+      -- Don't prune if visit has labels (can happen if label was added
+      -- manually without actual visit, thus `count = 0`)
+      if path_tbl.labels == nil and should_prune then cwd_tbl[path] = nil end
     end
   end
 
@@ -1546,8 +1558,7 @@ H.edit_path = function(path)
   end
 end
 
-H.full_path =
-  function(path) return (vim.fn.fnamemodify(path, ':p'):gsub('\\', '/'):gsub('/+', '/'):gsub('(.)/$', '%1')) end
+H.full_path = function(path) return (vim.fn.fnamemodify(path, ':p'):gsub('\\', '/'):gsub('/+', '/'):gsub('(.)/$', '%1')) end
 
 H.short_path = function(path, cwd)
   cwd = cwd or vim.fn.getcwd()

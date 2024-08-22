@@ -61,7 +61,7 @@
 ---     - Has extra functionality beyond moving text, like duplication.
 ---       While 'mini.move' concentrates only on moving functionality.
 ---
---- # Disabling~
+--- # Disabling ~
 ---
 --- To disable, set `vim.g.minimove_disable` (globally) or `vim.b.minimove_disable`
 --- (for a buffer) to `true`. Considering high number of different scenarios
@@ -87,6 +87,15 @@ local H = {}
 ---
 ---@usage `require('mini.move').setup({})` (replace `{}` with your `config` table)
 MiniMove.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.move) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniMove = MiniMove
 
@@ -432,8 +441,9 @@ end
 
 H.is_disabled = function() return vim.g.minimove_disable == true or vim.b.minimove_disable == true end
 
-H.get_config =
-  function(config) return vim.tbl_deep_extend('force', MiniMove.config, vim.b.minimove_config or {}, config or {}) end
+H.get_config = function(config)
+  return vim.tbl_deep_extend('force', MiniMove.config, vim.b.minimove_config or {}, config or {})
+end
 
 -- Utilities ------------------------------------------------------------------
 H.map = function(mode, lhs, rhs, opts)

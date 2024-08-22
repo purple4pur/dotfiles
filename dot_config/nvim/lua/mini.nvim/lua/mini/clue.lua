@@ -43,8 +43,8 @@
 --- Notes:
 --- - Works on all supported versions but using Neovim>=0.9 is recommended.
 ---
---- - There is no functionality to create mappings in order to clearly separate
----   two different tasks.
+--- - There is no functionality to create mappings while defining clues.
+---   This is done to clearly separate these two different actions.
 ---   The best suggested practice is to manually create mappings with
 ---   descriptions (`desc` field in options), as they will be automatically
 ---   used inside clue window.
@@ -72,7 +72,7 @@
 ---       Mapping for trigger should be the first listed.
 ---
 ---       This module makes the best effort to work out of the box and cover
----       most common cases, but it is not full proof. The solution here is to
+---       most common cases, but it is not foolproof. The solution here is to
 ---       ensure that triggers are created after making all buffer-local mappings:
 ---       run either |MiniClue.setup()| or |MiniClue.ensure_buf_triggers()|.
 ---
@@ -81,7 +81,7 @@
 ---   relevant as possible. To add/customize description of an already existing
 ---   mapping, use |MiniClue.set_mapping_desc()|.
 ---
---- - Due to technical difficulties, there is no full proof support for
+--- - Due to technical difficulties, there is no foolproof support for
 ---   Operator-pending mode triggers (like `a`/`i` from |mini.ai|):
 ---     - Doesn't work as part of a command in "temporary Normal mode" (like
 ---       after |i_CTRL-O|) due to implementation difficulties.
@@ -136,7 +136,7 @@
 ---
 --- To change any highlight group, modify it directly with |:highlight|.
 ---
---- # Disabling~
+--- # Disabling ~
 ---
 --- To disable creating triggers, set `vim.g.miniclue_disable` (globally) or
 --- `vim.b.miniclue_disable` (for a buffer) to `true`. Considering high number
@@ -166,7 +166,7 @@
 ---
 --- This process is primarily designed for nested `<Leader>` mappings in Normal
 --- mode but works in all other main modes: Visual, Insert, Operator-pending
---- (with caveats; no full proof guarantees), Command-line, Terminal.
+--- (with caveats; no foolproof guarantees), Command-line, Terminal.
 ---
 --- ## Lifecycle ~
 ---
@@ -192,6 +192,7 @@
 ---         - If a key for scrolling clue window (`scroll_down` / `scroll_up`
 ---           in `config.window`; `<C-d>` / `<C-u>` by default), scroll clue window
 ---           and wait for the next user key.
+---           Note: if clue window is not shown, treated as a not special key.
 ---
 ---     - Not special key. Add key to the query while filtering all available
 ---       key combinations to start with the current key query. Advance:
@@ -479,6 +480,15 @@ local H = {}
 ---@usage `require('mini.clue').setup({})` (replace `{}` with your `config` table).
 --- **Needs to have triggers configured**.
 MiniClue.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.clue) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniClue = MiniClue
 
@@ -1288,11 +1298,7 @@ end
 
 H.unmap_trigger = function(buf_id, trigger)
   if not H.is_valid_buf(buf_id) then return end
-
-  trigger.keys = H.replace_termcodes(trigger.keys)
-
-  -- Delete mapping
-  pcall(vim.keymap.del, trigger.mode, trigger.keys, { buffer = buf_id })
+  pcall(vim.keymap.del, trigger.mode, H.keytrans(trigger.keys), { buffer = buf_id })
 end
 
 -- State ----------------------------------------------------------------------
@@ -1319,10 +1325,11 @@ H.state_advance = function(opts)
 
   if key == H.keys.cr then return H.state_exec() end
 
+  local is_window_shown = H.is_valid_win(H.state.win_id)
   local is_scroll_down = key == H.replace_termcodes(config_window.scroll_down)
   local is_scroll_up = key == H.replace_termcodes(config_window.scroll_up)
-  if is_scroll_down or is_scroll_up then
-    H.window_scroll(is_scroll_down and H.keys.ctrl_d or H.keys.ctrl_u)
+  if is_window_shown and (is_scroll_down or is_scroll_up) then
+    H.window_scroll(is_scroll_down)
     return H.state_advance({ same_content = true })
   end
 
@@ -1425,8 +1432,9 @@ H.state_apply_postkeys = vim.schedule_wrap(function(postkeys)
   end, 50)
 end)
 
-H.state_is_at_target =
-  function() return vim.tbl_count(H.state.clues) == 1 and H.state.clues[H.query_to_keys(H.state.query)] ~= nil end
+H.state_is_at_target = function()
+  return vim.tbl_count(H.state.clues) == 1 and H.state.clues[H.query_to_keys(H.state.query)] ~= nil
+end
 
 H.state_get_query_clue = function()
   local keys = H.query_to_keys(H.state.query)
@@ -1543,8 +1551,16 @@ H.window_update = vim.schedule_wrap(function(same_content)
   vim.cmd('redraw')
 end)
 
-H.window_scroll = function(scroll_key)
-  pcall(vim.api.nvim_win_call, H.state.win_id, function() vim.cmd('normal! ' .. scroll_key) end)
+H.window_scroll = function(is_scroll_down)
+  local scroll_key = is_scroll_down and H.keys.ctrl_d or H.keys.ctrl_u
+  local f = function()
+    local cache_scroll, bot_line, n_lines = vim.wo.scroll, vim.fn.line('w$'), vim.api.nvim_buf_line_count(0)
+    -- Do not scroll past the end of buffer
+    local scroll_count = is_scroll_down and math.min(cache_scroll, n_lines - bot_line) or cache_scroll
+    if scroll_count > 0 then pcall(vim.cmd, 'normal! ' .. scroll_count .. scroll_key) end
+    vim.wo.scroll = cache_scroll
+  end
+  vim.api.nvim_win_call(H.state.win_id, f)
 end
 
 H.window_open = function(config)
@@ -1711,7 +1727,7 @@ H.clues_normalize = function(clues)
   process = function(x)
     x = H.expand_callable(x)
     if H.is_clue(x) then return table.insert(res, x) end
-    if not vim.tbl_islist(x) then return nil end
+    if not H.islist(x) then return nil end
     for _, y in ipairs(x) do
       process(y)
     end
@@ -1852,7 +1868,7 @@ H.is_clue = function(x)
 end
 
 H.is_array_of = function(x, predicate)
-  if not vim.tbl_islist(x) then return false end
+  if not H.islist(x) then return false end
   for _, v in ipairs(x) do
     if not predicate(v) then return false end
   end
@@ -1973,5 +1989,8 @@ H.list_concat = function(...)
   end
   return res
 end
+
+-- TODO: Remove after compatibility with Neovim=0.9 is dropped
+H.islist = vim.fn.has('nvim-0.10') == 1 and vim.islist or vim.tbl_islist
 
 return MiniClue

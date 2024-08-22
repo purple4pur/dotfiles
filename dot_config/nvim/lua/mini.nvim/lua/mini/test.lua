@@ -66,7 +66,7 @@
 ---       order while allowing reporting progress in asynchronous fashion.
 ---       Detected errors means test case fail; otherwise - pass.
 ---
---- # Setup~
+--- # Setup ~
 ---
 --- This module needs a setup with `require('mini.test').setup({})` (replace
 --- `{}` with your `config` table). It will create global Lua table `MiniTest`
@@ -80,7 +80,7 @@
 ---
 --- To stop module from showing non-error feedback, set `config.silent = true`.
 ---
---- # Comparisons~
+--- # Comparisons ~
 ---
 --- - Testing infrastructure from 'nvim-lua/plenary.nvim':
 ---     - Executes each file in separate headless Neovim process with customizable
@@ -117,7 +117,7 @@
 ---   `before_each()` and `after_each` to `pre_case` and `post_case` hooks.
 --- - Make test cases from `it` blocks.
 ---
---- # Highlight groups~
+--- # Highlight groups ~
 ---
 --- * `MiniTestEmphasis` - emphasis highlighting. By default it is a bold text.
 --- * `MiniTestFail` - highlighting of failed cases. By default it is a bold
@@ -127,7 +127,7 @@
 ---
 --- To change any highlight group, modify it directly with |:highlight|.
 ---
---- # Disabling~
+--- # Disabling ~
 ---
 --- To disable, set `vim.g.minitest_disable` (globally) or `vim.b.minitest_disable`
 --- (for a buffer) to `true`. Considering high number of different scenarios
@@ -145,6 +145,15 @@ local H = {}
 ---
 ---@usage `require('mini.test').setup({})` (replace `{}` with your `config` table)
 MiniTest.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.test) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniTest = MiniTest
 
@@ -398,7 +407,7 @@ end
 ---@param file string|nil Path to test file. By default a path of current buffer.
 ---@param opts table|nil Options for |MiniTest.run()|.
 MiniTest.run_file = function(file, opts)
-  file = file or vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ':.')
+  file = vim.fn.fnamemodify(file or vim.api.nvim_buf_get_name(0), ':p:.')
 
   local stronger_opts = { collect = { find_files = function() return { file } end } }
   opts = vim.tbl_deep_extend('force', opts or {}, stronger_opts)
@@ -876,8 +885,9 @@ MiniTest.gen_reporter.buffer = function(opts)
   local is_valid_buf_win = function() return vim.api.nvim_buf_is_valid(buf_id) and vim.api.nvim_win_is_valid(win_id) end
 
   -- Helpers
-  local set_cursor =
-    function(line) vim.api.nvim_win_set_cursor(win_id, { line or vim.api.nvim_buf_line_count(buf_id), 0 }) end
+  local set_cursor = function(line)
+    vim.api.nvim_win_set_cursor(win_id, { line or vim.api.nvim_buf_line_count(buf_id), 0 })
+  end
 
   -- Define "write from cursor line" function with throttled redraw
   local latest_draw_time = 0
@@ -1022,9 +1032,9 @@ end
 --- Create child Neovim process
 ---
 --- This creates an object designed to be a fundamental piece of 'mini.test'
---- methodology. It can start/stop/restart a separate (child) Neovim process in
---- full (non-headless) mode together with convenience helpers to interact with
---- it through |RPC| messages.
+--- methodology. It can start/stop/restart a separate (child) Neovim process
+--- (headless, but fully functioning) together with convenience helpers to
+--- interact with it through |RPC| messages.
 ---
 --- For more information see |MiniTest-child-neovim|.
 ---
@@ -1067,8 +1077,7 @@ MiniTest.new_child_neovim = function()
     H.error_with_emphasis(msg)
   end
 
-  -- Start fully functional Neovim instance (not '--embed' or '--headless',
-  -- because they don't provide full functionality)
+  -- Start headless Neovim instance
   child.start = function(args, opts)
     if child.is_running() then
       H.message('Child process is already running. Use `child.restart()`.')
@@ -1081,17 +1090,23 @@ MiniTest.new_child_neovim = function()
     -- Make unique name for `--listen` pipe
     local job = { address = vim.fn.tempname() }
 
-    local full_args = { opts.nvim_executable, '--clean', '-n', '--listen', job.address }
+    --stylua: ignore
+    local full_args = {
+      opts.nvim_executable, '--clean', '-n', '--listen', job.address,
+      -- Setting 'lines' and 'columns' makes headless process more like
+      -- interactive for closer to reality testing
+      '--headless', '--cmd', 'set lines=24 columns=80'
+    }
     vim.list_extend(full_args, args)
 
-    -- Using 'libuv' for creating a job is crucial for getting this to work in
-    -- Github Actions. Other approaches:
+    -- Using 'jobstart' for creating a job is crucial for getting this to work
+    -- in Github Actions. Other approaches:
     -- - Using `{ pty = true }` seems crucial to make this work on GitHub CI.
     -- - Using `vim.loop.spawn()` is doable, but has issues on Neovim>=0.9:
     --     - https://github.com/neovim/neovim/issues/21630
     --     - https://github.com/neovim/neovim/issues/21886
     --     - https://github.com/neovim/neovim/issues/22018
-    job.id = vim.fn.jobstart(full_args, { pty = true })
+    job.id = vim.fn.jobstart(full_args)
 
     local step = 10
     local connected, i, max_tries = nil, 0, math.floor(opts.connection_timeout / step)
@@ -1224,7 +1239,7 @@ MiniTest.new_child_neovim = function()
 
     local has_wait = type(wait) == 'number'
     local keys = has_wait and { ... } or { wait, ... }
-    keys = vim.tbl_flatten(keys)
+    keys = H.tbl_flatten(keys)
 
     -- From `nvim_input` docs: "On execution error: does not fail, but
     -- updates v:errmsg.". So capture it manually. NOTE: Have it global to
@@ -1459,12 +1474,14 @@ end
 ---@field wo table Redirection table for |vim.wo|.
 ---@tag MiniTest-child-neovim
 
---- child.start(args, opts)~
+--- child.start(args, opts) ~
 ---
 --- Start child process and connect to it. Won't work if child is already running.
 ---
----@param args table Array with arguments for executable. Will be prepended
----   with `{'--clean', '-n', '--listen', <some address>}` (see |startup-options|).
+---@param args table Array with arguments for executable. Will be prepended with
+---   the following default arguments (see |startup-options|): >
+---   '--clean', '-n', '--listen', <some address>,
+---   '--headless', '--cmd', 'set lines=24 columns=80'
 ---@param opts table|nil Options:
 ---   - <nvim_executable> - name of Neovim executable. Default: |v:progpath|.
 ---   - <connection_timeout> - stop trying to connect after this amount of
@@ -1480,7 +1497,7 @@ end
 ---   child.start({ '-u', 'scripts/minimal_init.lua' })
 ---@tag MiniTest-child-neovim.start()
 
---- child.type_keys(wait, ...)~
+--- child.type_keys(wait, ...) ~
 ---
 --- Basically a wrapper for |nvim_input()| applied inside child process.
 --- Differences:
@@ -1507,7 +1524,7 @@ end
 ---   child.type_keys('i', 'Hello world', '<Esc>')
 ---@tag MiniTest-child-neovim.type_keys()
 
---- child.get_screenshot()~
+--- child.get_screenshot() ~
 ---
 --- Compute what is displayed on (default TUI) screen and how it is displayed.
 --- This basically calls |screenstring()| and |screenattr()| for every visible
@@ -1651,8 +1668,9 @@ end
 
 H.is_disabled = function() return vim.g.minitest_disable == true or vim.b.minitest_disable == true end
 
-H.get_config =
-  function(config) return vim.tbl_deep_extend('force', MiniTest.config, vim.b.minitest_config or {}, config or {}) end
+H.get_config = function(config)
+  return vim.tbl_deep_extend('force', MiniTest.config, vim.b.minitest_config or {}, config or {})
+end
 
 -- Work with collection -------------------------------------------------------
 H.busted_emulate = function(set)
@@ -2308,5 +2326,9 @@ H.string_to_chars = function(s)
   end
   return res
 end
+
+-- TODO: Remove after compatibility with Neovim=0.9 is dropped
+H.tbl_flatten = vim.fn.has('nvim-0.10') == 1 and function(x) return vim.iter(x):flatten(math.huge):totable() end
+  or vim.tbl_flatten
 
 return MiniTest

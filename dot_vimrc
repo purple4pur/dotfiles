@@ -1,14 +1,14 @@
 set nocompatible
 
-" ---------
+" --------------------------------------------------------------------------------
 "   Theme
-" ---------
+" --------------------------------------------------------------------------------
 set background=light
 colorscheme PaperColor
 
-" ----------
+" --------------------------------------------------------------------------------
 "   Common
-" ----------
+" --------------------------------------------------------------------------------
 filetype plugin indent on
 syntax on
 set autochdir
@@ -17,18 +17,21 @@ set autowrite
 set backspace=indent,eol,start
 set clipboard+=unnamed
 set complete-=i
+set cursorcolumn
 set cursorline
 set fileencodings=ucs-bom,utf-8,cp936 fileencoding=utf-8
 set foldcolumn=0
 set foldmethod=marker
 set hidden
 set hlsearch ignorecase smartcase incsearch
+set laststatus=2
 set listchars+=tab:>-,trail:~,extends:>,precedes:<
 set mouse=a
 set mousemodel=extend
 set noerrorbells
 set nofixendofline
 set noshowmatch
+set notermguicolors
 set novisualbell
 set number
 set pastetoggle=<F5>
@@ -45,31 +48,28 @@ set t_Co=256
 set t_ZH=[3m     " <C-V><ESC>[3m
 set t_ZR=[23m    " <C-V><ESC>[23m
 set tags+=./tags;,./TAGS;
-set textwidth=0
+set textwidth=80
 set virtualedit=block
 
-" ---------
+" --------------------------------------------------------------------------------
 "   Netrw
-" ---------
+" --------------------------------------------------------------------------------
 let g:netrw_alto = 0
 let g:netrw_keepdir = 0
 let g:netrw_preview = 1
 let g:netrw_winsize = 50
 
-" -------
+" --------------------------------------------------------------------------------
 "   GUI
-" -------
+" --------------------------------------------------------------------------------
 if has("gui_running")
     set guioptions-=T
     set title
-    if has("gui_win32")
-        set guifont=Sarasa_Term_SC_Nerd:h11,终端更纱黑体-简_Nerd:h11
-    endif
 endif
 
-" ----------------
+" --------------------------------------------------------------------------------
 "   Key Mappings
-" ----------------
+" --------------------------------------------------------------------------------
 " command
 nnoremap ; :
 vnoremap ; :
@@ -180,16 +180,17 @@ nnoremap <leader>zz /\s\+$<CR>
 nnoremap <leader>dz :%s/\s\+$//g<CR>
 nnoremap <leader>gf <C-W>gf
 vnoremap <leader>gf <C-W>gf
-nnoremap <silent> ZZ :echohl WarningMsg \| echo "ZZ is bad!" \| echohl None<CR>
+nnoremap <silent> ZZ :echohl WarningMsg \| echo "Use :q! to quit without saving." \| echohl None<CR>
 nnoremap <silent> <leader>zl :setlocal list! list?<CR>
+nnoremap <silent> <leader>zs :setlocal spell! spell?<CR>
 nnoremap <silent> <leader>zw :setlocal wrap! wrap?<CR>
 nnoremap <silent> <leader>zc :call ColorColumnToggle()<CR>:set colorcolumn?<CR>
 command! Vims edit ~/.vimrc
 command! Srcs source ~/.vimrc
 
-" -------------
+" --------------------------------------------------------------------------------
 "   Functions
-" -------------
+" --------------------------------------------------------------------------------
 function! FixNetrwMap()
     if hasmapto('<Plug>NetrwRefresh')
         unmap <buffer> <C-L>
@@ -209,17 +210,16 @@ function! ColorColumnToggle()
     if &colorcolumn
         setlocal colorcolumn=
     else
-        setlocal colorcolumn=80
+        let &l:colorcolumn = &textwidth
     endif
 endfunction
 
-
-" -----------
+" --------------------------------------------------------------------------------
 "   Plugins
-" -----------
+" --------------------------------------------------------------------------------
 " (Vim8 or newer)
 " plugins are automatically loaded from `~/.vim/pack/*/start/*` (runtimepath)
-"
+
 " * vim-visual-multi:
 "     [Normal] `<C-up/down>` to add a cursor
 "     [Normal] `<C-n>` to select current match
@@ -232,31 +232,73 @@ endfunction
 "     [Both] `\\\` to add/remove cursor
 "     [Both] `\\A` to select all matches
 "     [Both] `\\/` to search a pattern
+let g:VM_theme = 'lightblue1'
 
-
-" ---------------
+" --------------------------------------------------------------------------------
 "   Status Line
-" ---------------
-" modified from https://gist.github.com/suderman/1243665
+" --------------------------------------------------------------------------------
+" ref: https://github.com/echasnovski/mini.nvim/blob/main/lua/mini/statusline.lua
+function! Statusline()
+    let mode = mode()
+    let modestr = (mode == 'n')  ? 'N'   :
+                \ (mode == 'v')  ? 'V'   :
+                \ (mode == 'V')  ? 'V-L' :
+                \ (mode == 's')  ? 'S'   :
+                \ (mode == 'S')  ? 'S-L' :
+                \ (mode == 'i')  ? 'I'   :
+                \ (mode == 'R')  ? 'R'   :
+                \ (mode == 'c')  ? 'C'   :
+                \ (mode == 'r')  ? 'P'   :
+                \ (mode == '!')  ? 'Sh'  :
+                \ (mode == 't')  ? 'T'   :
+                \ mode
+    let enc = (&fileencoding) ? &fileencoding : &encoding
+    let s = ' '
+    let s .= '[' . modestr . '] '
+    let s .= '%<'
+    let s .= (&buftype == 'terminal') ? '%t' : '%F%m%r'
+    let s .= '%= '
+    let s .= &filetype . ' ' . enc . '[' . &fileformat . '] '
+    let s .= '%l|%L|%2v|%-2{virtcol("$") - 1} '
+    return s
+endfunction
 
-" statusline setup
-set laststatus=2
-set statusline=%([%{&buflisted?bufnr('%'):''}]\ %)
-set statusline+=%F\     " full filename
+set statusline=%!Statusline()
 
-" display a warning if file encoding isnt utf-8
-set statusline+=%#warningmsg#
-set statusline+=%{(&fenc!='utf-8'&&&fenc!='')?'['.&fenc.']':''}
-set statusline+=%*
-set statusline+=%y      " filetype
-set statusline+=%r      " read only flag
-set statusline+=%m      " modified flag
+" --------------------------------------------------------------------------------
+"   Tab Line
+" --------------------------------------------------------------------------------
+" ref: https://github.com/mkitt/tabline.vim
+function! Tabline()
+    let s = ''
+    for i in range(tabpagenr('$'))
+        let tab = i + 1
+        let winnr = tabpagewinnr(tab)
+        let buflist = tabpagebuflist(tab)
+        let bufcnt = len(buflist)
+        let bufnr = buflist[winnr - 1]
+        let bufname = bufname(bufnr)
+        let bufmodcnt = 0
+        for buf in buflist
+            if getbufvar(buf, "&mod")
+                let bufmodcnt += 1
+            endif
+        endfor
 
-" display a warning if &paste is set
-set statusline+=%#error#
-set statusline+=%{&paste?'[paste]':''}
-set statusline+=%*
-set statusline+=%=\     " left/right separator
-set statusline+=%c,     " cursor column
-set statusline+=%l/%L   " cursor line/total lines
-set statusline+=\ %p%%  " percent through file
+        let s .= '%' . tab . 'T'
+        let s .= (tab == tabpagenr()) ? '%#TabLineSel#' : '%#TabLine#'
+        let s .= ' ' . tab .':'
+        if bufcnt > 1
+            let s .= '(' . bufcnt .')'
+        endif
+        let s .= '[' . fnamemodify(bufname, ':t') . ']'
+        if bufmodcnt > 0
+            let s .= '[' . ((bufmodcnt > 1) ? bufmodcnt : '') . '+]'
+        endif
+        let s .= ' '
+        let s .= '%#TabLineFill#'
+    endfor
+    return s
+endfunction
+
+set tabline=%!Tabline()

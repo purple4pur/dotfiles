@@ -17,7 +17,7 @@
 --- - "Word under cursor" is meant as in Vim's |<cword>|: something user would
 ---   get as 'iw' text object.
 ---
---- # Setup~
+--- # Setup ~
 ---
 --- This module needs a setup with `require('mini.cursorword').setup({})`
 --- (replace `{}` with your `config` table). It will create global Lua table
@@ -30,7 +30,7 @@
 --- `vim.b.minicursorword_config` which should have same structure as
 --- `MiniCursorword.config`. See |mini.nvim-buffer-local-config| for more details.
 ---
---- # Highlight groups~
+--- # Highlight groups ~
 ---
 --- * `MiniCursorword` - highlight group of a non-current cursor word.
 ---   Default: plain underline.
@@ -44,7 +44,7 @@
 ---
 --- To change any highlight group, modify it directly with |:highlight|.
 ---
---- # Disabling~
+--- # Disabling ~
 ---
 --- To disable core functionality, set `vim.g.minicursorword_disable` (globally) or
 --- `vim.b.minicursorword_disable` (for a buffer) to `true`. Considering high
@@ -57,8 +57,8 @@
 --- Module-specific disabling:
 --- - Don't show highlighting if cursor is on the word that is in a blocklist
 ---   of current filetype. In this example, blocklist for "lua" is "local" and
----   "require" words, for "javascript" - "import":
---- >
+---   "require" words, for "javascript" - "import": >
+---
 ---   _G.cursorword_blocklist = function()
 ---     local curword = vim.fn.expand('<cword>')
 ---     local filetype = vim.bo.filetype
@@ -87,6 +87,15 @@ local H = {}
 ---
 ---@usage `require('mini.cursorword').setup({})` (replace `{}` with your `config` table)
 MiniCursorword.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.cursorword) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniCursorword = MiniCursorword
 
@@ -142,7 +151,14 @@ H.setup_config = function(config)
   return config
 end
 
-H.apply_config = function(config) MiniCursorword.config = config end
+H.apply_config = function(config)
+  MiniCursorword.config = config
+
+  -- Make `setup()` to proper reset module
+  for _, m in ipairs(vim.fn.getmatches()) do
+    if vim.startswith(m.group, 'MiniCursorword') then vim.fn.matchdelete(m.id) end
+  end
+end
 
 H.create_autocommands = function()
   local augroup = vim.api.nvim_create_augroup('MiniCursorword', {})

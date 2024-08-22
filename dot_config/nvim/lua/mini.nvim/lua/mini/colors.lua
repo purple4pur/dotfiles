@@ -71,7 +71,7 @@
 --- - If only some highlight groups can be made better, adjust them manually
 ---   inside written color scheme file.
 ---
---- # Setup~
+--- # Setup ~
 ---
 --- This module doesn't need setup, but it can be done to improve usability.
 --- Setup with `require('mini.colors').setup({})` (replace `{}` with your
@@ -636,6 +636,15 @@ local H = {}
 ---
 ---@usage `require('mini.colors').setup({})` (replace `{}` with your `config` table)
 MiniColors.setup = function(config)
+  -- TODO: Remove after Neovim<=0.7 support is dropped
+  if vim.fn.has('nvim-0.8') == 0 then
+    vim.notify(
+      '(mini.colors) Neovim<0.8 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniColors = MiniColors
 
@@ -645,11 +654,8 @@ MiniColors.setup = function(config)
   -- Apply config
   H.apply_config(config)
 
-  -- Create user command
-  vim.api.nvim_create_user_command('Colorscheme', function(input)
-    local cs_array = vim.tbl_map(MiniColors.get_colorscheme, input.fargs)
-    MiniColors.animate(cs_array)
-  end, { nargs = '+', complete = 'color' })
+  -- Create user commands
+  H.create_user_commands()
 end
 
 --- Module config
@@ -896,7 +902,7 @@ end
 ---   - <show_duration> `(number)` - number of milliseconds to show intermediate
 ---     color schemes (all but last in `cs_array`). Default: 1000.
 MiniColors.animate = function(cs_array, opts)
-  if not (vim.tbl_islist(cs_array) and H.all(cs_array, H.is_colorscheme)) then
+  if not (H.islist(cs_array) and H.all(cs_array, H.is_colorscheme)) then
     H.error('Argument `cs_array` should be an array of color schemes.')
   end
   opts = vim.tbl_deep_extend(
@@ -922,8 +928,7 @@ MiniColors.animate = function(cs_array, opts)
     if #cs_array < cs_id then return end
 
     -- Wait before starting another animation
-    local callback =
-      function() H.animate_single_transition(cs_oklab[cs_id - 1], cs_oklab[cs_id], after_action, opts) end
+    local callback = function() H.animate_single_transition(cs_oklab[cs_id - 1], cs_oklab[cs_id], after_action, opts) end
 
     vim.defer_fn(callback, opts.show_duration)
   end
@@ -1081,7 +1086,7 @@ H.cusps = {
   {27.04,65.51},{26.92,65.40},{26.81,65.30},{26.66,65.16},{26.55,65.06},{26.45,64.96},{26.35,64.87},
 }
 
--- Matricies used to simulate color vision deficiency (CVD; color blindness).
+-- Matrices used to simulate color vision deficiency (CVD; color blindness).
 -- Each first-level entry describes CVD type; second-level - severity times 10.
 -- Source:
 -- https://www.inf.ufrgs.br/~oliveira/pubs_files/CVD_Simulation/CVD_Simulation.html
@@ -1151,6 +1156,14 @@ H.apply_config = function(config) MiniColors.config = config end
 
 H.get_config = function(config)
   return vim.tbl_deep_extend('force', MiniColors.config, vim.b.minicolors_config or {}, config or {})
+end
+
+H.create_user_commands = function()
+  local callback = function(input)
+    local cs_array = vim.tbl_map(MiniColors.get_colorscheme, input.fargs)
+    MiniColors.animate(cs_array)
+  end
+  vim.api.nvim_create_user_command('Colorscheme', callback, { nargs = '+', complete = 'color' })
 end
 
 -- Color scheme methods -------------------------------------------------------
@@ -1513,8 +1526,7 @@ H.cs_write = function(self, opts)
   return self
 end
 
-H.is_colorscheme =
-  function(x) return type(x) == 'table' and type(x.groups) == 'table' and type(x.terminal) == 'table' end
+H.is_colorscheme = function(x) return type(x) == 'table' and type(x.groups) == 'table' and type(x.terminal) == 'table' end
 
 H.normalize_f = function(f)
   if not vim.is_callable(f) then H.error('Argument `f` should be callable.') end
@@ -2187,8 +2199,9 @@ H.degree2rad = function(x) return (x % 360) * H.tau / 360 end
 -- https://bottosson.github.io/posts/colorwrong/#what-can-we-do%3F
 H.correct_channel = function(x) return 0.04045 < x and math.pow((x + 0.055) / 1.055, 2.4) or (x / 12.92) end
 
-H.correct_channel_inv =
-  function(x) return (0.0031308 >= x) and (12.92 * x) or (1.055 * math.pow(x, 0.416666667) - 0.055) end
+H.correct_channel_inv = function(x)
+  return (0.0031308 >= x) and (12.92 * x) or (1.055 * math.pow(x, 0.416666667) - 0.055)
+end
 
 -- Functions for lightness correction
 -- https://bottosson.github.io/posts/colorpicker/#intermission---a-new-lightness-estimate-for-oklab
@@ -2404,5 +2417,8 @@ H.all = function(arr, predicate)
   end
   return true
 end
+
+-- TODO: Remove after compatibility with Neovim=0.9 is dropped
+H.islist = vim.fn.has('nvim-0.10') == 1 and vim.islist or vim.tbl_islist
 
 return MiniColors
