@@ -24,6 +24,7 @@ set foldcolumn=0
 set foldmethod=marker
 set hidden
 set hlsearch ignorecase smartcase incsearch
+set laststatus=2
 set listchars+=tab:>-,trail:~,extends:>,precedes:<
 set mouse=a
 set mousemodel=extend
@@ -236,35 +237,38 @@ let g:VM_theme = 'lightblue1'
 " --------------------------------------------------------------------------------
 "   Status Line
 " --------------------------------------------------------------------------------
-" modified from https://gist.github.com/suderman/1243665
+" ref: https://github.com/echasnovski/mini.nvim/blob/main/lua/mini/statusline.lua
+function! Statusline()
+    let mode = mode()
+    let modestr = (mode == 'n')  ? 'N'   :
+                \ (mode == 'v')  ? 'V'   :
+                \ (mode == 'V')  ? 'V-L' :
+                \ (mode == 's')  ? 'S'   :
+                \ (mode == 'S')  ? 'S-L' :
+                \ (mode == 'i')  ? 'I'   :
+                \ (mode == 'R')  ? 'R'   :
+                \ (mode == 'c')  ? 'C'   :
+                \ (mode == 'r')  ? 'P'   :
+                \ (mode == '!')  ? 'Sh'  :
+                \ (mode == 't')  ? 'T'   :
+                \ mode
+    let enc = (&fileencoding) ? &fileencoding : &encoding
+    let s = ' '
+    let s .= '[' . modestr . '] '
+    let s .= '%<'
+    let s .= (&buftype == 'terminal') ? '%t' : '%F%m%r'
+    let s .= '%= '
+    let s .= &filetype . ' ' . enc . '[' . &fileformat . '] '
+    let s .= '%l|%L|%2v|%-2{virtcol("$") - 1} '
+    return s
+endfunction
 
-" statusline setup
-set laststatus=2
-set statusline=%([%{&buflisted?bufnr('%'):''}]\ %)
-set statusline+=%F\     " full filename
-
-" display a warning if file encoding isnt utf-8
-set statusline+=%#warningmsg#
-set statusline+=%{(&fenc!='utf-8'&&&fenc!='')?'['.&fenc.']':''}
-set statusline+=%*
-set statusline+=%y      " filetype
-set statusline+=%r      " read only flag
-set statusline+=%m      " modified flag
-
-" display a warning if &paste is set
-set statusline+=%#error#
-set statusline+=%{&paste?'[paste]':''}
-set statusline+=%*
-set statusline+=%=\     " left/right separator
-set statusline+=%c,     " cursor column
-set statusline+=%l/%L   " cursor line/total lines
-set statusline+=\ %p%%  " percent through file
+set statusline=%!Statusline()
 
 " --------------------------------------------------------------------------------
 "   Tab Line
 " --------------------------------------------------------------------------------
-" modified from https://github.com/mkitt/tabline.vim
-
+" ref: https://github.com/mkitt/tabline.vim
 function! Tabline()
     let s = ''
     for i in range(tabpagenr('$'))

@@ -13,7 +13,10 @@ vim.keymap.set('n', '<leader>p', '<cmd>Glow<CR><cmd>nohlsearch<CR>')
 
 require('mini.completion').setup()
 require('mini.cursorword').setup()
+
+-- <leader>dd: toggle inline git diff
 require('mini.diff').setup()
+vim.keymap.set('n', '<leader>dd', function() MiniDiff.toggle_overlay() end)
 
 -- <leader>e<e/v/t>: open file explorer
 require('mini.files').setup()
