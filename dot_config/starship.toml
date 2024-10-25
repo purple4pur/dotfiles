@@ -3,6 +3,7 @@ format = "[$user]($style) @ "
 show_always = true
 
 [hostname]
+ssh_symbol = "[ssh](red) "
 ssh_only = false
 
 [character]
