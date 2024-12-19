@@ -58,15 +58,17 @@
 --- - Provide autoopen functionality. Due to vast differences in user preference
 ---   of when map window should be shown, set up of automatic opening is left to
 ---   user. A common approach would be to call `MiniMap.open()` on |VimEnter| event.
----   If you use |MiniStarter|, you can modify `<CR>` buffer mapping: >
+---   If you use |MiniStarter|, you can modify `<CR>` buffer mapping: >lua
 ---
----   vim.cmd([[autocmd User MiniStarterOpened
----     \ lua vim.keymap.set(
----     \   'n',
----     \   '<CR>',
----     \   '<Cmd>lua MiniStarter.eval_current_item(); MiniMap.open()<CR>',
----     \   { buffer = true }
----     \ )]])
+---     local set_map_keymap = function()
+---       local rhs = function()
+---         MiniStarter.eval_current_item()
+---         MiniMap.open()
+---       end
+---       vim.keymap.set('n', '<CR>', rhs, { buffer = true })
+---     end
+---     local opts = { pattern = 'MiniStarterOpened', callback = set_map_keymap }
+---     vim.api.nvim_create_autocmd('User', opts)
 --- <
 --- # Setup ~
 ---
@@ -143,7 +145,7 @@
 --- # Mappings ~
 ---
 --- This module doesn't make mappings, only provides functions for users to map
---- manually. Here is how one |<Leader>| set of mappings can be constructed: >
+--- manually. Here is how one |<Leader>| set of mappings can be constructed: >lua
 ---
 ---   vim.keymap.set('n', '<Leader>mc', MiniMap.close)
 ---   vim.keymap.set('n', '<Leader>mf', MiniMap.toggle_focus)
@@ -186,17 +188,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniMap.config|.
 ---
----@usage `require('mini.map').setup({})` (replace `{}` with your `config` table)
+---@usage >lua
+---   require('mini.map').setup() -- use default config
+---   -- OR
+---   require('mini.map').setup({}) -- replace {} with your config table
+--- <
 MiniMap.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.map) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniMap = MiniMap
 
@@ -281,7 +278,7 @@ end
 --- highlight group name) keys. Note: line number outside of source buffer
 --- count will be converted to a nearest appropriate one.
 ---
---- Example output of single integration: >
+--- Example output of single integration: >lua
 ---
 ---   {
 ---     { line = 1, hl_group = 'Search' },
@@ -304,7 +301,7 @@ end
 --- this will make them have higher priority in case other integrations will
 --- highlight same map line.
 ---
---- Example of using `config.integrations`: >
+--- Example of using `config.integrations`: >lua
 ---
 ---   local map = require('mini.map')
 ---   map.setup({
@@ -350,7 +347,7 @@ end
 ---   height).
 --- - Integration highlights are not computed.
 ---
---- Config: >
+--- Config: >lua
 ---
 ---   require('mini.map').setup({
 ---     -- Customize `symbols` to your liking
@@ -366,6 +363,7 @@ end
 ---       show_integration_count = false,
 ---     }
 ---   })
+--- <
 MiniMap.config = {
   -- Highlight integrations (none by default)
   integrations = nil,
@@ -487,6 +485,7 @@ MiniMap.current = {
 ---   tttt
 ---   tftf
 ---   ttff
+--- <
 --- - Convert to symbols. It makes `1x2` bins, treats their input as (reversed)
 ---   binary digits (`ff=00=0`, `tf=10=1`, `ft=01=2`, `tt=11=3`) and takes
 ---   corresponding symbols from supplied options (value plus 1). Result: >
@@ -737,12 +736,12 @@ MiniMap.gen_integration = {}
 --- It prompts integration highlighting update on every change of |hlsearch| option
 --- (see |OptionSet|). Note that it is not happening for some keys:
 --- - Toggle search highlight with |CTRL-L-default| or `\h` from 'mini.basics'.
----   Use custom mapping which changes mode. Like this: >
+---   Use custom mapping which changes mode. Like this: >lua
 ---
 ---   vim.keymap.set('n', [[\h]], ':let v:hlsearch = 1 - v:hlsearch<CR>')
 --- <
 --- - After starting search with |n|, |N|, |star|, or |#|.
----   To enable highlight update on this keys, make custom mappings. Like this: >
+---   To enable highlight update on this keys, make custom mappings. Like this: >lua
 ---
 ---   for _, key in ipairs({ 'n', 'N', '*', '#' }) do
 ---     local rhs = key ..
@@ -811,7 +810,8 @@ end
 ---   - <info> - highlight group for info items. Default: `nil` (not shown).
 ---   - <hint> - highlight group for hint items. Default: `nil` (not shown).
 ---
----@usage Show all diagnostic levels: >
+---@usage >lua
+---   -- Show all diagnostic levels
 ---   local map = require('mini.map')
 ---   local diagnostic_integration = map.gen_integration.diagnostic({
 ---     error = 'DiagnosticFloatingError',
@@ -820,6 +820,7 @@ end
 ---     hint  = 'DiagnosticFloatingHint',
 ---   })
 ---   map.setup({ integrations = { diagnostic_integration } })
+--- <
 MiniMap.gen_integration.diagnostic = function(hl_groups)
   if hl_groups == nil then hl_groups = { error = 'DiagnosticFloatingError' } end
 
@@ -1033,10 +1034,10 @@ end
 H.apply_config = function(config) MiniMap.config = config end
 
 H.create_autocommands = function()
-  local augroup = vim.api.nvim_create_augroup('MiniMap', {})
+  local gr = vim.api.nvim_create_augroup('MiniMap', {})
 
   local au = function(event, pattern, callback, desc)
-    vim.api.nvim_create_autocmd(event, { group = augroup, pattern = pattern, callback = callback, desc = desc })
+    vim.api.nvim_create_autocmd(event, { group = gr, pattern = pattern, callback = callback, desc = desc })
   end
 
   au({ 'BufEnter', 'BufWritePost', 'TextChanged', 'VimResized' }, '*', H.on_content_change, 'On content change')
@@ -1044,6 +1045,7 @@ H.create_autocommands = function()
   au('WinLeave', '*', H.on_winleave, 'On WinLeave')
   au('WinClosed', '*', H.on_winclosed, 'On WinClosed')
   au('ModeChanged', '*:n', H.on_content_change, 'On return to Normal mode')
+  au('ColorScheme', '*', H.create_default_hl, 'Ensure colors')
 end
 
 --stylua: ignore
@@ -1394,7 +1396,7 @@ H.create_map_buffer = function()
   local buf_id = vim.api.nvim_create_buf(false, true)
 
   -- Set buffer local options (which don't involve `noautocmd`)
-  vim.api.nvim_buf_set_option(buf_id, 'filetype', 'minimap')
+  vim.bo[buf_id].filetype = 'minimap'
 
   -- Make buffer local mappings
   vim.keymap.set('n', '<CR>', '<Cmd>lua MiniMap.toggle_focus(false)<CR>', { buffer = buf_id })

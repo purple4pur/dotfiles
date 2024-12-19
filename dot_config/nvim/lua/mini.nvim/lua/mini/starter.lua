@@ -81,8 +81,8 @@
 
 --- Example configurations
 ---
---- Configuration similar to 'mhinz/vim-startify':
---- >
+--- Configuration similar to 'mhinz/vim-startify': >lua
+---
 ---   local starter = require('mini.starter')
 ---   starter.setup({
 ---     evaluate_single = true,
@@ -100,8 +100,8 @@
 ---     },
 ---   })
 --- <
---- Configuration similar to 'glepnir/dashboard-nvim':
---- >
+--- Configuration similar to 'glepnir/dashboard-nvim': >lua
+---
 ---   local starter = require('mini.starter')
 ---   starter.setup({
 ---     items = {
@@ -114,8 +114,8 @@
 ---   })
 --- <
 --- Elaborated configuration showing capabilities of custom items,
---- header/footer, and content hooks:
---- >
+--- header/footer, and content hooks: >lua
+---
 ---   local my_items = {
 ---     { name = 'Echo random number', action = 'lua print(math.random())', section = 'Section 1' },
 ---     function()
@@ -138,7 +138,7 @@
 ---     local timer = vim.loop.new_timer()
 ---     local n_seconds = 0
 ---     timer:start(0, 1000, vim.schedule_wrap(function()
----       if vim.bo.filetype ~= 'starter' then
+---       if vim.bo.filetype ~= 'ministarter' then
 ---         timer:stop()
 ---         return
 ---       end
@@ -198,17 +198,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniStarter.config|.
 ---
----@usage `require('mini.starter').setup({})` (replace `{}` with your `config` table)
+---@usage >lua
+---   require('mini.starter').setup() -- use default config
+---   -- OR
+---   require('mini.starter').setup({}) -- replace {} with your config table
+--- <
 MiniStarter.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.starter) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniStarter = MiniStarter
 
@@ -230,7 +225,7 @@ end
 --- Default values:
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 MiniStarter.config = {
-  -- Whether to open starter buffer on VimEnter. Not opened if Neovim was
+  -- Whether to open Starter buffer on VimEnter. Not opened if Neovim was
   -- started with intent to show something else.
   autoopen = true,
 
@@ -255,7 +250,7 @@ MiniStarter.config = {
   footer = nil,
 
   -- Array  of functions to be applied consecutively to initial content.
-  -- Each function should take and return content for 'Starter' buffer (see
+  -- Each function should take and return content for Starter buffer (see
   -- |mini.starter| and |MiniStarter.get_content()| for more details).
   content_hooks = nil,
 
@@ -284,10 +279,12 @@ MiniStarter.config = {
 ---   Starter buffer. Use it with
 ---   `autocmd User MiniStarterOpened <your command>`.
 ---
---- Note: to fully use it in autocommand, it is recommended to utilize
---- |autocmd-nested|. Example:
---- `autocmd TabNewEntered * ++nested lua MiniStarter.open()`
+--- Note: to fully use it in autocommand, use |autocmd-nested|. Example: >lua
 ---
+---   local starter_open = function() MiniStarter.open() end
+---   local au_opts = { nested = true, callback = starter_open }
+---   vim.api.nvim_create_autocmd('TabNewEntered', au_opts)
+--- <
 ---@param buf_id number|nil Identifier of existing valid buffer (see |bufnr()|) to
 ---   open inside. Default: create a new one.
 MiniStarter.open = function(buf_id)
@@ -388,9 +385,9 @@ MiniStarter.refresh = function(buf_id)
   if not vim.deep_equal(data.items, old_items) then data.current_item_id = 1 end
 
   -- Add content
-  vim.api.nvim_buf_set_option(buf_id, 'modifiable', true)
+  vim.bo[buf_id].modifiable = true
   vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, MiniStarter.content_to_lines(content))
-  vim.api.nvim_buf_set_option(buf_id, 'modifiable', false)
+  vim.bo[buf_id].modifiable = false
 
   -- Add highlighting
   H.content_highlight(buf_id)
@@ -713,7 +710,7 @@ end
 ---
 --- Output is a content hook which independently aligns content horizontally
 --- and vertically. Window width and height are taken from first window in current
---- tabpage displaying the starter buffer.
+--- tabpage displaying the Starter buffer.
 ---
 --- Basically, this computes left and top pads for |MiniStarter.gen_hook.padding|
 --- such that output lines would appear aligned in certain way.
@@ -1056,7 +1053,7 @@ end
 H.apply_config = function(config) MiniStarter.config = config end
 
 H.create_autocommands = function(config)
-  local augroup = vim.api.nvim_create_augroup('MiniStarter', {})
+  local gr = vim.api.nvim_create_augroup('MiniStarter', {})
 
   if config.autoopen then
     local on_vimenter = function()
@@ -1068,11 +1065,11 @@ H.create_autocommands = function(config)
       vim.cmd('noautocmd lua MiniStarter.open()')
     end
 
-    vim.api.nvim_create_autocmd(
-      'VimEnter',
-      { group = augroup, nested = true, once = true, callback = on_vimenter, desc = 'Open on VimEnter' }
-    )
+    local au_opts = { group = gr, nested = true, once = true, callback = on_vimenter, desc = 'Open on VimEnter' }
+    vim.api.nvim_create_autocmd('VimEnter', au_opts)
   end
+
+  vim.api.nvim_create_autocmd('ColorScheme', { group = gr, callback = H.create_default_hl, desc = 'Ensure colors' })
 end
 
 --stylua: ignore
@@ -1319,7 +1316,7 @@ H.make_query = function(buf_id, query, echo_msg)
   end
 end
 
--- Work with starter buffer ---------------------------------------------------
+-- Work with Starter buffer ---------------------------------------------------
 H.make_buffer_autocmd = function(buf_id)
   local augroup = vim.api.nvim_create_augroup('MiniStarterBuffer', {})
 
@@ -1351,14 +1348,14 @@ H.apply_buffer_options = function(buf_id)
   local name = H.buffer_number <= 1 and 'Starter' or ('Starter_' .. H.buffer_number)
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     if vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t') == name then
-      name = 'starter://' .. H.buffer_number
+      name = 'ministarter://' .. H.buffer_number
       break
     end
   end
   vim.api.nvim_buf_set_name(buf_id, name)
 
   -- Having `noautocmd` is crucial for performance: ~9ms without it, ~1.6ms with it
-  vim.cmd('noautocmd silent! set filetype=starter')
+  vim.cmd('noautocmd silent! set filetype=ministarter')
 
   local options = {
     -- Taken from 'vim-startify'

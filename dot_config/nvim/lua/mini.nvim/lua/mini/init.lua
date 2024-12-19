@@ -34,6 +34,7 @@
 ---   Git integration ................................................. |mini.git|
 ---   Highlight patterns in text ............................... |mini.hipatterns|
 ---   Generate configurable color scheme ............................. |mini.hues|
+---   Icon provider ................................................. |mini.icons|
 ---   Visualize and work with indent scope .................... |mini.indentscope|
 ---   Jump to next/previous single character ......................... |mini.jump|
 ---   Jump within visible lines .................................... |mini.jump2d|
@@ -71,11 +72,10 @@
 ---   as "MiniSurround".
 ---
 --- - <Setup>:
----     - Each module (if needed) should be setup separately with
----       `require(<name of module>).setup({})`
----       (possibly replace {} with your config table or omit to use defaults).
----       You can supply only values which differ from defaults, which will be
----       used for the rest ones.
+---     - Each module you want to use should be enabled separately with
+---       `require(<name of module>).setup({})`. Possibly replace `{}` with
+---       your config table or omit altogether to use defaults. You can supply
+---       only parts of config, the rest will be inferred from defaults.
 ---
 ---     - Call to module's `setup()` always creates a global Lua object with
 ---       coherent camel-case name: `require('mini.surround').setup()` creates
@@ -96,8 +96,8 @@
 ---       created once during `setup()`).
 ---
 --- - <Buffer local configuration>. Each module can be additionally configured
----   to use certain runtime config settings locally to buffer. See
----   |mini.nvim-buffer-local-config| for more information.
+---   to use certain runtime config settings locally to buffer.
+---   See |mini.nvim-buffer-local-config| for more information.
 ---
 --- - <Disabling>. Each module's core functionality can be disabled globally or
 ---   locally to buffer. See "Disabling" section in module's help page for more
@@ -107,16 +107,16 @@
 ---   globally or locally to buffer. See "Silencing" section in module's help page
 ---   for more details.
 ---
---- - <Highlight groups>. Appearance of module's output is controlled by
----   certain highlight group (see |highlight-groups|). To customize them, use
----   |highlight| command. Note: currently not many Neovim themes support this
----   plugin's highlight groups; fixing this situation is highly appreciated.
----   To see a more calibrated look, use |MiniBase16| or plugin's colorschemes.
+--- - <Highlighting>. Appearance of module's output is controlled by certain set
+---   of highlight groups (see |highlight-groups|). By default they usually link to
+---   some semantically close built-in highlight group. Use |:highlight| command
+---   or |nvim_set_hl()| Lua function to customize highlighting.
+---   To see a more calibrated look, use |MiniHues|, |MiniBase16|, or plugin's
+---   colorschemes.
 ---
 --- - <Stability>. Each module upon release is considered to be relatively
----   stable: both in terms of setup and functionality. Any
----   non-bugfix backward-incompatible change will be released gradually as
----   much as possible.
+---   stable: both in terms of setup and functionality. Any non-bugfix
+---   backward-incompatible change will be released gradually as much as possible.
 ---
 --- # List of modules ~
 ---
@@ -194,7 +194,8 @@
 --- - |MiniFiles| - navigate and manipulate file system. A file explorer with
 ---   column view capable of manipulating file system by editing text. Can
 ---   create/delete/rename/copy/move files/directories inside and across
----   directories.
+---   directories. For full experience needs enabled |MiniIcons| module (but works
+---   without it).
 ---
 --- - |MiniFuzzy| - functions for fast and simple fuzzy matching. It has
 ---   not only functions to perform fuzzy matching of one string to others, but
@@ -212,7 +213,11 @@
 ---   and foreground colors as required arguments. Can adjust number of hues
 ---   for non-base colors, saturation, accent color, plugin integration.
 ---
---- - |MiniIndentscope| - Visualize and operate on indent scope. Supports
+--- - |MiniIcons| - icon provider with fixed set of highlight groups.
+---   Supports various categories, icon and style customizations, caching for
+---   performance. Integrates with Neovim's filetype matching.
+---
+--- - |MiniIndentscope| - visualize and operate on indent scope. Supports
 ---   customization of debounce delay, animation style, and different
 ---   granularity of options for scope computing algorithm.
 ---
@@ -250,7 +255,8 @@
 --- - |MiniPick| - general purpose interactive non-blocking picker with
 ---   toggleable preview. Has fast default matching with fuzzy/exact/grouped
 ---   modes. Provides most used built-in pickers for files, pattern matches,
----   buffers, etc.
+---   buffers, etc. For full experience needs enabled |MiniIcons| module (but
+---   works without it).
 ---
 --- - |MiniSessions| - session management (read, write, delete) which works
 ---   using |mksession|. Implements both global (from configured directory) and
@@ -267,11 +273,9 @@
 ---
 --- - |MiniStatusline| - minimal and fast statusline. Has ability to use custom
 ---   content supplied with concise function (using module's provided section
----   functions) along with builtin default. For full experience needs [Nerd
----   font](https://www.nerdfonts.com/),
----   [gitsigns.nvim](https://github.com/lewis6991/gitsigns.nvim) plugin, and
----   [nvim-web-devicons](https://github.com/nvim-tree/nvim-web-devicons)
----   plugin (but works without any them).
+---   functions) along with builtin default. For full experience needs
+---   enabled |MiniDiff|, |MiniGit|, and |MiniIcons| modules (but works without
+---   any of them).
 ---
 --- - |MiniSurround| - fast and feature-rich surround plugin. Add, delete,
 ---   replace, find, highlight surrounding (like pair of parenthesis, quotes,
@@ -288,8 +292,8 @@
 ---
 --- - |MiniTabline| - minimal tabline which always shows listed (see 'buflisted')
 ---   buffers. Allows showing extra information section in case of multiple vim
----   tabpages. For full experience needs
----   [nvim-web-devicons](https://github.com/nvim-tree/nvim-web-devicons).
+---   tabpages. For full experience needs enabled |MiniIcons| module (but works
+---   without it).
 ---
 --- - |MiniTrailspace| - automatic highlighting of trailing whitespace with
 ---   functionality to remove it.
@@ -302,43 +306,59 @@
 --- Common recipes for disabling functionality
 ---
 --- Each module's core functionality can be disabled globally or buffer-locally
---- by creating appropriate global or buffer-scoped variables equal to
---- |v:true|. Functionality is disabled if at least one of `g:` or `b:`
---- variables is equal to `v:true`.
+--- by creating appropriate global or buffer-scoped variables equal to |v:true|.
+--- Functionality is disabled if at least one of |g:| or |b:| variables is `v:true`.
 ---
 --- Variable names have the same structure: `{g,b}:mini*_disable` where `*` is
---- module's lowercase name. For example, `g:minicursorword_disable` disables
---- |mini.cursorword| globally and `b:minicursorword_disable` - for
---- corresponding buffer. Note: in this section disabling 'mini.cursorword' is
---- used as example; everything holds for other module variables.
+--- module's lowercase name. For example, `g:minianimate_disable` disables
+--- |mini.animate| globally and `b:minianimate_disable` - for current buffer.
+--- Note: in this section disabling 'mini.animate' is used as example;
+--- everything holds for other module variables.
 ---
 --- Considering high number of different scenarios and customization intentions,
 --- writing exact rules for disabling module's functionality is left to user.
 ---
 --- # Manual disabling ~
+--- >lua
+---   -- Disable globally
+---   vim.g.minianimate_disable = true
 ---
---- - Disable globally:
----   Lua       - `:lua vim.g.minicursorword_disable=true`
----   Vimscript - `:let g:minicursorword_disable=v:true`
---- - Disable for current buffer:
----   Lua       - `:lua vim.b.minicursorword_disable=true`
----   Vimscript - `:let b:minicursorword_disable=v:true`
---- - Toggle (disable if enabled, enable if disabled):
----   Globally   - `:lua vim.g.minicursorword_disable = not vim.g.minicursorword_disable`
----   For buffer - `:lua vim.b.minicursorword_disable = not vim.b.minicursorword_disable`
+---   -- Disable for current buffer
+---   vim.b.minianimate_disable = true
 ---
+---   -- Toggle (disable if enabled, enable if disabled)
+---   vim.g.minianimate_disable = not vim.g.minianimate_disable -- globally
+---   vim.b.minianimate_disable = not vim.b.minianimate_disable -- for buffer
+--- <
 --- # Automated disabling ~
 ---
---- - Disable for a certain |filetype| (for example, "markdown"):
----   `autocmd Filetype markdown lua vim.b.minicursorword_disable = true`
---- - Enable only for certain filetypes (for example, "lua" and "python"):
----   `au FileType * if index(['lua', 'python'], &ft) < 0 | let b:minicursorword_disable=v:true | endif`
---- - Disable in Insert mode (use similar pattern for Terminal mode or indeed
----   any other mode change with |ModeChanged| starting from Neovim 0.7.0):
----   `au InsertEnter * lua vim.b.minicursorword_disable = true`
----   `au InsertLeave * lua vim.b.minicursorword_disable = false`
---- - Disable in Terminal buffer:
----   `au TermOpen * lua vim.b.minicursorword_disable = true`
+--- Automated disabling is suggested to be done inside autocommands: >lua
+---
+---   -- Disable for a certain filetype (for example, "lua")
+---   local f = function(args) vim.b[args.buf].minianimate_disable = true end
+---   vim.api.nvim_create_autocmd('Filetype', { pattern = 'lua', callback = f })
+---
+---   -- Enable only for certain filetypes (for example, "lua" and "help")
+---   local f = function(args)
+---     local ft = vim.bo[args.buf].filetype
+---     if ft == 'lua' or ft == 'help' then return end
+---     vim.b[args.buf].minianimate_disable = true
+---   end
+---   vim.api.nvim_create_autocmd('Filetype', { callback = f })
+---
+---   -- Disable in Visual mode
+---   local f_en = function(args) vim.b[args.buf].minianimate_disable = false end
+---   local enable_opts = { pattern = '[vV\x16]*:*', callback = f_en }
+---   vim.api.nvim_create_autocmd('ModeChanged', enable_opts)
+---
+---   local f_dis = function(args) vim.b[args.buf].minianimate_disable = true end
+---   local disable_opts = { pattern = '*:[vV\x16]*', callback = f_dis }
+---   vim.api.nvim_create_autocmd('ModeChanged', disable_opts)
+---
+---   -- Disable in Terminal buffer
+---   local f = function(args) vim.b[args.buf].minianimate_disable = true end
+---   vim.api.nvim_create_autocmd('TermOpen', { callback = f })
+--- <
 ---@tag mini.nvim-disabling-recipes
 
 --- Buffer local config
@@ -349,17 +369,16 @@
 --- `mappings` or `set_vim_settings`).
 ---
 --- Variable names have the same structure: `b:mini*_config` where `*` is
---- module's lowercase name. For example, `b:minicursorword_config` can store
---- information about how |mini.cursorword| will act inside current buffer. Its
---- value should be a table with same structure as module's `config`.
---- Continuing example, `vim.b.minicursorword_config = { delay = 500 }` will
---- use delay 500 inside current buffer.
+--- module's lowercase name. For example, `b:minianimate_config` can store
+--- information about how |mini.animate| will act inside current buffer. Its
+--- value should be a table with same structure as module's `config`. Example: >lua
 ---
+---   -- Disable scroll animation in current buffer
+---   vim.b.minianimate_config = { scroll = { enable = false } }
+--- <
 --- Considering high number of different scenarios and customization intentions,
 --- writing exact rules for module's buffer local configuration is left to
 --- user. It is done in similar fashion to |mini.nvim-disabling-recipes|.
----
---- Note: using function values inside buffer variables requires Neovim>=0.7.
 ---@tag mini.nvim-buffer-local-config
 
 vim.notify([[Do not `require('mini')` directly. Setup every module separately.]])

@@ -359,35 +359,35 @@
 ---
 --- Equal sign ~
 ---
---- Lines:
+--- Lines: >
 ---
---- # This=is=assumed=to be a comment
---- "a ="
---- a =
---- a = 1
---- bbbb = 2
---- ccccccc = 3
---- ccccccccccccccc
---- ddd = 4
---- eeee === eee = eee = eee=f
---- fff = ggg += gg &&= gg
---- g != hhhhhhhh == 888
---- i   := 5
---- i     %= 5
---- i       *= 5
---- j     =~ 5
---- j   >= 5
---- aa      =>         123
---- aa <<= 123
---- aa        >>= 123
---- bbb               => 123
---- c     => 1233123
---- d   =>      123
---- dddddd &&= 123
---- dddddd ||= 123
---- dddddd /= 123
---- gg <=> ee
----
+---   # This=is=assumed=to be a comment
+---   "a ="
+---   a =
+---   a = 1
+---   bbbb = 2
+---   ccccccc = 3
+---   ccccccccccccccc
+---   ddd = 4
+---   eeee === eee = eee = eee=f
+---   fff = ggg += gg &&= gg
+---   g != hhhhhhhh == 888
+---   i   := 5
+---   i     %= 5
+---   i       *= 5
+---   j     =~ 5
+---   j   >= 5
+---   aa      =>         123
+---   aa <<= 123
+---   aa        >>= 123
+---   bbb               => 123
+---   c     => 1233123
+---   d   =>      123
+---   dddddd &&= 123
+---   dddddd ||= 123
+---   dddddd /= 123
+---   gg <=> ee
+--- <
 --- Key sequences:
 --- - `=`
 --- - `=jc`
@@ -400,7 +400,6 @@
 --- - `=fn==1<CR>`
 --- - `=<BS>fn==1<CR>t`
 --- - `=frow>7<CR>`
----
 ---@tag MiniAlign-examples
 
 ---@alias __align_with_preview boolean|nil Whether to align with live preview.
@@ -413,17 +412,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniAlign.config|.
 ---
----@usage `require('mini.align').setup({})` (replace `{}` with your `config` table)
+---@usage >lua
+---   require('mini.align').setup() -- use default config
+---   -- OR
+---   require('mini.align').setup({}) -- replace {} with your config table
+--- <
 MiniAlign.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.align) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniAlign = MiniAlign
 
@@ -451,13 +445,13 @@ end
 --- - Has signature `(steps, opts)` and should modify any of its input in place.
 ---
 --- Examples:
---- - Modifier function used for default 'i' modifier: >
+--- - Modifier function used for default 'i' modifier: >lua
 ---
 ---   function(steps, _)
 ---     table.insert(steps.pre_split, MiniAlign.gen_step.ignore_split())
 ---   end
 --- <
---- - Tweak 't' modifier to use highest indentation instead of keeping it: >
+--- - Tweak 't' modifier to use highest indentation instead of keeping it: >lua
 ---
 ---   require('mini.align').setup({
 ---     modifiers = {
@@ -469,7 +463,7 @@ end
 ---   })
 --- <
 --- - Tweak `j` modifier to cycle through available "justify_side" option
----   values (like in 'junegunn/vim-easy-align'): >
+---   values (like in 'junegunn/vim-easy-align'): >lua
 ---
 ---   require('mini.align').setup({
 ---     modifiers = {
@@ -499,7 +493,7 @@ end
 --- alignment process.
 ---
 --- Examples:
---- - Align by default only first pair of columns: >
+--- - Align by default only first pair of columns: >lua
 ---
 ---   local align = require('mini.align')
 ---   align.setup({
@@ -507,6 +501,7 @@ end
 ---       pre_justify = { align.gen_step.filter('n == 1') }
 ---     },
 ---   })
+--- <
 MiniAlign.config = {
   -- Module mappings. Use `''` (empty string) to disable one.
   mappings = {
@@ -857,7 +852,7 @@ end
 ---   in a row). Value "keep" keeps it; "low" makes all indent equal to the
 ---   lowest across rows; "high" - highest across rows; "remove" - removes indent.
 ---
----@usage >
+---@usage >lua
 ---   parts = MiniAlign.as_parts({ { 'a', 'b' }, { 'c' } })
 ---   print(vim.inspect(parts.get_dims())) -- Should be { row = 2, col = 2 }
 ---
@@ -868,6 +863,7 @@ end
 ---
 ---   parts.trim('both', 'remove').pair()
 ---   print(vim.inspect(parts)) -- Should be { { '1a11b2' }, { '2c1' } }
+--- <
 MiniAlign.as_parts = function(arr2d)
   local ok, msg = H.can_be_parts(arr2d)
   if not ok then H.error('Input of `as_parts()` ' .. msg) end
@@ -1013,7 +1009,7 @@ end
 --- options supplied at execution. This design is mostly because their output
 --- can be used several times in pre-steps.
 ---
----@usage >
+---@usage >lua
 ---   local align = require('mini.align')
 ---   align.setup({
 ---     modifiers = {
@@ -1031,6 +1027,7 @@ end
 ---       pre_justify = { align.gen_step.filter('n == 1') },
 ---     },
 ---   })
+--- <
 MiniAlign.gen_step = {}
 
 --- Generate default split step
@@ -1333,8 +1330,10 @@ end
 
 H.is_disabled = function() return vim.g.minialign_disable == true or vim.b.minialign_disable == true end
 
-H.get_config = function(config)
-  return vim.tbl_deep_extend('force', MiniAlign.config, vim.b.minialign_config or {}, config or {})
+H.get_config = function()
+  -- Using `tbl_deep_extend()` works even in presense of `steps.pre_*` arrays
+  -- because default ones are empty.
+  return vim.tbl_deep_extend('force', MiniAlign.config, vim.b.minialign_config or {})
 end
 
 -- Mappings -------------------------------------------------------------------
@@ -1399,7 +1398,8 @@ end
 
 H.normalize_steps = function(steps, steps_name)
   -- Infer all defaults from module config
-  local res = vim.tbl_deep_extend('force', H.get_config().steps, steps or {})
+  -- NOTE: Don't use `tbl_deep_extend` to prefer full input arrays (if present)
+  local res = vim.tbl_extend('force', H.get_config().steps, steps or {})
 
   H.validate_steps(res, steps_name)
 

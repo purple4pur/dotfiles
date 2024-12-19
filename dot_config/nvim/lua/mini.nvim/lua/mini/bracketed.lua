@@ -124,17 +124,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniBracketed.config|.
 ---
----@usage `require('mini.bracketed').setup({})` (replace `{}` with your `config` table)
+---@usage >lua
+---   require('mini.bracketed').setup() -- use default config
+---   -- OR
+---   require('mini.bracketed').setup({}) -- replace {} with your config table
+--- <
 MiniBracketed.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.bracketed) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniBracketed = MiniBracketed
 
@@ -158,7 +153,7 @@ end
 --- Each entry configures target with the same name and can have data configuring
 --- mapping suffix and target options.
 ---
---- Example of configuration: >
+--- Example of configuration: >lua
 ---
 ---   require('mini.bracketed').setup({
 ---     -- Map [N, [n, ]n, ]N for conflict marker like in 'tpope/vim-unimpaired'
@@ -181,7 +176,7 @@ end
 ---   map('n', '<Leader>wh', "<Cmd>lua MiniBracketed.window('backward')<CR>")
 ---   map('n', '<Leader>wl', "<Cmd>lua MiniBracketed.window('forward')<CR>")
 ---   map('n', '<Leader>wL', "<Cmd>lua MiniBracketed.window('last')<CR>")
----
+--- <
 --- ## Suffix ~
 ---
 --- The `suffix` key is used to create target mappings.
@@ -347,7 +342,7 @@ MiniBracketed.comment = function(direction, opts)
   if opts.add_to_jumplist then H.add_to_jumplist() end
 
   -- Apply. Open just enough folds and put cursor on first non-blank.
-  vim.api.nvim_win_set_cursor(0, { res_line_num, 0 })
+  H.set_cursor(res_line_num, 0)
   vim.cmd('normal! zv^')
 end
 
@@ -409,7 +404,7 @@ MiniBracketed.conflict = function(direction, opts)
   if opts.add_to_jumplist then H.add_to_jumplist() end
 
   -- Apply. Open just enough folds and put cursor on first non-blank.
-  vim.api.nvim_win_set_cursor(0, { res_line_num, 0 })
+  H.set_cursor(res_line_num, 0)
   vim.cmd('normal! zv^')
 end
 
@@ -424,13 +419,13 @@ end
 ---
 --- Notes:
 --- - Using `severity` option, this target can be used in mappings like "go to
----   next/previous error" (), etc. Using code similar to this: >
+---   next/previous error" (), etc. Using code similar to this: >lua
 ---
 ---   local severity_error = vim.diagnostic.severity.ERROR
 ---   -- Use these inside custom mappings
 ---   MiniBracketed.diagnostic('forward', { severity = severity_error })
 ---   MiniBracketed.diagnostic('backward', { severity = severity_error })
----
+--- <
 ---@param direction __bracketed_direction
 ---@param opts __bracketed_opts
 ---   - <float> `(boolean|table)` - control floating window after movement.
@@ -648,7 +643,7 @@ MiniBracketed.indent = function(direction, opts)
   if opts.add_to_jumplist then H.add_to_jumplist() end
 
   -- Apply. Open just enough folds and put cursor on first non-blank.
-  vim.api.nvim_win_set_cursor(0, { res_line_num, 0 })
+  H.set_cursor(res_line_num, 0)
   vim.cmd('normal! zv^')
 end
 
@@ -924,8 +919,7 @@ MiniBracketed.treesitter = function(direction, opts)
   if opts.add_to_jumplist then H.add_to_jumplist() end
 
   -- Apply
-  local row, col = res_node_pos.pos[1], res_node_pos.pos[2]
-  vim.api.nvim_win_set_cursor(0, { row + 1, col })
+  H.set_cursor(res_node_pos.pos[1] + 1, res_node_pos.pos[2])
 end
 
 --- Undo along a tracked linear history
@@ -1123,14 +1117,14 @@ end
 ---
 --- - Remap common put operations to use |MiniBracketed.register_put_region()|.
 ---   After that, only regions from mapped put operations will be used for first
----   advance. Example of custom mappings (note use of |:map-expression|): >
+---   advance. Example of custom mappings (note use of |:map-expression|): >lua
 ---
 ---     local put_keys = { 'p', 'P' }
 ---     for _, lhs in ipairs(put_keys) do
 ---       local rhs = 'v:lua.MiniBracketed.register_put_region("' .. lhs .. '")'
 ---       vim.keymap.set({ 'n', 'x' }, lhs, rhs, { expr = true })
 ---     end
----
+--- <
 ---@param direction __bracketed_direction
 ---@param opts __bracketed_opts
 ---   - <operators> `(table)` - array of operator names ("c", "d", or "y") for
@@ -1141,12 +1135,9 @@ MiniBracketed.yank = function(direction, opts)
   if H.is_disabled() then return end
 
   H.validate_direction(direction, { 'first', 'backward', 'forward', 'last' }, 'yank')
-  opts = vim.tbl_deep_extend(
-    'force',
-    { n_times = vim.v.count1, operators = { 'c', 'd', 'y' }, wrap = true },
-    H.get_config().yank.options,
-    opts or {}
-  )
+  -- NOTE: Don't use `tbl_deep_extend` to prefer full input `operators` array
+  local default_opts = { n_times = vim.v.count1, operators = { 'c', 'd', 'y' }, wrap = true }
+  opts = vim.tbl_extend('force', default_opts, H.get_config().yank.options, opts or {})
 
   -- Update yank history data
   local cache_yank, history = H.cache.yank, H.cache.yank.history
@@ -1605,10 +1596,10 @@ end
 H.get_suffix_variants = function(char) return char:lower(), char:upper() end
 
 H.create_autocommands = function()
-  local augroup = vim.api.nvim_create_augroup('MiniBracketed', {})
+  local gr = vim.api.nvim_create_augroup('MiniBracketed', {})
 
   local au = function(event, pattern, callback, desc)
-    vim.api.nvim_create_autocmd(event, { group = augroup, pattern = pattern, callback = callback, desc = desc })
+    vim.api.nvim_create_autocmd(event, { group = gr, pattern = pattern, callback = callback, desc = desc })
   end
 
   au('BufEnter', '*', H.track_oldfile, 'Track oldfile')
@@ -1824,7 +1815,7 @@ end
 -- Treesitter -----------------------------------------------------------------
 if vim.fn.has('nvim-0.9') == 1 then
   H.get_treesitter_node = function(row, col) return vim.treesitter.get_node({ pos = { row, col } }) end
-elseif vim.fn.has('nvim-0.8') == 1 then
+else
   H.get_treesitter_node = function(row, col) return vim.treesitter.get_node_at_pos(0, row, col, {}) end
 end
 
@@ -1980,7 +1971,7 @@ end
 
 H.region_delete = function(region, normal_fun)
   -- Start with `to` to have cursor positioned on region start after deletion
-  vim.api.nvim_win_set_cursor(0, { region.to.line, region.to.col - 1 })
+  H.set_cursor(region.to.line, region.to.col - 1)
 
   -- Do nothing more if region is empty (or leads to unnecessary line deletion)
   local is_empty = region.from.line == region.to.line
@@ -1991,7 +1982,7 @@ H.region_delete = function(region, normal_fun)
 
   -- Select region in correct Visual mode
   normal_fun(region.mode)
-  vim.api.nvim_win_set_cursor(0, { region.from.line, region.from.col - 1 })
+  H.set_cursor(region.from.line, region.from.col - 1)
 
   -- Delete region in "black hole" register
   -- - NOTE: it doesn't affect history as `"_` doesn't trigger `TextYankPost`
@@ -2021,5 +2012,13 @@ H.map = function(mode, lhs, rhs, opts)
 end
 
 H.add_to_jumplist = function() vim.cmd([[normal! m']]) end
+
+H.set_cursor = function(row, col)
+  if row <= 0 then return vim.api.nvim_win_set_cursor(0, { 1, 0 }) end
+  local n_lines = vim.api.nvim_buf_line_count(0)
+  if n_lines < row then return vim.api.nvim_win_set_cursor(0, { n_lines, vim.fn.getline(n_lines):len() - 1 }) end
+  col = math.min(math.max(col, 0), vim.fn.getline(row):len())
+  return vim.api.nvim_win_set_cursor(0, { row, col })
+end
 
 return MiniBracketed

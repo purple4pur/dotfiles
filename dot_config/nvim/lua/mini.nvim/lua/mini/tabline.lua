@@ -27,10 +27,10 @@
 ---
 --- # Dependencies ~
 ---
---- Suggested dependencies (provide extra functionality, tabline will work
---- without them):
---- - Plugin 'nvim-tree/nvim-web-devicons' for filetype icons near the buffer
----   name. If missing, no icons will be shown.
+--- Suggested dependencies (provide extra functionality, will work without them):
+---
+--- - Enabled |MiniIcons| module to show icons near file names.
+---   Falls back to using 'nvim-tree/nvim-web-devicons' plugin or shows nothing.
 ---
 --- # Setup ~
 ---
@@ -74,17 +74,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniTabline.config|.
 ---
----@usage `require('mini.tabline').setup({})` (replace `{}` with your `config` table)
+---@usage >lua
+---   require('mini.tabline').setup() -- use default config
+---   -- OR
+---   require('mini.tabline').setup({}) -- replace {} with your config table
+--- <
 MiniTabline.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.tabline) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniTabline = MiniTabline
 
@@ -94,6 +89,12 @@ MiniTabline.setup = function(config)
   -- Apply config
   H.apply_config(config)
 
+  -- Define behavior
+  H.create_autocommands()
+
+  -- Create default highlighting
+  H.create_default_hl()
+
   -- Function to make tabs clickable
   vim.api.nvim_exec(
     [[function! MiniTablineSwitchBuffer(buf_id, clicks, button, mod)
@@ -101,9 +102,6 @@ MiniTabline.setup = function(config)
       endfunction]],
     false
   )
-
-  -- Create default highlighting
-  H.create_default_hl()
 end
 
 --- Module config
@@ -117,14 +115,15 @@ end
 --- This function will be called for all displayable in tabline buffers.
 --- Default: |MiniTabline.default_format()|.
 ---
---- Example of adding "+" suffix for modified buffers: >
+--- Example of adding "+" suffix for modified buffers: >lua
 ---
 ---   function(buf_id, label)
 ---     local suffix = vim.bo[buf_id].modified and '+ ' or ''
 ---     return MiniTabline.default_format(buf_id, label) .. suffix
 ---   end
+--- <
 MiniTabline.config = {
-  -- Whether to show file icons (requires 'nvim-tree/nvim-web-devicons')
+  -- Whether to show file icons (requires 'mini.icons')
   show_icons = true,
 
   -- Function which formats the tab label
@@ -157,8 +156,8 @@ end
 --- Default tab format
 ---
 --- Used by default as `config.format`.
---- Prepends label with padded icon (if `show_icon` from |MiniTabline.config|
---- is `true`) and surrounds label with single space.
+--- Prepends label with padded icon based on buffer's name (if `show_icon`
+--- in |MiniTabline.config| is `true`) and surrounds label with single space.
 --- Note: it is meant to be used only as part of `format` in |MiniTabline.config|.
 ---
 ---@param buf_id number Buffer identifier.
@@ -167,7 +166,7 @@ end
 ---@return string Formatted label.
 MiniTabline.default_format = function(buf_id, label)
   if H.get_icon == nil then return string.format(' %s ', label) end
-  return string.format(' %s %s ', H.get_icon(label), label)
+  return string.format(' %s %s ', H.get_icon(vim.api.nvim_buf_get_name(buf_id)), label)
 end
 
 -- Helper data ================================================================
@@ -221,6 +220,11 @@ H.apply_config = function(config)
 
   -- Set tabline string
   vim.o.tabline = '%!v:lua.MiniTabline.make_tabline_string()'
+end
+
+H.create_autocommands = function()
+  local gr = vim.api.nvim_create_augroup('MiniTabline', {})
+  vim.api.nvim_create_autocmd('ColorScheme', { group = gr, callback = H.create_default_hl, desc = 'Ensure colors' })
 end
 
 --stylua: ignore
@@ -399,12 +403,7 @@ H.finalize_labels = function()
   local config = H.get_config()
 
   -- - Ensure cached `get_icon` for `default_format` (for better performance)
-  if not config.show_icons then H.get_icon = nil end
-  if config.show_icons and H.get_icon == nil then
-    -- Have this `require()` here to not depend on plugin initialization order
-    local has_devicons, devicons = pcall(require, 'nvim-web-devicons')
-    if has_devicons then H.get_icon = function(name) return devicons.get_icon(name, nil, { default = true }) end end
-  end
+  H.ensure_get_icon(config)
 
   -- - Apply formatting
   local format = config.format or MiniTabline.default_format
@@ -412,9 +411,6 @@ H.finalize_labels = function()
     tab.label = format(tab.buf_id, tab.label)
   end
 end
-
--- Helper for `default_format`, cached for performance
-H.get_icon = nil
 
 ---@return table Array of `H.tabs` ids which have non-unique labels.
 ---@private
@@ -533,6 +529,26 @@ H.concat_tabs = function()
   end
 
   return res
+end
+
+-- Utilities ------------------------------------------------------------------
+H.ensure_get_icon = function(config)
+  if not config.show_icons then
+    -- Show no icon
+    H.get_icon = nil
+  elseif H.get_icon ~= nil then
+    -- Cache only once
+    return
+  elseif _G.MiniIcons ~= nil then
+    -- Prefer 'mini.icons'
+    H.get_icon = function(name) return (_G.MiniIcons.get('file', name)) end
+  else
+    -- Try falling back to 'nvim-web-devicons'
+    local has_devicons, devicons = pcall(require, 'nvim-web-devicons')
+    if not has_devicons then return end
+    -- Use basename because it makes exact file name matching work
+    H.get_icon = function(name) return (devicons.get_icon(vim.fn.fnamemodify(name, ':t'), nil, { default = true })) end
+  end
 end
 
 -- TODO: Remove after compatibility with Neovim=0.9 is dropped

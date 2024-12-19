@@ -19,18 +19,18 @@
 ---
 --- # Dependencies ~
 ---
---- Suggested dependencies (provide extra functionality, statusline will work
---- without them):
+--- Suggested dependencies (provide extra functionality, will work without them):
+---
 --- - Nerd font (to support extra icons).
+---
+--- - Enabled |MiniIcons| module for |MiniStatusline.section_fileinfo()|.
+---   Falls back to using 'nvim-tree/nvim-web-devicons' plugin or shows nothing.
 ---
 --- - Enabled |MiniGit| module for |MiniStatusline.section_git()|.
 ---   Falls back to using 'lewis6991/gitsigns.nvim' plugin or shows nothing.
 ---
 --- - Enabled |MiniDiff| module for |MiniStatusline.section_diff()|.
 ---   Falls back to using 'lewis6991/gitsigns.nvim' plugin or shows nothing.
----
---- - Plugin 'nvim-tree/nvim-web-devicons' for filetype icons
----   in |MiniStatusline.section_fileinfo()|. If missing, no icons will be shown.
 ---
 --- # Setup ~
 ---
@@ -79,8 +79,8 @@
 ---
 --- # Default content ~
 ---
---- This function is used as default value for active content:
---- >
+--- This function is used as default value for active content: >lua
+---
 ---   function()
 ---     local mode, mode_hl = MiniStatusline.section_mode({ trunc_width = 120 })
 ---     local git           = MiniStatusline.section_git({ trunc_width = 40 })
@@ -107,8 +107,8 @@
 ---
 --- To compute section string for boolean option use variation of this code
 --- snippet inside content function (you can modify option itself, truncation
---- width, short and long displayed names):
---- >
+--- width, short and long displayed names): >lua
+---
 ---   local spell = vim.wo.spell and (MiniStatusline.is_truncated(120) and 'S' or 'SPELL') or ''
 --- <
 --- Here `x and y or z` is a common Lua way of doing ternary operator: if `x`
@@ -126,17 +126,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniStatusline.config|.
 ---
----@usage `require('mini.statusline').setup({})` (replace `{}` with your `config` table)
+---@usage >lua
+---   require('mini.statusline').setup() -- use default config
+---   -- OR
+---   require('mini.statusline').setup({}) -- replace {} with your config table
+--- <
 MiniStatusline.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.statusline) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniStatusline = MiniStatusline
 
@@ -173,9 +168,7 @@ MiniStatusline.config = {
   -- Whether to use icons by default
   use_icons = true,
 
-  -- Whether to set Vim's settings for statusline (make it always shown with
-  -- 'laststatus' set to 2). To use global statusline in Neovim>=0.7.0, set
-  -- this to `false` and 'laststatus' to 3.
+  -- Whether to set Vim's settings for statusline (make it always shown)
   set_vim_settings = true,
 }
 --minidoc_afterlines_end
@@ -325,9 +318,10 @@ end
 --- Short output is returned if window width is lower than `args.trunc_width`.
 ---
 ---@param args __statusline_args Use `args.icon` to supply your own icon.
----   Use `args.signs` to use custom signs per severity level name. For example:
----   `{ ERROR = '!', WARN = '?', INFO = '@', HINT = '*' }`
+---   Use `args.signs` to use custom signs per severity level name. For example: >lua
 ---
+---     { ERROR = '!', WARN = '?', INFO = '@', HINT = '*' }
+--- <
 ---@return __statusline_section
 MiniStatusline.section_diagnostics = function(args)
   if MiniStatusline.is_truncated(args.trunc_width) or H.diagnostic_is_disabled() then return '' end
@@ -392,8 +386,13 @@ end
 
 --- Section for file information
 ---
---- Short output contains only extension and is returned if window width is
---- lower than `args.trunc_width`.
+--- Short output contains only buffer's 'filetype' and is returned if window
+--- width is lower than `args.trunc_width` or buffer is not normal.
+---
+--- Nothing is shown if there is no 'filetype' set (treated as temporary buffer).
+---
+--- If `config.use_icons` is true and icon provider is present (see
+--- "Dependencies" section in |mini.statusline|), shows icon near the filetype.
 ---
 ---@param args __statusline_args
 ---
@@ -401,15 +400,15 @@ end
 MiniStatusline.section_fileinfo = function(args)
   local filetype = vim.bo.filetype
 
-  -- Don't show anything if no filetype or not inside a "normal buffer"
-  if filetype == '' or vim.bo.buftype ~= '' then return '' end
+  -- Don't show anything if there is no filetype
+  if filetype == '' then return '' end
 
   -- Add filetype icon
   H.ensure_get_icon()
-  if H.get_icon ~= nil then filetype = H.get_icon() .. ' ' .. filetype end
+  if H.get_icon ~= nil then filetype = H.get_icon(filetype) .. ' ' .. filetype end
 
-  -- Construct output string if truncated
-  if MiniStatusline.is_truncated(args.trunc_width) then return filetype end
+  -- Construct output string if truncated or buffer is not normal
+  if MiniStatusline.is_truncated(args.trunc_width) or vim.bo.buftype ~= '' then return filetype end
 
   -- Construct output string with extra file info
   local encoding = vim.bo.fileencoding or vim.bo.encoding
@@ -422,8 +421,8 @@ end
 --- Section for location inside buffer
 ---
 --- Show location inside buffer in the form:
---- - Normal: '<cursor line>|<total lines>│<cursor column>|<total columns>'.
---- - Short: '<cursor line>│<cursor column>'.
+--- - Normal: `'<cursor line>|<total lines>│<cursor column>|<total columns>'`
+--- - Short: `'<cursor line>│<cursor column>'`
 ---
 --- Short output is returned if window width is lower than `args.trunc_width`.
 ---
@@ -509,7 +508,7 @@ H.apply_config = function(config)
   MiniStatusline.config = config
 
   -- Set settings to ensure statusline is displayed properly
-  if config.set_vim_settings then vim.o.laststatus = 2 end
+  if config.set_vim_settings and (vim.o.laststatus == 0 or vim.o.laststatus == 1) then vim.o.laststatus = 2 end
 
   -- Ensure proper 'statusline' values (to not rely on autocommands trigger)
   H.ensure_content()
@@ -520,22 +519,22 @@ H.apply_config = function(config)
 end
 
 H.create_autocommands = function()
-  local augroup = vim.api.nvim_create_augroup('MiniStatusline', {})
+  local gr = vim.api.nvim_create_augroup('MiniStatusline', {})
 
   local au = function(event, pattern, callback, desc)
-    vim.api.nvim_create_autocmd(event, { group = augroup, pattern = pattern, callback = callback, desc = desc })
+    vim.api.nvim_create_autocmd(event, { group = gr, pattern = pattern, callback = callback, desc = desc })
   end
 
   au({ 'WinEnter', 'BufWinEnter' }, '*', H.ensure_content, 'Ensure statusline content')
 
-  if vim.fn.has('nvim-0.8') == 1 then
-    -- Use `schedule_wrap()` because at `LspDetach` server is still present
-    local track_lsp = vim.schedule_wrap(function(data)
-      H.attached_lsp[data.buf] = H.compute_attached_lsp(data.buf)
-      vim.cmd('redrawstatus')
-    end)
-    au({ 'LspAttach', 'LspDetach' }, '*', track_lsp, 'Track LSP clients')
-  end
+  -- Use `schedule_wrap()` because at `LspDetach` server is still present
+  local track_lsp = vim.schedule_wrap(function(data)
+    H.attached_lsp[data.buf] = H.compute_attached_lsp(data.buf)
+    vim.cmd('redrawstatus')
+  end)
+  au({ 'LspAttach', 'LspDetach' }, '*', track_lsp, 'Track LSP clients')
+
+  au('ColorScheme', '*', H.create_default_hl, 'Ensure colors')
 end
 
 --stylua: ignore
@@ -637,9 +636,6 @@ H.default_content_inactive = function() return '%#MiniStatuslineInactive#%F%=' e
 
 -- LSP ------------------------------------------------------------------------
 H.get_attached_lsp = function() return H.attached_lsp[vim.api.nvim_get_current_buf()] or '' end
-if vim.fn.has('nvim-0.8') == 0 then
-  H.get_attached_lsp = function() return H.compute_attached_lsp(vim.api.nvim_get_current_buf()) end
-end
 
 H.compute_attached_lsp = function(buf_id) return string.rep('+', vim.tbl_count(H.get_buf_lsp_clients(buf_id))) end
 
@@ -679,14 +675,20 @@ H.get_filesize = function()
 end
 
 H.ensure_get_icon = function()
-  local use_icons = H.use_icons or H.get_config().use_icons
-  if not use_icons then H.get_icon = nil end
-  if use_icons and H.get_icon == nil then
-    -- Have this `require()` here to not depend on plugin initialization order
+  if not (H.use_icons or H.get_config().use_icons) then
+    -- Show no icon
+    H.get_icon = nil
+  elseif H.get_icon ~= nil then
+    -- Cache only once
+    return
+  elseif _G.MiniIcons ~= nil then
+    -- Prefer 'mini.icons'
+    H.get_icon = function(filetype) return (_G.MiniIcons.get('filetype', filetype)) end
+  else
+    -- Try falling back to 'nvim-web-devicons'
     local has_devicons, devicons = pcall(require, 'nvim-web-devicons')
-    if has_devicons then
-      H.get_icon = function() return devicons.get_icon(vim.fn.expand('%:t'), nil, { default = true }) end
-    end
+    if not has_devicons then return end
+    H.get_icon = function() return (devicons.get_icon(vim.fn.expand('%:t'), nil, { default = true })) end
   end
 end
 

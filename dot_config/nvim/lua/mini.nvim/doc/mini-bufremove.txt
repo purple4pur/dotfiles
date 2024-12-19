@@ -48,15 +48,18 @@ Parameters ~
 {config} `(table|nil)` Module config table. See |MiniBufremove.config|.
 
 Usage ~
-`require('mini.bufremove').setup({})` (replace `{}` with your `config` table)
-
+>lua
+  require('mini.bufremove').setup() -- use default config
+  -- OR
+  require('mini.bufremove').setup({}) -- replace {} with your config table
+<
 ------------------------------------------------------------------------------
                                                           *MiniBufremove.config*
                              `MiniBufremove.config`
 Module config
 
 Default values:
->
+>lua
   MiniBufremove.config = {
     -- Whether to set Vim's settings for buffers (allow hidden buffers)
     set_vim_settings = true,
@@ -65,7 +68,6 @@ Default values:
     silent = false,
   }
 <
-
 ------------------------------------------------------------------------------
                                                         *MiniBufremove.delete()*
                    `MiniBufremove.delete`({buf_id}, {force})

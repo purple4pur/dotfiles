@@ -57,18 +57,20 @@ Parameters ~
 {config} `(table|nil)` Module config table. See |MiniExtra.config|.
 
 Usage ~
-`require('mini.extra').setup({})` (replace `{}` with your `config` table).
-
+>lua
+  require('mini.extra').setup() -- use default config
+  -- OR
+  require('mini.extra').setup({}) -- replace {} with your config table
+<
 ------------------------------------------------------------------------------
                                                               *MiniExtra.config*
                                `MiniExtra.config`
 Module config
 
 Default values:
->
+>lua
   MiniExtra.config = {}
 <
-
 ------------------------------------------------------------------------------
                                                          *MiniExtra.gen_ai_spec*
                             `MiniExtra.gen_ai_spec`
@@ -76,7 +78,7 @@ Default values:
 
 This is a table with function elements. Call to actually get specification.
 
-Assumed to be used as part of |MiniAi.setup()|. Example: >
+Assumed to be used as part of |MiniAi.setup()|. Example: >lua
 
   local gen_ai_spec = require('mini.extra').gen_ai_spec
   require('mini.ai').setup({
@@ -88,7 +90,7 @@ Assumed to be used as part of |MiniAi.setup()|. Example: >
       N = gen_ai_spec.number(),
     },
   })
-
+<
 ------------------------------------------------------------------------------
                                                 *MiniExtra.gen_ai_spec.buffer()*
                         `MiniExtra.gen_ai_spec.buffer`()
@@ -178,7 +180,7 @@ Return ~
 
 This is a table with function elements. Call to actually get specification.
 
-Assumed to be used as part of |MiniHipatterns.setup()|. Example: >
+Assumed to be used as part of |MiniHipatterns.setup()|. Example: >lua
 
   local hi_words = require('mini.extra').gen_highlighter.words
   require('mini.hipatterns').setup({
@@ -186,7 +188,7 @@ Assumed to be used as part of |MiniHipatterns.setup()|. Example: >
       todo = hi_words({ 'TODO', 'Todo', 'todo' }, 'MiniHipatternsTodo'),
     },
   })
-
+<
 ------------------------------------------------------------------------------
                                              *MiniExtra.gen_highlighter.words()*
       `MiniExtra.gen_highlighter.words`({words}, {group}, {extmark_opts})
@@ -238,6 +240,8 @@ Parameters ~
   Possible fields:
   - <scope> `(string)` - one of "all" (normal listed buffers) or "current".
     Default: "all".
+  - <preserve_order> `(boolean)` - whether to preserve original order
+    during query. Default: `false`.
 {opts} `(table|nil)` Options forwarded to |MiniPick.start()|.
 
 Return ~
@@ -592,11 +596,12 @@ Notes:
     - "references".
     - "type_definition".
     - "workspace_symbol".
-- Requires Neovim>=0.8.
 - Directly relies on `vim.lsp.buf` methods which support |lsp-on-list-handler|.
   In particular, it means that picker is started only if LSP server returns
   list of locations and not a single location.
 - Doesn't return anything due to async nature of `vim.lsp.buf` methods.
+- Requires set up |mini.icons| to show extra icons and highlighting in
+  "document_symbol" and "workspace_symbol" scopes.
 
 Examples ~
 
@@ -605,7 +610,7 @@ Examples ~
 - `:Pick lsp scope='document_symbol'` - symbols in current file.
 
 Parameters ~
-{local_opts} `(table)` Options defining behavior of this particular picker.
+{local_opts} `(table|nil)` Options defining behavior of this particular picker.
   Possible fields:
   - <scope> `(string)` - LSP method to use. One of the supported ones (see
     list above). Default: `nil` which means explicit scope is needed.
@@ -642,7 +647,11 @@ Pick from |v:oldfiles| entries representing readable files.
 
 Parameters ~
 {local_opts} `(table|nil)` Options defining behavior of this particular picker.
-  Not used at the moment.
+  Possible fields:
+  - <current_dir> `(boolean)` - whether to return files only from current
+    working directory and its subdirectories. Default: `false`.
+  - <preserve_order> `(boolean)` - whether to preserve original order
+    during query. Default: `false`.
 {opts} `(table|nil)` Options forwarded to |MiniPick.start()|.
 
 Return ~
@@ -716,7 +725,6 @@ Tree-sitter nodes picker
 
 Pick and navigate to |treesitter| nodes of current buffer.
 Notes:
-- Requires Neovim>=0.8.
 - Requires active tree-sitter parser in the current buffer.
 
 Parameters ~

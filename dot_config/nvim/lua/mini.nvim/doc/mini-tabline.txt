@@ -27,10 +27,10 @@ What it doesn't do:
 
 # Dependencies ~
 
-Suggested dependencies (provide extra functionality, tabline will work
-without them):
-- Plugin 'nvim-tree/nvim-web-devicons' for filetype icons near the buffer
-  name. If missing, no icons will be shown.
+Suggested dependencies (provide extra functionality, will work without them):
+
+- Enabled |MiniIcons| module to show icons near file names.
+  Falls back to using 'nvim-tree/nvim-web-devicons' plugin or shows nothing.
 
 # Setup ~
 
@@ -75,17 +75,20 @@ Parameters ~
 {config} `(table|nil)` Module config table. See |MiniTabline.config|.
 
 Usage ~
-`require('mini.tabline').setup({})` (replace `{}` with your `config` table)
-
+>lua
+  require('mini.tabline').setup() -- use default config
+  -- OR
+  require('mini.tabline').setup({}) -- replace {} with your config table
+<
 ------------------------------------------------------------------------------
                                                             *MiniTabline.config*
                               `MiniTabline.config`
 Module config
 
 Default values:
->
+>lua
   MiniTabline.config = {
-    -- Whether to show file icons (requires 'nvim-tree/nvim-web-devicons')
+    -- Whether to show file icons (requires 'mini.icons')
     show_icons = true,
 
     -- Function which formats the tab label
@@ -108,13 +111,13 @@ label as arguments and returns a string with formatted label.
 This function will be called for all displayable in tabline buffers.
 Default: |MiniTabline.default_format()|.
 
-Example of adding "+" suffix for modified buffers: >
+Example of adding "+" suffix for modified buffers: >lua
 
   function(buf_id, label)
     local suffix = vim.bo[buf_id].modified and '+ ' or ''
     return MiniTabline.default_format(buf_id, label) .. suffix
   end
-
+<
 ------------------------------------------------------------------------------
                                              *MiniTabline.make_tabline_string()*
                       `MiniTabline.make_tabline_string`()
@@ -126,8 +129,8 @@ Make string for |tabline|
 Default tab format
 
 Used by default as `config.format`.
-Prepends label with padded icon (if `show_icon` from |MiniTabline.config|
-is `true`) and surrounds label with single space.
+Prepends label with padded icon based on buffer's name (if `show_icon`
+in |MiniTabline.config| is `true`) and surrounds label with single space.
 Note: it is meant to be used only as part of `format` in |MiniTabline.config|.
 
 Parameters ~

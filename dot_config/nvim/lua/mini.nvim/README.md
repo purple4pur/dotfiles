@@ -76,7 +76,7 @@ If you are browsing without particular objective and don't know which module to 
 
 - To improve your editing experience, start with 'mini.ai', 'mini.operators', 'mini.pairs', 'mini.surround'.
 - To improve your general workflow, start with 'mini.bracketed', 'mini.files', 'mini.jump2d', 'mini.pick'.
-- To make your Neovim more beautiful, start with 'mini.animate', 'mini.hipatterns', 'mini.hues', 'mini.notify'.
+- To make your Neovim more beautiful, start with 'mini.animate', 'mini.hues', 'mini.icons', 'mini.notify'.
 
 | Module           | Description                              | Overview                              | Details                               |
 |------------------|------------------------------------------|---------------------------------------|---------------------------------------|
@@ -101,6 +101,7 @@ If you are browsing without particular objective and don't know which module to 
 | mini.git         | Git integration                          | [README](readmes/mini-git.md)         | [Help file](doc/mini-git.txt)         |
 | mini.hipatterns  | Highlight patterns in text               | [README](readmes/mini-hipatterns.md)  | [Help file](doc/mini-hipatterns.txt)  |
 | mini.hues        | Generate configurable color scheme       | [README](readmes/mini-hues.md)        | [Help file](doc/mini-hues.txt)        |
+| mini.icons       | Icon provider                            | [README](readmes/mini-icons.md)       | [Help file](doc/mini-icons.txt)       |
 | mini.indentscope | Visualize and work with indent scope     | [README](readmes/mini-indentscope.md) | [Help file](doc/mini-indentscope.txt) |
 | mini.jump        | Jump to next/previous single character   | [README](readmes/mini-jump.md)        | [Help file](doc/mini-jump.txt)        |
 | mini.jump2d      | Jump within visible lines                | [README](readmes/mini-jump2d.md)      | [Help file](doc/mini-jump2d.txt)      |
@@ -144,7 +145,7 @@ If you are browsing without particular objective and don't know which module to 
 
 - **Silencing**. Each module providing non-error feedback can be configured to not do that by setting `config.silent = true` (either inside `setup()` call or on the fly).
 
-- **Highlight groups**. Appearance of module's output is controlled by certain highlight group (see `:h highlight-groups`). To customize them, use `highlight` command. **Note**: currently not many Neovim themes support this plugin's highlight groups; fixing this situation is highly appreciated. To see a more calibrated look, use 'mini.hues', 'mini.base16', or any of plugin's colorscheme.
+- **Highlighting**. Appearance of module's output is controlled by certain set of highlight groups (see `:h highlight-groups`). By default they usually link to some semantically close built-in highlight group and are ensured to be defined after any color scheme takes effect. Use `:highlight` command or `vim.api.nvim_set_hl()` Lua function to customize highlighting. To see a more calibrated look, use 'mini.hues', 'mini.base16', or plugin's color scheme.
 
 - **Stability**. Each module upon release is considered to be relatively stable: both in terms of setup and functionality. Any non-bugfix backward-incompatible change will be released gradually as much as possible.
 

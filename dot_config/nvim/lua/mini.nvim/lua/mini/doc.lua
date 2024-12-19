@@ -144,17 +144,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniDoc.config|.
 ---
----@usage `require('mini.doc').setup({})` (replace `{}` with your `config` table)
+---@usage >lua
+---   require('mini.doc').setup() -- use default config
+---   -- OR
+---   require('mini.doc').setup({}) -- replace {} with your config table
+--- <
 MiniDoc.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.doc) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniDoc = MiniDoc
 
@@ -343,7 +338,7 @@ MiniDoc.config = {
       if not b:has_lines() then return end
 
       local found_param, found_field = false, false
-      local n_tag_sections = 0
+      local n_tag_sections, last_line = 0, nil
       H.apply_recursively(function(x)
         if not (type(x) == 'table' and x.type == 'section') then return end
 
@@ -362,11 +357,15 @@ MiniDoc.config = {
           x.parent:remove(x.parent_index)
           n_tag_sections = n_tag_sections + 1
           x.parent:insert(n_tag_sections, x)
+        elseif type(x[#x]) == 'string' then
+          last_line = x[#x]
         end
       end, b)
 
       b:insert(1, H.as_struct({ string.rep('-', 78) }, 'section'))
-      b:insert(H.as_struct({ '' }, 'section'))
+      -- Append empty line only if last line is not visibly blank (closing code
+      -- block with "<" is concealed)
+      if string.find(last_line, '^<?%s*$') == nil then b:insert(H.as_struct({ '' }, 'section')) end
     end,
     --minidoc_replace_end
 
@@ -612,14 +611,16 @@ end
 --- Convert afterlines to code
 ---
 --- This function is designed to be used together with `@eval` section to
---- automate documentation of certain values (notable default values of a
+--- automate documentation of certain values (notably default values of a
 --- table). It processes afterlines based on certain directives and makes
---- output looking like a code block.
+--- output look like a Lua code block.
 ---
---- Most common usage is by adding the following section in your annotation:
---- `@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)`
+--- Most common usage is by adding the following section in your annotation: >
 ---
+---   ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
+--- <
 --- # Directives ~
+---
 --- Directives are special comments that are processed using Lua string pattern
 --- capabilities (so beware of false positives). Each directive should be put
 --- on its separate line. Supported directives:
@@ -631,8 +632,8 @@ end
 ---   Useful for manually changing what should be placed in output like in case
 ---   of replacing function body with something else.
 ---
---- Here is an example. Suppose having these afterlines:
---- >
+--- Here is an example. Suppose having these afterlines: >lua
+---
 ---   --minidoc_replace_start {
 ---   M.config = {
 ---     --minidoc_replace_end
@@ -647,9 +648,8 @@ end
 ---
 ---   return M
 --- <
+--- After adding `@eval` section those will be formatted as: >
 ---
---- After adding `@eval` section those will be formatted as:
---- >
 ---   {
 ---     param_one = 1,
 ---     param_fun = --<function>
@@ -659,7 +659,7 @@ end
 ---   converted to code.
 ---
 ---@return string|nil Single string (using `\n` to separate lines) describing
----   afterlines as code block in help file. If `nil`, input is not valid.
+---   afterlines as Lua code block in help file. If `nil`, input is not valid.
 MiniDoc.afterlines_to_code = function(struct)
   if not (type(struct) == 'table' and (struct.type == 'section' or struct.type == 'block')) then
     vim.notify('Input to `MiniDoc.afterlines_to_code()` should be either section or block.', vim.log.levels.WARN)
@@ -679,7 +679,7 @@ MiniDoc.afterlines_to_code = function(struct)
   -- Convert to a standalone code. NOTE: indent is needed because of how `>`
   -- and `<` work (any line starting in column 1 stops code block).
   src = H.ensure_indent(src, 2)
-  return '>\n' .. src .. '\n<'
+  return '>lua\n' .. src .. '\n<'
 end
 
 -- Helper data ================================================================
@@ -808,11 +808,11 @@ end
 
 -- Default documentation targets ----------------------------------------------
 H.default_input = function()
-  -- Search in current and recursively in other directories for files with
-  -- 'lua' extension
+  -- Search in current and recursively in other directories for Lua files
   local res = {}
-  for _, dir_glob in ipairs({ '.', 'lua/**', 'after/**', 'colors/**' }) do
-    local files = vim.fn.globpath(dir_glob, '*.lua', false, true)
+  for _, dir in ipairs({ '.', 'lua', 'after', 'colors' }) do
+    local glob = (dir == '.' and '' or '**/') .. '*.lua'
+    local files = vim.fn.globpath(dir, glob, false, true)
 
     -- Use full paths
     files = vim.tbl_map(function(x) return vim.fn.fnamemodify(x, ':p') end, files)

@@ -72,17 +72,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniFuzzy.config|.
 ---
----@usage `require('mini.fuzzy').setup({})` (replace `{}` with your `config` table)
+---@usage >lua
+---   require('mini.fuzzy').setup() -- use default config
+---   -- OR
+---   require('mini.fuzzy').setup({}) -- replace {} with your config table
+--- <
 MiniFuzzy.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.fuzzy) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniFuzzy = MiniFuzzy
 
@@ -177,12 +172,13 @@ end
 ---
 ---@param opts table|nil Options (currently not used).
 ---
----@usage >
+---@usage >lua
 ---   require('telescope').setup({
 ---     defaults = {
 ---       generic_sorter = require('mini.fuzzy').get_telescope_sorter
 ---     }
 ---   })
+--- <
 MiniFuzzy.get_telescope_sorter = function(opts)
   opts = opts or {}
 

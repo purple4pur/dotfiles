@@ -121,14 +121,11 @@ not present in "pack/deps" package, it will be created (a.k.a. installed)
 before processing anything else.
 
 The recommended way of adding a plugin is by calling |MiniDeps.add()| in the
-|init.lua| file (make sure |MiniDeps.setup()| is called prior): >
+|init.lua| file (make sure |MiniDeps.setup()| is called prior): >lua
 
   local add = MiniDeps.add
 
   -- Add to current session (install if absent)
-  add('nvim-tree/nvim-web-devicons')
-  require('nvim-web-devicons').setup()
-
   add({
     source = 'neovim/nvim-lspconfig',
     -- Supply dependencies near target plugin
@@ -143,6 +140,7 @@ The recommended way of adding a plugin is by calling |MiniDeps.add()| in the
     -- Perform action after every checkout
     hooks = { post_checkout = function() vim.cmd('TSUpdate') end },
   })
+  -- Possible to immediately execute code which depends on the added plugin
   require('nvim-treesitter.configs').setup({
     ensure_installed = { 'lua', 'vimdoc' },
     highlight = { enable = true },
@@ -161,9 +159,9 @@ two-stage loading:
 - |MiniDeps.now()| safely executes code immediately. Use it to load plugins
   with UI necessary to make initial screen draw.
 - |MiniDeps.later()| schedules code to be safely executed later, preserving
-  order. Use it (with caution) for everything else which doesn't need precisely
-  timed effect, as it will be executed some time soon on one of the next
-  event loops. >
+  order. Use it (with caution) for everything else which doesn't need
+  precisely timed effect, as it will be executed some time soon on one of
+  the next event loops. >lua
 
   local now, later = MiniDeps.now, MiniDeps.later
 
@@ -350,15 +348,18 @@ Parameters ~
 {config} `(table|nil)` Module config table. See |MiniDeps.config|.
 
 Usage ~
-`require('mini.deps').setup({})` (replace `{}` with your `config` table).
-
+>lua
+  require('mini.deps').setup() -- use default config
+  -- OR
+  require('mini.deps').setup({}) -- replace {} with your config table
+<
 ------------------------------------------------------------------------------
                                                                *MiniDeps.config*
                                `MiniDeps.config`
 Module config
 
 Default values:
->
+>lua
   MiniDeps.config = {
     -- Parameters of CLI jobs
     job = {
@@ -411,7 +412,6 @@ Default: "mini-deps-snap" file in "config" standard path (see |stdpath()|).
 `path.log` is a string with path containing log of operations done by module.
 In particular, it contains all changes done after making an update.
 Default: "mini-deps.log" file in "log" standard path (see |stdpath()|).
-Note: In Neovim<0.8 it is in "data" standard path.
 
 # Silent ~
 

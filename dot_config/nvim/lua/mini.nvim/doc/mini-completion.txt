@@ -45,11 +45,24 @@ Features:
   `<C-Space>`) or fallback completion via
   |MiniCompletion.complete_fallback()| (mapped to `<M-Space>`).
 
+- LSP kind highlighting ("Function", "Keyword", etc.). Requires Neovim>=0.11.
+  By default uses "lsp" category of |MiniIcons| (if enabled). Can be customized
+  via `config.lsp_completion.process_items` by adding field <kind_hlgroup>
+  (same meaning as in |complete-items|) to items.
+
 What it doesn't do:
 - Snippet expansion.
 - Many configurable sources.
 - Automatic mapping of `<CR>`, `<Tab>`, etc., as those tend to have highly
   variable user expectations. See 'Helpful key mappings' for suggestions.
+
+# Dependencies ~
+
+Suggested dependencies (provide extra functionality, will work without them):
+
+- Enabled |MiniIcons| module to highlight LSP kind (requires Neovim>=0.11).
+  Otherwise |MiniCompletion.default_process_items()| does not add highlighting.
+  Also take a look at |MiniIcons.tweak_lsp_kind()|.
 
 # Setup ~
 
@@ -73,10 +86,16 @@ You can override runtime config settings locally to buffer inside
     `lsp_completion = {source_func = 'omnifunc', auto_setup = false}`.
     - In `on_attach()` of every LSP client set 'omnifunc' option to exactly
       `v:lua.MiniCompletion.completefunc_lsp`.
+
+- Uses `vim.lsp.protocol.CompletionItemKind` map in LSP step to show a readable
+  version of item's kind. Modify it directly to change what is displayed.
+  If you have |mini.icons| enabled, take a look at |MiniIcons.tweak_lsp_kind()|.
+
 - If you have trouble using custom (overridden) |vim.ui.input| (like from
   'stevearc/dressing.nvim'), make automated disable of 'mini.completion'
   for input buffer. For example, currently for 'dressing.nvim' it can be
   with `au FileType DressingInput lua vim.b.minicompletion_disable = true`.
+
 - Support of `additionalTextEdits` tries to handle both types of servers:
     - When `additionalTextEdits` are supplied in response to
       'textDocument/completion' request (like currently in 'pyright').
@@ -96,19 +115,27 @@ You can override runtime config settings locally to buffer inside
     - Doesn't allow fallback action.
     - Doesn't provide signature help.
 
-# Helpful key mappings ~
+# Helpful mappings ~
 
 To use `<Tab>` and `<S-Tab>` for navigation through completion list, make
-these key mappings:
-`vim.keymap.set('i', '<Tab>',   [[pumvisible() ? "\<C-n>" : "\<Tab>"]],   { expr = true })`
-`vim.keymap.set('i', '<S-Tab>', [[pumvisible() ? "\<C-p>" : "\<S-Tab>"]], { expr = true })`
+these mappings: >lua
 
+  local imap_expr = function(lhs, rhs)
+    vim.keymap.set('i', lhs, rhs, { expr = true })
+  end
+  imap_expr('<Tab>',   [[pumvisible() ? "\<C-n>" : "\<Tab>"]])
+  imap_expr('<S-Tab>', [[pumvisible() ? "\<C-p>" : "\<S-Tab>"]])
+<
 To get more consistent behavior of `<CR>`, you can use this template in
-your 'init.lua' to make customized mapping: >
+your 'init.lua' to make customized mapping: >lua
+
+  local keycode = vim.keycode or function(x)
+    return vim.api.nvim_replace_termcodes(x, true, true, true)
+  end
   local keys = {
-    ['cr']        = vim.api.nvim_replace_termcodes('<CR>', true, true, true),
-    ['ctrl-y']    = vim.api.nvim_replace_termcodes('<C-y>', true, true, true),
-    ['ctrl-y_cr'] = vim.api.nvim_replace_termcodes('<C-y><CR>', true, true, true),
+    ['cr']        = keycode('<CR>'),
+    ['ctrl-y']    = keycode('<C-y>'),
+    ['ctrl-y_cr'] = keycode('<C-y><CR>'),
   }
 
   _G.cr_action = function()
@@ -128,7 +155,7 @@ your 'init.lua' to make customized mapping: >
 <
 # Highlight groups ~
 
-* `MiniCompletionActiveParameter` - highlighting of signature active parameter.
+* `MiniCompletionActiveParameter` - signature active parameter.
   By default displayed as plain underline.
 
 To change any highlight group, modify it directly with |:highlight|.
@@ -150,15 +177,18 @@ Parameters ~
 {config} `(table|nil)` Module config table. See |MiniCompletion.config|.
 
 Usage ~
-`require('mini.completion').setup({})` (replace `{}` with your `config` table)
-
+>lua
+  require('mini.completion').setup() -- use default config
+  -- OR
+  require('mini.completion').setup({}) -- replace {} with your config table
+<
 ------------------------------------------------------------------------------
                                                          *MiniCompletion.config*
                             `MiniCompletion.config`
 Module config
 
 Default values:
->
+>lua
   MiniCompletion.config = {
     -- Delay (debounce type, in ms) between certain Neovim event and action.
     -- This can be used to (virtually) disable certain automatic actions by
@@ -182,12 +212,10 @@ Default values:
       -- on every `BufEnter` event.
       auto_setup = true,
 
-      -- `process_items` should be a function which takes LSP
-      -- 'textDocument/completion' response items and word to complete. Its
-      -- output should be a table of the same nature as input items. The most
-      -- common use-cases are custom filtering and sorting. You can use
-      -- default `process_items` as `MiniCompletion.default_process_items()`.
-      process_items = --<function: filters out snippets; sorts by LSP specs>,
+      -- A function which takes LSP 'textDocument/completion' response items
+      -- and word to complete. Output should be a table of the same nature as
+      -- input items. Common use case is custom filter/sort.
+      process_items = --<function: MiniCompletion.default_process_items>,
     },
 
     -- Fallback action. It will always be run in Insert mode. To use Neovim's
@@ -207,7 +235,6 @@ Default values:
     set_vim_settings = true,
   }
 <
-
 ------------------------------------------------------------------------------
                                             *MiniCompletion.complete_twostage()*
             `MiniCompletion.complete_twostage`({fallback}, {force})
@@ -252,6 +279,11 @@ No need to use it directly, everything is setup in |MiniCompletion.setup|.
                                         *MiniCompletion.default_process_items()*
             `MiniCompletion.default_process_items`({items}, {base})
 Default `MiniCompletion.config.lsp_completion.process_items`
+
+Steps:
+- Filter out items not matching `base` and snippet items.
+- Sort by LSP specification.
+- If |MiniIcons| is enabled, add <kind_hlgroup> based on the "lsp" category.
 
 
  vim:tw=78:ts=8:noet:ft=help:norl:
