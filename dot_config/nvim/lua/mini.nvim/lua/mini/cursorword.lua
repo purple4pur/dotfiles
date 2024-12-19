@@ -38,10 +38,10 @@
 --- * `MiniCursorwordCurrent` - highlight group of a current word under cursor.
 ---   Default: links to `MiniCursorword` (so `:hi clear MiniCursorwordCurrent`
 ---   will lead to showing `MiniCursorword` highlight group).
----   Note: To not highlight it, use
+---   Note: To not highlight it, use the following Lua code: >lua
 ---
----   `:hi! MiniCursorwordCurrent guifg=NONE guibg=NONE gui=NONE cterm=NONE`
----
+---   vim.api.nvim_set_hl(0, 'MiniCursorwordCurrent', {})
+--- <
 --- To change any highlight group, modify it directly with |:highlight|.
 ---
 --- # Disabling ~
@@ -57,7 +57,7 @@
 --- Module-specific disabling:
 --- - Don't show highlighting if cursor is on the word that is in a blocklist
 ---   of current filetype. In this example, blocklist for "lua" is "local" and
----   "require" words, for "javascript" - "import": >
+---   "require" words, for "javascript" - "import": >lua
 ---
 ---   _G.cursorword_blocklist = function()
 ---     local curword = vim.fn.expand('<cword>')
@@ -76,6 +76,7 @@
 ---
 ---   -- Make sure to add this autocommand *before* calling module's `setup()`.
 ---   vim.cmd('au CursorMoved * lua _G.cursorword_blocklist()')
+--- <
 
 -- Module definition ==========================================================
 local MiniCursorword = {}
@@ -85,17 +86,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniCursorword.config|.
 ---
----@usage `require('mini.cursorword').setup({})` (replace `{}` with your `config` table)
+---@usage >lua
+---   require('mini.cursorword').setup() -- use default config
+---   -- OR
+---   require('mini.cursorword').setup({}) -- replace {} with your config table
+--- <
 MiniCursorword.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.cursorword) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniCursorword = MiniCursorword
 
@@ -161,17 +157,17 @@ H.apply_config = function(config)
 end
 
 H.create_autocommands = function()
-  local augroup = vim.api.nvim_create_augroup('MiniCursorword', {})
+  local gr = vim.api.nvim_create_augroup('MiniCursorword', {})
 
   local au = function(event, pattern, callback, desc)
-    vim.api.nvim_create_autocmd(event, { group = augroup, pattern = pattern, callback = callback, desc = desc })
+    vim.api.nvim_create_autocmd(event, { group = gr, pattern = pattern, callback = callback, desc = desc })
   end
 
   au('CursorMoved', '*', H.auto_highlight, 'Auto highlight cursorword')
   au({ 'InsertEnter', 'TermEnter', 'QuitPre' }, '*', H.auto_unhighlight, 'Auto unhighlight cursorword')
   au('ModeChanged', '*:[^i]', H.auto_highlight, 'Auto highlight cursorword')
 
-  au('ColorScheme', '*', H.create_default_hl, 'Ensure proper colors')
+  au('ColorScheme', '*', H.create_default_hl, 'Ensure colors')
   au('FileType', 'TelescopePrompt', function() vim.b.minicursorword_disable = true end, 'Disable locally')
 end
 

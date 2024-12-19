@@ -73,7 +73,7 @@
 ---
 --- Tracked buffer data can be used in statusline via `vim.b.minigit_summary_string`
 --- buffer-local variable. It is expected to be used as is. To show another info,
---- tweak buffer-local variable directly inside `MiniGitUpdated` `User` event: >
+--- tweak buffer-local variable directly inside `MiniGitUpdated` `User` event: >lua
 ---
 ---   -- Use only HEAD name as summary string
 ---   local format_summary = function(data)
@@ -90,7 +90,7 @@
 --- Buffer output of |:Git| command can be tweaked inside autocommand for
 --- `MiniGitCommandSplit` `User` event (see |MiniGit-command-events|).
 --- For example, to make `:vertical Git blame -- %` align blame output with the
---- current window state, use the following code: >
+--- current window state, use the following code: >lua
 ---
 ---   local align_blame = function(au_data)
 ---     if au_data.data.git_subcommand ~= 'blame' then return end
@@ -126,10 +126,11 @@
 ---   is on the "deleted" line (i.e. line starting with "-") in which case
 ---   state before commit is shown.
 ---
---- This workflow can be made more interactive when used with mapping, like this: >
+--- This workflow can be made more interactive when used with mapping, like this: >lua
 ---
 ---   local rhs = '<Cmd>lua MiniGit.show_at_cursor()<CR>'
 ---   vim.keymap.set({ 'n', 'x' }, '<Leader>gs', rhs, { desc = 'Show at cursor' })
+--- <
 ---@tag MiniGit-examples
 
 --- The `:Git` user command runs `git` CLI call with extra integration for currently
@@ -227,17 +228,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniGit.config|.
 ---
----@usage `require('mini.git').setup({})` (replace `{}` with your `config` table).
+---@usage >lua
+---   require('mini.git').setup() -- use default config
+---   -- OR
+---   require('mini.git').setup({}) -- replace {} with your config table
+--- <
 MiniGit.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.git) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniGit = MiniGit
 
@@ -304,7 +300,8 @@ MiniGit.config = {
 
 --- Show Git related data at cursor
 ---
---- - If there is a commit-like |<cword>|, show it in split with `git show`.
+--- - If inside |mini.deps| confirmation buffer, show in split relevant commit data.
+--- - If there is a commit-like |<cword>|, show it in split.
 --- - If possible, show diff source via |MiniGit.show_diff_source()|.
 --- - If possible, show range history via |MiniGit.show_range_history()|.
 --- - Otherwise throw an error.
@@ -313,17 +310,22 @@ MiniGit.config = {
 ---   - __git_split_field
 ---   - Fields appropriate for forwarding to other functions.
 MiniGit.show_at_cursor = function(opts)
-  local exec = MiniGit.config.job.git_executable
-  local cwd = H.get_git_cwd()
+  -- Try showing commit data at cursor
+  local commit, cwd
+  if vim.bo.filetype == 'minideps-confirm' then
+    commit, cwd = H.deps_pos_to_source()
+  else
+    local cword = vim.fn.expand('<cword>')
+    local is_commit = string.find(cword, '^%x%x%x%x%x%x%x+$') ~= nil and string.lower(cword) == cword
+    commit = is_commit and cword or nil
+    cwd = is_commit and H.get_git_cwd() or nil
+  end
 
-  -- Try showing commit at cursor
-  local cword = vim.fn.expand('<cword>')
-  local is_commit = string.find(cword, '^%x%x%x%x%x%x%x+$') ~= nil and string.lower(cword) == cword
-  if is_commit then
+  if commit ~= nil and cwd ~= nil then
     local split = H.normalize_split_opt((opts or {}).split or 'auto', 'opts.split')
-    local args = { 'show', cword }
+    local args = { 'show', '--stat', '--patch', commit }
     local lines = H.git_cli_output(args, cwd)
-    if #lines == 0 then return H.notify('Can not show commit ' .. cword, 'WARN') end
+    if #lines == 0 then return H.notify('Can not show commit ' .. commit .. ' in repo ' .. cwd, 'WARN') end
     H.show_in_split(split, lines, 'show', table.concat(args, ' '))
     vim.bo.filetype = 'git'
     return
@@ -436,11 +438,12 @@ MiniGit.show_range_history = function(opts)
 
   -- Construct `:Git log` command that works both with regular files and
   -- buffers from `show_diff_source()`
-  local buf_name = vim.api.nvim_buf_get_name(0)
-  local cwd = H.get_git_cwd()
+  local buf_name, cwd = vim.api.nvim_buf_get_name(0), H.get_git_cwd()
   local commit, rel_path = H.parse_diff_source_buf_name(buf_name)
   if commit == nil then
-    commit, rel_path = 'HEAD', buf_name:gsub(vim.pesc(cwd) .. '/', '')
+    commit = 'HEAD'
+    local cwd_pattern = '^' .. vim.pesc(cwd:gsub('\\', '/')) .. '/'
+    rel_path = buf_name:gsub('\\', '/'):gsub(cwd_pattern, '')
   end
 
   -- Ensure no uncommitted changes as they might result into improper `-L` arg
@@ -471,7 +474,8 @@ end
 --- - At level 3 there is no folds.
 ---
 --- For automated setup, set the following for "git" and "diff" filetypes (either
---- inside |FileType| autocommand or |ftplugin|): >
+--- inside |FileType| autocommand or |ftplugin|): >vim
+---
 ---   setlocal foldmethod=expr foldexpr=v:lua.MiniGit.diff_foldexpr()
 --- <
 ---@param lnum number|nil Line number for which fold level is computed.
@@ -645,10 +649,10 @@ end
 H.apply_config = function(config) MiniGit.config = config end
 
 H.create_autocommands = function()
-  local augroup = vim.api.nvim_create_augroup('MiniGit', {})
+  local gr = vim.api.nvim_create_augroup('MiniGit', {})
 
   local au = function(event, pattern, callback, desc)
-    vim.api.nvim_create_autocmd(event, { group = augroup, pattern = pattern, callback = callback, desc = desc })
+    vim.api.nvim_create_autocmd(event, { group = gr, pattern = pattern, callback = callback, desc = desc })
   end
 
   -- NOTE: Try auto enabling buffer on every `BufEnter` to not have `:edit`
@@ -665,7 +669,8 @@ end
 
 -- Autocommands ---------------------------------------------------------------
 H.auto_enable = vim.schedule_wrap(function(data)
-  if not (vim.api.nvim_buf_is_valid(data.buf) and vim.bo[data.buf].buftype == '') then return end
+  local buf = data.buf
+  if not (vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buftype == '' and vim.bo[buf].buflisted) then return end
   MiniGit.enable(data.buf)
 end)
 
@@ -684,7 +689,7 @@ H.command_impl = function(input)
   -- (deletes the buffer or closes the window).
   H.ensure_git_editor(input.mods)
   -- NOTE: use `vim.v.progpath` to have same runtime
-  local editor = vim.v.progpath .. ' --clean --headless -u ' .. H.git_editor_config
+  local editor = H.cli_escape(vim.v.progpath) .. ' --clean --headless -u ' .. H.cli_escape(H.git_editor_config)
 
   -- Setup custom environment variables for better reproducibility
   local env_vars = {}
@@ -1104,9 +1109,6 @@ H.ensure_mods_is_split = function(mods)
     local split_val = H.normalize_split_opt(MiniGit.config.command.split, '`config.command.split`')
     mods = split_val .. ' ' .. mods
   end
-  -- Support for `:horizontal` was added in Neovim=0.8
-  -- TODO: Remove after compatibility with Neovim=0.7 is dropped
-  if vim.fn.has('nvim-0.8') == 0 then mods = mods:gsub('horizontal ?', '') end
   return mods
 end
 
@@ -1134,8 +1136,14 @@ H.show_in_split = function(mods, lines, subcmd, name)
   local filetype
   if subcmd == 'diff' then filetype = 'diff' end
   if subcmd == 'log' or subcmd == 'blame' then filetype = 'git' end
-  -- TODO: Remove after compatibility with Neovim=0.7 is dropped
-  if subcmd == 'show' and vim.fn.has('nvim-0.8') == 1 then filetype = vim.filetype.match({ buf = buf_id }) end
+  if subcmd == 'show' then
+    -- Try detecting 'git' filetype by content first, as filetype detection can
+    -- rely on the buffer name (i.e. command) having proper extension. It isn't
+    -- good for cases like `:Git show HEAD file.lua` (which should be 'git').
+    local l = lines[1]
+    local is_diff = l:find(string.rep('%x', 40)) or l:find('ref:')
+    filetype = is_diff and 'git' or vim.filetype.match({ buf = buf_id })
+  end
 
   local has_filetype = not (filetype == nil or filetype == '')
   if has_filetype then vim.bo[buf_id].filetype = filetype end
@@ -1169,6 +1177,7 @@ H.define_minigit_window = function(cleanup)
 end
 
 H.git_cli_output = function(args, cwd, env)
+  if cwd ~= nil and vim.fn.isdirectory(cwd) ~= 1 then return {} end
   local command = { MiniGit.config.job.git_executable, '--no-pager', unpack(args) }
   local res = H.cli_run(command, cwd, nil, { env = env }).out
   if res == '' then return {} end
@@ -1260,7 +1269,7 @@ H.start_tracking = function(buf_id, path)
   -- If path is not in Git, disable buffer but make sure that it will not try
   -- to re-attach until buffer is properly disabled
   local on_not_in_git = function()
-    MiniGit.disable(buf_id)
+    if H.is_buf_enabled(buf_id) then MiniGit.disable(buf_id) end
     H.cache[buf_id] = {}
   end
 
@@ -1564,6 +1573,29 @@ end
 
 H.parse_diff_source_buf_name = function(buf_name) return string.match(buf_name, '^minigit://%d+/.*show (%x+~?):(.*)$') end
 
+H.deps_pos_to_source = function()
+  local lines = vim.api.nvim_buf_get_lines(0, 0, vim.fn.line('.'), false)
+  -- Do nothing if on the title (otherwise it operates on previous plugin info)
+  if lines[#lines]:find('^[%+%-!]') ~= nil then return end
+
+  -- Locate lines with commit and repo path data
+  local commit, commit_lnum = nil, #lines
+  while commit == nil and commit_lnum >= 1 do
+    local l = lines[commit_lnum]
+    commit = l:match('^[><] (%x%x%x%x%x%x%x%x*) |') or l:match('^State[^:]*: %s*(%x+)')
+    commit_lnum = commit_lnum - 1
+  end
+
+  local cwd, cwd_lnum = nil, #lines
+  while cwd == nil and cwd_lnum >= 1 do
+    cwd, cwd_lnum = lines[cwd_lnum]:match('^Path: %s*(%S+)$'), cwd_lnum - 1
+  end
+
+  -- Do nothing if something is not found or path corresponds to next repo
+  if commit == nil or cwd == nil or commit_lnum <= cwd_lnum then return end
+  return commit, cwd
+end
+
 -- Folding --------------------------------------------------------------------
 H.is_hunk_header = function(lnum) return vim.fn.getline(lnum):find('^@@.*@@') ~= nil end
 
@@ -1646,16 +1678,14 @@ H.cli_err_notify = function(code, out, err)
   return should_stop
 end
 
+H.cli_escape = function(x) return (string.gsub(x, '([ \\])', '\\%1')) end
+
 -- Utilities ------------------------------------------------------------------
 H.error = function(msg) error(string.format('(mini.git) %s', msg), 0) end
 
 H.notify = function(msg, level_name) vim.notify('(mini.git) ' .. msg, vim.log.levels[level_name]) end
 
-H.trigger_event = function(event_name, data)
-  -- TODO: Remove after compatibility with Neovim=0.7 is dropped
-  if vim.fn.has('nvim-0.8') == 0 then data = nil end
-  vim.api.nvim_exec_autocmds('User', { pattern = event_name, data = data })
-end
+H.trigger_event = function(event_name, data) vim.api.nvim_exec_autocmds('User', { pattern = event_name, data = data }) end
 
 H.is_fs_present = function(path) return vim.loop.fs_stat(path) ~= nil end
 

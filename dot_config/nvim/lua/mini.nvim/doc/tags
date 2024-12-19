@@ -208,6 +208,7 @@ MiniDiff-diff-summary	mini-diff.txt	/*MiniDiff-diff-summary*
 MiniDiff-hunk-specification	mini-diff.txt	/*MiniDiff-hunk-specification*
 MiniDiff-overview	mini-diff.txt	/*MiniDiff-overview*
 MiniDiff-source-specification	mini-diff.txt	/*MiniDiff-source-specification*
+MiniDiff-update-event	mini-diff.txt	/*MiniDiff-update-event*
 MiniDiff.config	mini-diff.txt	/*MiniDiff.config*
 MiniDiff.disable()	mini-diff.txt	/*MiniDiff.disable()*
 MiniDiff.do_hunks()	mini-diff.txt	/*MiniDiff.do_hunks()*
@@ -277,6 +278,7 @@ MiniFiles.config	mini-files.txt	/*MiniFiles.config*
 MiniFiles.default_filter()	mini-files.txt	/*MiniFiles.default_filter()*
 MiniFiles.default_prefix()	mini-files.txt	/*MiniFiles.default_prefix()*
 MiniFiles.default_sort()	mini-files.txt	/*MiniFiles.default_sort()*
+MiniFiles.get_explorer_state()	mini-files.txt	/*MiniFiles.get_explorer_state()*
 MiniFiles.get_fs_entry()	mini-files.txt	/*MiniFiles.get_fs_entry()*
 MiniFiles.get_latest_path()	mini-files.txt	/*MiniFiles.get_latest_path()*
 MiniFiles.get_target_window()	mini-files.txt	/*MiniFiles.get_target_window()*
@@ -286,6 +288,8 @@ MiniFiles.open()	mini-files.txt	/*MiniFiles.open()*
 MiniFiles.refresh()	mini-files.txt	/*MiniFiles.refresh()*
 MiniFiles.reset()	mini-files.txt	/*MiniFiles.reset()*
 MiniFiles.reveal_cwd()	mini-files.txt	/*MiniFiles.reveal_cwd()*
+MiniFiles.set_bookmark()	mini-files.txt	/*MiniFiles.set_bookmark()*
+MiniFiles.set_branch()	mini-files.txt	/*MiniFiles.set_branch()*
 MiniFiles.set_target_window()	mini-files.txt	/*MiniFiles.set_target_window()*
 MiniFiles.setup()	mini-files.txt	/*MiniFiles.setup()*
 MiniFiles.show_help()	mini-files.txt	/*MiniFiles.show_help()*
@@ -328,10 +332,18 @@ MiniHipatterns.setup()	mini-hipatterns.txt	/*MiniHipatterns.setup()*
 MiniHipatterns.toggle()	mini-hipatterns.txt	/*MiniHipatterns.toggle()*
 MiniHipatterns.update()	mini-hipatterns.txt	/*MiniHipatterns.update()*
 MiniHues	mini-hues.txt	/*MiniHues*
+MiniHues.apply_palette()	mini-hues.txt	/*MiniHues.apply_palette()*
 MiniHues.config	mini-hues.txt	/*MiniHues.config*
 MiniHues.gen_random_base_colors()	mini-hues.txt	/*MiniHues.gen_random_base_colors()*
 MiniHues.make_palette()	mini-hues.txt	/*MiniHues.make_palette()*
 MiniHues.setup()	mini-hues.txt	/*MiniHues.setup()*
+MiniIcons	mini-icons.txt	/*MiniIcons*
+MiniIcons.config	mini-icons.txt	/*MiniIcons.config*
+MiniIcons.get()	mini-icons.txt	/*MiniIcons.get()*
+MiniIcons.list()	mini-icons.txt	/*MiniIcons.list()*
+MiniIcons.mock_nvim_web_devicons()	mini-icons.txt	/*MiniIcons.mock_nvim_web_devicons()*
+MiniIcons.setup()	mini-icons.txt	/*MiniIcons.setup()*
+MiniIcons.tweak_lsp_kind()	mini-icons.txt	/*MiniIcons.tweak_lsp_kind()*
 MiniIndentscope	mini-indentscope.txt	/*MiniIndentscope*
 MiniIndentscope-drawing	mini-indentscope.txt	/*MiniIndentscope-drawing*
 MiniIndentscope.config	mini-indentscope.txt	/*MiniIndentscope.config*
@@ -401,6 +413,7 @@ MiniMisc.resize_window()	mini-misc.txt	/*MiniMisc.resize_window()*
 MiniMisc.setup()	mini-misc.txt	/*MiniMisc.setup()*
 MiniMisc.setup_auto_root()	mini-misc.txt	/*MiniMisc.setup_auto_root()*
 MiniMisc.setup_restore_cursor()	mini-misc.txt	/*MiniMisc.setup_restore_cursor()*
+MiniMisc.setup_termbg_sync()	mini-misc.txt	/*MiniMisc.setup_termbg_sync()*
 MiniMisc.stat_summary()	mini-misc.txt	/*MiniMisc.stat_summary()*
 MiniMisc.tbl_head()	mini-misc.txt	/*MiniMisc.tbl_head()*
 MiniMisc.tbl_tail()	mini-misc.txt	/*MiniMisc.tbl_tail()*
@@ -700,6 +713,7 @@ mini.fuzzy	mini-fuzzy.txt	/*mini.fuzzy*
 mini.git	mini-git.txt	/*mini.git*
 mini.hipatterns	mini-hipatterns.txt	/*mini.hipatterns*
 mini.hues	mini-hues.txt	/*mini.hues*
+mini.icons	mini-icons.txt	/*mini.icons*
 mini.indentscope	mini-indentscope.txt	/*mini.indentscope*
 mini.jump	mini-jump.txt	/*mini.jump*
 mini.jump2d	mini-jump2d.txt	/*mini.jump2d*
@@ -726,3 +740,4 @@ mini.visits	mini-visits.txt	/*mini.visits*
 minicyan	mini-base16.txt	/*minicyan*
 minischeme	mini-base16.txt	/*minischeme*
 randomhue	mini-hues.txt	/*randomhue*
+very	mini-jump2d.txt	/*very*

@@ -105,7 +105,7 @@
 
 --- # Common configuration examples ~
 ---
---- - Special words used to convey different level of attention: >
+--- - Special words used to convey different level of attention: >lua
 ---
 ---   require('mini.hipatterns').setup({
 ---     highlighters = {
@@ -121,7 +121,7 @@
 ---   `'%f[%w]()TODO()%f[%W]'`. In this case, for example, 'TODOING' or 'MYTODO'
 ---   won't match, but 'TODO' and 'TODO:' will.
 ---
---- - Color hex (like `#rrggbb`) highlighting: >
+--- - Color hex (like `#rrggbb`) highlighting: >lua
 ---
 ---   local hipatterns = require('mini.hipatterns')
 ---   hipatterns.setup({
@@ -133,7 +133,7 @@
 ---   You can customize which part of hex color is highlighted by using `style`
 ---   field of input options. See |MiniHipatterns.gen_highlighter.hex_color()|.
 ---
---- - Colored words: >
+--- - Colored words: >lua
 ---
 ---   local words = { red = '#ff0000', green = '#00ff00', blue = '#0000ff' }
 ---   local word_color_group = function(_, match)
@@ -148,12 +148,12 @@
 ---       word_color = { pattern = '%S+', group = word_color_group },
 ---     },
 ---   })
----
---- - Trailing whitespace (if don't want to use more specific 'mini.trailspace'): >
+--- <
+--- - Trailing whitespace (if don't want to use more specific 'mini.trailspace'): >lua
 ---
 ---   { pattern = '%f[%s]%s*$', group = 'Error' }
----
---- - Censor certain sensitive information: >
+--- <
+--- - Censor certain sensitive information: >lua
 ---
 ---   local censor_extmark_opts = function(_, match, _)
 ---     local mask = string.rep('x', vim.fn.strchars(match))
@@ -172,7 +172,7 @@
 ---       },
 ---     },
 ---   })
----
+--- <
 --- - Enable only in certain filetypes. There are at least these ways to do it:
 ---     - (Suggested) With `vim.b.minihipatterns_config` in |filetype-plugin|.
 ---       Basically, create "after/ftplugin/<filetype>.lua" file in your config
@@ -182,7 +182,7 @@
 ---       This assumes `require('mini.hipatterns').setup()` call.
 ---
 ---       For example, to highlight keywords in EmmyLua comments in Lua files,
----       create "after/ftplugin/lua.lua" with the following content: >
+---       create "after/ftplugin/lua.lua" with the following content: >lua
 ---
 ---         vim.b.minihipatterns_config = {
 ---           highlighters = {
@@ -190,7 +190,7 @@
 ---           }
 ---         }
 --- <
----     - Use callable `pattern` with condition. For example: >
+---     - Use callable `pattern` with condition. For example: >lua
 ---
 ---       require('mini.hipatterns').setup({
 ---         highlighters = {
@@ -224,19 +224,11 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniHipatterns.config|.
 ---
----@usage `require('mini.hipatterns').setup({})` (replace `{}` with your `config` table)
----@text
---- Note: no highlighters is defined by default. Add them for visible effect.
+---@usage >lua
+---   require('mini.hipatterns').setup({}) -- replace {} with your config table
+---                                        -- needs `highlighters` field present
+--- <
 MiniHipatterns.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.hipatterns) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniHipatterns = MiniHipatterns
 
@@ -583,13 +575,14 @@ MiniHipatterns.gen_highlighter = {}
 ---@return table Highlighter table ready to be used as part of `config.highlighters`.
 ---   Both `pattern` and `group` are callable.
 ---
----@usage >
+---@usage >lua
 ---   local hipatterns = require('mini.hipatterns')
 ---   hipatterns.setup({
 ---     highlighters = {
 ---       hex_color = hipatterns.gen_highlighter.hex_color(),
 ---     }
 ---   })
+--- <
 MiniHipatterns.gen_highlighter.hex_color = function(opts)
   local default_opts = { style = 'full', priority = 200, filter = H.always_true, inline_text = '█' }
   opts = vim.tbl_deep_extend('force', default_opts, opts or {})
@@ -624,12 +617,12 @@ end
 --- Notes:
 --- - This works properly only with enabled |termguicolors|.
 ---
---- - To increase performance, it caches highlight groups per `hex_color`. If
----   you want to try different style in current Neovim session, execute
----   |:colorscheme| command to clear cache. Needs a call to |MiniHipatterns.setup()|.
+--- - To increase performance, it caches highlight groups per `hex_color` and
+---   `style` combination. Needs a call to |MiniHipatterns.setup()| to have
+---   these groups be persistent across color scheme changes.
 ---
 ---@param hex_color string Hex color string in format `#rrggbb`.
----@param style string One of:
+---@param style|nil string One of:
 ---   - `'bg'` - highlight background with `hex_color` and foreground with black or
 ---     white (whichever is more visible). Default.
 ---   - `'fg'` - highlight foreground with `hex_color`.
@@ -637,8 +630,9 @@ end
 ---
 ---@return string Name of created highlight group appropriate to show `hex_color`.
 MiniHipatterns.compute_hex_color_group = function(hex_color, style)
+  style = style or 'bg'
   local hex = hex_color:lower():sub(2)
-  local group_name = 'MiniHipatterns' .. hex
+  local group_name = string.format('MiniHipatterns_%s_%s', hex, style)
 
   -- Use manually tracked table instead of `vim.fn.hlexists()` because the
   -- latter still returns true for cleared highlights
@@ -705,13 +699,14 @@ end
 H.apply_config = function(config) MiniHipatterns.config = config end
 
 H.create_autocommands = function()
-  local augroup = vim.api.nvim_create_augroup('MiniHipatterns', {})
+  local gr = vim.api.nvim_create_augroup('MiniHipatterns', {})
 
   local au = function(event, pattern, callback, desc)
-    vim.api.nvim_create_autocmd(event, { group = augroup, pattern = pattern, callback = callback, desc = desc })
+    vim.api.nvim_create_autocmd(event, { group = gr, pattern = pattern, callback = callback, desc = desc })
   end
 
   au('BufEnter', '*', H.auto_enable, 'Enable highlighting')
+  au('ColorScheme', '*', H.create_default_hl, 'Ensure colors')
   au('ColorScheme', '*', H.on_colorscheme, 'Reload all enabled pattern highlighters')
 end
 
@@ -933,6 +928,9 @@ H.process_buffer_changes = vim.schedule_wrap(function(buf_id, lines_to_process)
 end)
 
 H.apply_highlighter_pattern = vim.schedule_wrap(function(pattern, hi, buf_id, ns, lines_to_process)
+  -- Check again because buffer might have become invalid since latest check
+  if not vim.api.nvim_buf_is_valid(buf_id) then return end
+
   if type(pattern) ~= 'string' then return end
   local group, extmark_opts = hi.group, hi.extmark_opts
   local pattern_has_line_start = pattern:sub(1, 1) == '^'

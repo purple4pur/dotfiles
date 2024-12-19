@@ -180,7 +180,7 @@
 --- - Visit path should not necessarily be a part of corresponding cwd.
 --- - Both `count` and `latest` can be any number: whole, fractional, negative, etc.
 ---
---- Example of an index data: >
+--- Example of an index data: >lua
 ---
 ---   {
 ---     ['/home/user/project_1'] = {
@@ -230,7 +230,7 @@
 --- Default sorting in |MiniVisits.gen_sort.default()| allows flexible adjustment
 --- of which feature to prefer more: recency or frequency. Here is an example of
 --- how to make set of keymaps for three types of sorting combined with two types
---- of scopes (all visits and only for current cwd): >
+--- of scopes (all visits and only for current cwd): >lua
 ---
 ---   local make_select_path = function(select_global, recency_weight)
 ---     local visits = require('mini.visits')
@@ -254,7 +254,6 @@
 ---   map('<Leader>vf', 'Select frequent (all)', true,  0)
 ---   map('<Leader>vF', 'Select frequent (cwd)', false, 0)
 --- <
----
 --- Note: If you have |MiniPick|, consider using |MiniExtra.pickers.visit_paths()|.
 ---
 --- ## Use manual labels ~
@@ -268,7 +267,7 @@
 ---   having selected label.
 ---   Note: If you have |MiniPick|, consider using |MiniExtra.pickers.visit_labels()|.
 ---
---- To make this workflow smoother, here is an example of keymaps: >
+--- To make this workflow smoother, here is an example of keymaps: >lua
 ---
 ---   local map_vis = function(keys, call, desc)
 ---     local rhs = '<Cmd>lua MiniVisits.' .. call .. '<CR>'
@@ -285,7 +284,7 @@
 --- During work on every project there is usually a handful of files where core
 --- activity is concentrated. This can be made easier by creating mappings
 --- which add/remove special fixed label (for example, "core") and select paths
---- with that label for both all and current cwd. Example: >
+--- with that label for both all and current cwd. Example: >lua
 ---
 ---   -- Create and select
 ---   local map_vis = function(keys, call, desc)
@@ -316,7 +315,7 @@
 ---
 --- When using version control system (such as Git), usually there is already
 --- an identifier that groups files you are working with - branch name.
---- Here is an example of keymaps to add/remove label equal to branch name: >
+--- Here is an example of keymaps to add/remove label equal to branch name: >lua
 ---
 ---   local map_branch = function(keys, action, desc)
 ---     local rhs = function()
@@ -330,6 +329,7 @@
 ---
 ---   map_branch('vb', 'add_label',    'Add branch label')
 ---   map_branch('vB', 'remove_label', 'Remove branch label')
+--- <
 ---@tag MiniVisits-examples
 
 ---@alias __visits_path string|nil Visit path. Can be empty string to mean "all visited
@@ -360,17 +360,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniVisits.config|.
 ---
----@usage `require('mini.visits').setup({})` (replace `{}` with your `config` table).
+---@usage >lua
+---   require('mini.visits').setup() -- use default config
+---   -- OR
+---   require('mini.visits').setup({}) -- replace {} with your config table
+--- <
 MiniVisits.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.visits) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniVisits = MiniVisits
 
@@ -631,19 +626,17 @@ end
 --- Convert visit index for certain cwd into an ordered list of visited paths.
 --- Supports custom filtering and sorting.
 ---
---- Examples:
---- - Get paths sorted from most to least recent: >
+--- Examples: >lua
 ---
+---   -- Get paths sorted from most to least recent
 ---   local sort_recent = MiniVisits.gen_sort.default({ recency_weight = 1 })
 ---   MiniVisits.list_paths(nil, { sort = sort_recent })
---- <
---- - Get paths from all cwd sorted from most to least frequent: >
 ---
+---   -- Get paths from all cwd sorted from most to least frequent
 ---   local sort_frequent = MiniVisits.gen_sort.default({ recency_weight = 0 })
 ---   MiniVisits.list_paths('', { sort = sort_frequent })
---- <
---- - Get paths not including hidden: >
 ---
+---   -- Get paths not including hidden
 ---   local is_not_hidden = function(path_data)
 ---     return not vim.startswith(vim.fn.fnamemodify(path_data.path, ':t'), '.')
 ---   end
@@ -673,17 +666,15 @@ end
 --- Supports custom filtering for paths. Result is ordered from most to least
 --- frequent label.
 ---
---- Examples:
---- - Get labels for current path-cwd pair: >
+--- Examples: >lua
 ---
+---   -- Get labels for current path-cwd pair
 ---   MiniVisits.list_labels()
---- <
---- - Get labels for current path across all cwd: >
 ---
+---   -- Get labels for current path across all cwd
 ---   MiniVisits.list_labels(nil, '')
---- <
---- - Get all available labels excluding ones from hidden files: >
 ---
+---   -- Get all available labels excluding ones from hidden files
 ---   local is_not_hidden = function(path_data)
 ---     return not vim.startswith(vim.fn.fnamemodify(path_data.path, ':t'), '.')
 ---   end
@@ -734,10 +725,10 @@ end
 ---
 --- - Select from all visited paths: `MiniVisits.select_path('')`
 ---
---- - Select from paths under current directory sorted from most to least recent: >
+--- - Select from paths under current directory sorted from most to least recent: >lua
 ---
----   local sort_recent = MiniVisits.gen_sort.default({ recency_weight = 1 })
----   MiniVisits.select_path(nil, { sort = sort_recent })
+---     local sort_recent = MiniVisits.gen_sort.default({ recency_weight = 1 })
+---     MiniVisits.select_path(nil, { sort = sort_recent })
 --- <
 ---@param cwd string|nil Forwarded to |MiniVisits.list_paths()|.
 ---@param opts table|nil Forwarded to |MiniVisits.list_paths()|.
@@ -765,10 +756,10 @@ end
 --- - Select from all visited labels: `MiniVisits.select_label('', '')`
 ---
 --- - Select from current project labels and sort paths (after choosing) from most
----   to least recent: >
+---   to least recent: >lua
 ---
----   local sort_recent = MiniVisits.gen_sort.default({ recency_weight = 1 })
----   MiniVisits.select_label('', nil, { sort = sort_recent })
+---     local sort_recent = MiniVisits.gen_sort.default({ recency_weight = 1 })
+---     MiniVisits.select_label('', nil, { sort = sort_recent })
 --- <
 ---@param path string|nil Forwarded to |MiniVisits.list_labels()|.
 ---@param cwd string|nil Forwarded to |MiniVisits.list_labels()|.
@@ -984,7 +975,7 @@ end
 --- - Do not append `/` to directory paths. Use same format as for files.
 ---
 --- Assuming `path_from` and `path_to` are variables containing full paths
---- before and after rename/move, here is an example to update current index: >
+--- before and after rename/move, here is an example to update current index: >lua
 ---
 ---   local new_index = MiniVisits.rename_in_index(path_from, path_to)
 ---   MiniVisits.set_index(new_index)
@@ -1200,6 +1191,9 @@ H.cache = {
   session_start_time = os.time(),
 }
 
+-- File system information
+H.is_windows = vim.loop.os_uname().sysname == 'Windows_NT'
+
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
@@ -1233,10 +1227,10 @@ end
 H.apply_config = function(config) MiniVisits.config = config end
 
 H.create_autocommands = function(config)
-  local augroup = vim.api.nvim_create_augroup('MiniVisits', {})
+  local gr = vim.api.nvim_create_augroup('MiniVisits', {})
 
   local au = function(event, pattern, callback, desc)
-    vim.api.nvim_create_autocmd(event, { group = augroup, pattern = pattern, callback = callback, desc = desc })
+    vim.api.nvim_create_autocmd(event, { group = gr, pattern = pattern, callback = callback, desc = desc })
   end
 
   if config.track.event ~= '' then au(config.track.event, '*', H.autoregister_visit, 'Auto register visit') end
@@ -1509,9 +1503,9 @@ H.error = function(msg) error(string.format('(mini.visits) %s', msg), 0) end
 H.is_valid_buf = function(buf_id) return type(buf_id) == 'number' and vim.api.nvim_buf_is_valid(buf_id) end
 
 H.buf_get_path = function(buf_id)
-  -- Get Path only for valid normal buffers
+  -- Get path only for valid normal buffers
   if not H.is_valid_buf(buf_id) or vim.bo[buf_id].buftype ~= '' then return nil end
-  local res = vim.api.nvim_buf_get_name(buf_id)
+  local res = H.full_path(vim.api.nvim_buf_get_name(buf_id))
   if res == '' then return end
   return res
 end
@@ -1558,12 +1552,20 @@ H.edit_path = function(path)
   end
 end
 
-H.full_path = function(path) return (vim.fn.fnamemodify(path, ':p'):gsub('\\', '/'):gsub('/+', '/'):gsub('(.)/$', '%1')) end
+H.full_path = function(path) return (vim.fn.fnamemodify(path, ':p'):gsub('/+', '/'):gsub('(.)/$', '%1')) end
+if H.is_windows then
+  H.full_path = function(path)
+    return (vim.fn.fnamemodify(path, ':p'):gsub('\\', '/'):gsub('/+', '/'):gsub('(.)/$', '%1'))
+  end
+end
 
 H.short_path = function(path, cwd)
   cwd = cwd or vim.fn.getcwd()
-  if not vim.startswith(path, cwd) then return vim.fn.fnamemodify(path, ':~') end
-  local res = path:sub(cwd:len() + 1):gsub('^/+', ''):gsub('/+$', '')
+  -- Ensure `cwd` is treated as directory path (to not match similar prefix)
+  cwd = cwd:sub(-1) == '/' and cwd or (cwd .. '/')
+  if vim.startswith(path, cwd) then return path:sub(cwd:len() + 1) end
+  local res = vim.fn.fnamemodify(path, ':~')
+  if H.is_windows then res = res:gsub('\\', '/') end
   return res
 end
 

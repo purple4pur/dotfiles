@@ -45,11 +45,24 @@
 ---   `<C-Space>`) or fallback completion via
 ---   |MiniCompletion.complete_fallback()| (mapped to `<M-Space>`).
 ---
+--- - LSP kind highlighting ("Function", "Keyword", etc.). Requires Neovim>=0.11.
+---   By default uses "lsp" category of |MiniIcons| (if enabled). Can be customized
+---   via `config.lsp_completion.process_items` by adding field <kind_hlgroup>
+---   (same meaning as in |complete-items|) to items.
+---
 --- What it doesn't do:
 --- - Snippet expansion.
 --- - Many configurable sources.
 --- - Automatic mapping of `<CR>`, `<Tab>`, etc., as those tend to have highly
 ---   variable user expectations. See 'Helpful key mappings' for suggestions.
+---
+--- # Dependencies ~
+---
+--- Suggested dependencies (provide extra functionality, will work without them):
+---
+--- - Enabled |MiniIcons| module to highlight LSP kind (requires Neovim>=0.11).
+---   Otherwise |MiniCompletion.default_process_items()| does not add highlighting.
+---   Also take a look at |MiniIcons.tweak_lsp_kind()|.
 ---
 --- # Setup ~
 ---
@@ -73,10 +86,16 @@
 ---     `lsp_completion = {source_func = 'omnifunc', auto_setup = false}`.
 ---     - In `on_attach()` of every LSP client set 'omnifunc' option to exactly
 ---       `v:lua.MiniCompletion.completefunc_lsp`.
+---
+--- - Uses `vim.lsp.protocol.CompletionItemKind` map in LSP step to show a readable
+---   version of item's kind. Modify it directly to change what is displayed.
+---   If you have |mini.icons| enabled, take a look at |MiniIcons.tweak_lsp_kind()|.
+---
 --- - If you have trouble using custom (overridden) |vim.ui.input| (like from
 ---   'stevearc/dressing.nvim'), make automated disable of 'mini.completion'
 ---   for input buffer. For example, currently for 'dressing.nvim' it can be
 ---   with `au FileType DressingInput lua vim.b.minicompletion_disable = true`.
+---
 --- - Support of `additionalTextEdits` tries to handle both types of servers:
 ---     - When `additionalTextEdits` are supplied in response to
 ---       'textDocument/completion' request (like currently in 'pyright').
@@ -96,19 +115,27 @@
 ---     - Doesn't allow fallback action.
 ---     - Doesn't provide signature help.
 ---
---- # Helpful key mappings ~
+--- # Helpful mappings ~
 ---
 --- To use `<Tab>` and `<S-Tab>` for navigation through completion list, make
---- these key mappings:
---- `vim.keymap.set('i', '<Tab>',   [[pumvisible() ? "\<C-n>" : "\<Tab>"]],   { expr = true })`
---- `vim.keymap.set('i', '<S-Tab>', [[pumvisible() ? "\<C-p>" : "\<S-Tab>"]], { expr = true })`
+--- these mappings: >lua
 ---
+---   local imap_expr = function(lhs, rhs)
+---     vim.keymap.set('i', lhs, rhs, { expr = true })
+---   end
+---   imap_expr('<Tab>',   [[pumvisible() ? "\<C-n>" : "\<Tab>"]])
+---   imap_expr('<S-Tab>', [[pumvisible() ? "\<C-p>" : "\<S-Tab>"]])
+--- <
 --- To get more consistent behavior of `<CR>`, you can use this template in
---- your 'init.lua' to make customized mapping: >
+--- your 'init.lua' to make customized mapping: >lua
+---
+---   local keycode = vim.keycode or function(x)
+---     return vim.api.nvim_replace_termcodes(x, true, true, true)
+---   end
 ---   local keys = {
----     ['cr']        = vim.api.nvim_replace_termcodes('<CR>', true, true, true),
----     ['ctrl-y']    = vim.api.nvim_replace_termcodes('<C-y>', true, true, true),
----     ['ctrl-y_cr'] = vim.api.nvim_replace_termcodes('<C-y><CR>', true, true, true),
+---     ['cr']        = keycode('<CR>'),
+---     ['ctrl-y']    = keycode('<C-y>'),
+---     ['ctrl-y_cr'] = keycode('<C-y><CR>'),
 ---   }
 ---
 ---   _G.cr_action = function()
@@ -128,7 +155,7 @@
 --- <
 --- # Highlight groups ~
 ---
---- * `MiniCompletionActiveParameter` - highlighting of signature active parameter.
+--- * `MiniCompletionActiveParameter` - signature active parameter.
 ---   By default displayed as plain underline.
 ---
 --- To change any highlight group, modify it directly with |:highlight|.
@@ -189,17 +216,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniCompletion.config|.
 ---
----@usage `require('mini.completion').setup({})` (replace `{}` with your `config` table)
+---@usage >lua
+---   require('mini.completion').setup() -- use default config
+---   -- OR
+---   require('mini.completion').setup({}) -- replace {} with your config table
+--- <
 MiniCompletion.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.completion) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniCompletion = MiniCompletion
 
@@ -243,12 +265,10 @@ MiniCompletion.config = {
     -- on every `BufEnter` event.
     auto_setup = true,
 
-    -- `process_items` should be a function which takes LSP
-    -- 'textDocument/completion' response items and word to complete. Its
-    -- output should be a table of the same nature as input items. The most
-    -- common use-cases are custom filtering and sorting. You can use
-    -- default `process_items` as `MiniCompletion.default_process_items()`.
-    --minidoc_replace_start process_items = --<function: filters out snippets; sorts by LSP specs>,
+    -- A function which takes LSP 'textDocument/completion' response items
+    -- and word to complete. Output should be a table of the same nature as
+    -- input items. Common use case is custom filter/sort.
+    --minidoc_replace_start process_items = --<function: MiniCompletion.default_process_items>,
     process_items = function(items, base)
       local res = vim.tbl_filter(function(item)
         -- Keep items which match the base and are not snippets
@@ -256,7 +276,16 @@ MiniCompletion.config = {
         return vim.startswith(text, base) and item.kind ~= 15
       end, items)
 
+      res = vim.deepcopy(res)
       table.sort(res, function(a, b) return (a.sortText or a.label) < (b.sortText or b.label) end)
+
+      -- Possibly add "kind" highlighting
+      if _G.MiniIcons ~= nil then
+        local add_kind_hlgroup = H.make_add_kind_hlgroup()
+        for _, item in ipairs(res) do
+          add_kind_hlgroup(item)
+        end
+      end
 
       return res
     end,
@@ -401,6 +430,11 @@ MiniCompletion.completefunc_lsp = function(findstart, base)
 end
 
 --- Default `MiniCompletion.config.lsp_completion.process_items`
+---
+--- Steps:
+--- - Filter out items not matching `base` and snippet items.
+--- - Sort by LSP specification.
+--- - If |MiniIcons| is enabled, add <kind_hlgroup> based on the "lsp" category.
 MiniCompletion.default_process_items = function(items, base)
   return H.default_config.lsp_completion.process_items(items, base)
 end
@@ -541,10 +575,10 @@ H.apply_config = function(config)
 end
 
 H.create_autocommands = function(config)
-  local augroup = vim.api.nvim_create_augroup('MiniCompletion', {})
+  local gr = vim.api.nvim_create_augroup('MiniCompletion', {})
 
   local au = function(event, pattern, callback, desc)
-    vim.api.nvim_create_autocmd(event, { group = augroup, pattern = pattern, callback = callback, desc = desc })
+    vim.api.nvim_create_autocmd(event, { group = gr, pattern = pattern, callback = callback, desc = desc })
   end
 
   au('InsertCharPre', '*', H.auto_completion, 'Auto show completion')
@@ -561,7 +595,7 @@ H.create_autocommands = function(config)
     au('BufEnter', '*', callback, 'Set completion function')
   end
 
-  au('ColorScheme', '*', H.create_default_hl, 'Ensure proper colors')
+  au('ColorScheme', '*', H.create_default_hl, 'Ensure colors')
   au('FileType', 'TelescopePrompt', function() vim.b.minicompletion_disable = true end, 'Disable locally')
 end
 
@@ -841,19 +875,19 @@ H.is_lsp_current = function(cache, id) return cache.lsp.id == id and cache.lsp.s
 H.lsp_completion_response_items_to_complete_items = function(items, client_id)
   if vim.tbl_count(items) == 0 then return {} end
 
-  local res = {}
-  local docs, info
+  local res, item_kinds = {}, vim.lsp.protocol.CompletionItemKind
   for _, item in pairs(items) do
     -- Documentation info
-    docs = item.documentation
-    info = H.table_get(docs, { 'value' })
+    local docs = item.documentation
+    local info = H.table_get(docs, { 'value' })
     if not info and type(docs) == 'string' then info = docs end
     info = info or ''
 
     table.insert(res, {
       word = H.get_completion_word(item),
       abbr = item.label,
-      kind = vim.lsp.protocol.CompletionItemKind[item.kind] or 'Unknown',
+      kind = item_kinds[item.kind] or 'Unknown',
+      kind_hlgroup = item.kind_hlgroup,
       menu = item.detail or '',
       info = info,
       icase = 1,
@@ -863,6 +897,25 @@ H.lsp_completion_response_items_to_complete_items = function(items, client_id)
     })
   end
   return res
+end
+
+H.make_add_kind_hlgroup = function()
+  -- Account for possible effect of `MiniIcons.tweak_lsp_kind()` which modifies
+  -- only array part of `CompletionItemKind` but not "map" part
+  if H.kind_map == nil then
+    -- Cache kind map so as to not recompute it each time (as it will be called
+    -- in performance sensitive context). Assumes `tweak_lsp_kind()` is called
+    -- right after `require('mini.icons').setup()`.
+    H.kind_map = {}
+    for k, v in pairs(vim.lsp.protocol.CompletionItemKind) do
+      if type(k) == 'string' and type(v) == 'number' then H.kind_map[v] = k end
+    end
+  end
+
+  return function(item)
+    local _, hl, is_default = _G.MiniIcons.get('lsp', H.kind_map[item.kind] or 'Unknown')
+    item.kind_hlgroup = not is_default and hl or nil
+  end
 end
 
 H.get_completion_word = function(item)
@@ -1271,10 +1324,13 @@ H.floating_dimensions = function(lines, max_height, max_width)
 end
 
 H.open_action_window = function(cache, opts)
-  cache.win_id = vim.api.nvim_open_win(cache.bufnr, false, opts)
-  vim.api.nvim_win_set_option(cache.win_id, 'wrap', true)
-  vim.api.nvim_win_set_option(cache.win_id, 'linebreak', true)
-  vim.api.nvim_win_set_option(cache.win_id, 'breakindent', false)
+  local win_id = vim.api.nvim_open_win(cache.bufnr, false, opts)
+  vim.wo[win_id].breakindent = false
+  vim.wo[win_id].foldenable = false
+  vim.wo[win_id].foldmethod = 'manual'
+  vim.wo[win_id].linebreak = true
+  vim.wo[win_id].wrap = true
+  cache.win_id = win_id
 end
 
 H.close_action_window = function(cache, keep_timer)

@@ -131,6 +131,7 @@
 ---     - Update overlay view (if it is enabled).
 ---     - Update `vim.b.minidiff_summary` and `vim.b.minidiff_summary_string`
 ---       buffer-local variables. These can be used, for example, in statusline.
+---                                                          *MiniDiff-update-event*
 ---     - Trigger `MiniDiffUpdated` `User` event. See |MiniDiff-diff-summary| for
 ---       example of how to use it.
 ---
@@ -204,7 +205,7 @@
 ---   with a fixed format. It is expected to be used as is. To achieve
 ---   different formatting, use `vim.b.minidiff_summary` to construct one.
 ---   The best way to do this is by overriding `vim.b.minidiff_summary_string`
----   in the callback for `MiniDiffUpdated` event: >
+---   in the callback for |MiniDiff-update-event| event: >lua
 ---
 ---   local format_summary = function(data)
 ---     local summary = vim.b[data.buf].minidiff_summary
@@ -216,6 +217,7 @@
 ---   end
 ---   local au_opts = { pattern = 'MiniDiffUpdated', callback = format_summary }
 ---   vim.api.nvim_create_autocmd('User', au_opts)
+--- <
 ---@tag MiniDiff-overview
 
 ---@alias __diff_buf_id number Target buffer identifier. Default: 0 for current buffer.
@@ -235,17 +237,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniDiff.config|.
 ---
----@usage `require('mini.diff').setup({})` (replace `{}` with your `config` table).
+---@usage >lua
+---   require('mini.diff').setup() -- use default config
+---   -- OR
+---   require('mini.diff').setup({}) -- replace {} with your config table
+--- <
 MiniDiff.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.diff) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniDiff = MiniDiff
 
@@ -273,7 +270,7 @@ end
 ---@text # View ~
 ---
 --- `config.view` contains settings for how diff hunks are visualized.
---- Example of using custom signs: >
+--- Example of using custom signs: >lua
 ---
 ---   require('mini.diff').setup({
 ---     view = {
@@ -532,7 +529,7 @@ end
 
 --- Export hunks
 ---
---- Get and convert hunks from current/all buffers. Example of using it: >
+--- Get and convert hunks from current/all buffers. Example of using it: >lua
 ---
 ---   -- Set quickfix list from all available hunks
 ---   vim.fn.setqflist(MiniDiff.export('qf'))
@@ -611,10 +608,11 @@ end
 --- Generate builtin sources
 ---
 --- This is a table with function elements. Call to actually get source.
---- Example of using |MiniDiff.gen_source.save()|: >
+--- Example of using |MiniDiff.gen_source.save()|: >lua
 ---
 ---   local diff = require('mini.diff')
 ---   diff.setup({ source = diff.gen_source.save() })
+--- <
 MiniDiff.gen_source = {}
 
 --- Git source
@@ -634,8 +632,9 @@ MiniDiff.gen_source.git = function()
   local attach = function(buf_id)
     -- Try attaching to a buffer only once
     if H.git_cache[buf_id] ~= nil then return false end
-    local path = vim.api.nvim_buf_get_name(buf_id)
-    if path == '' or vim.fn.filereadable(path) ~= 1 then return false end
+    -- - Possibly resolve symlinks to get data from the original repo
+    local path = H.get_buf_realpath(buf_id)
+    if path == '' then return false end
 
     H.git_cache[buf_id] = {}
     H.git_start_watching_index(buf_id, path)
@@ -648,7 +647,7 @@ MiniDiff.gen_source.git = function()
   end
 
   local apply_hunks = function(buf_id, hunks)
-    local path_data = H.git_get_path_data(vim.api.nvim_buf_get_name(buf_id))
+    local path_data = H.git_get_path_data(H.get_buf_realpath(buf_id))
     if path_data == nil or path_data.rel_path == nil then return end
     local patch = H.git_format_patch(buf_id, hunks, path_data)
     H.git_apply_patch(path_data, patch)
@@ -795,7 +794,7 @@ end
 --- Perform action over region defined by marks. Used in mappings.
 ---
 --- Example of a mapping to yank reference lines of hunk range under cursor
---- (assuming default 'config.mappings.textobject'): >
+--- (assuming default 'config.mappings.textobject'): >lua
 ---
 ---   local rhs = function() return MiniDiff.operator('yank') .. 'gh' end
 ---   vim.keymap.set('n', 'ghy', rhs, { expr = true, remap = true })
@@ -982,16 +981,17 @@ H.apply_config = function(config)
 end
 
 H.create_autocommands = function()
-  local augroup = vim.api.nvim_create_augroup('MiniDiff', {})
+  local gr = vim.api.nvim_create_augroup('MiniDiff', {})
 
   local au = function(event, pattern, callback, desc)
-    vim.api.nvim_create_autocmd(event, { group = augroup, pattern = pattern, callback = callback, desc = desc })
+    vim.api.nvim_create_autocmd(event, { group = gr, pattern = pattern, callback = callback, desc = desc })
   end
 
   -- NOTE: Try auto enabling buffer on every `BufEnter` to not have `:edit`
   -- disabling buffer, as it calls `on_detach()` from buffer watcher
   au('BufEnter', '*', H.auto_enable, 'Enable diff')
   au('VimResized', '*', H.on_resize, 'Track Neovim resizing')
+  au('ColorScheme', '*', H.create_default_hl, 'Ensure colors')
 end
 
 --stylua: ignore
@@ -1029,9 +1029,10 @@ end
 -- Autocommands ---------------------------------------------------------------
 H.auto_enable = vim.schedule_wrap(function(data)
   if H.is_buf_enabled(data.buf) or H.is_disabled(data.buf) then return end
-  if not vim.api.nvim_buf_is_valid(data.buf) or vim.bo[data.buf].buftype ~= '' then return end
-  if not H.is_buf_text(data.buf) then return end
-  MiniDiff.enable(data.buf)
+  local buf = data.buf
+  if not (vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buftype == '' and vim.bo[buf].buflisted) then return end
+  if not H.is_buf_text(buf) then return end
+  MiniDiff.enable(buf)
 end)
 
 H.on_resize = function()
@@ -1639,7 +1640,7 @@ H.git_set_ref_text = vim.schedule_wrap(function(buf_id)
   local buf_set_ref_text = vim.schedule_wrap(function(text) pcall(MiniDiff.set_ref_text, buf_id, text) end)
 
   -- NOTE: Do not cache buffer's name to react to its possible rename
-  local path = vim.api.nvim_buf_get_name(buf_id)
+  local path = H.get_buf_realpath(buf_id)
   if path == '' then return buf_set_ref_text({}) end
   local cwd, basename = vim.fn.fnamemodify(path, ':h'), vim.fn.fnamemodify(path, ':t')
 
@@ -1788,6 +1789,9 @@ H.is_buf_text = function(buf_id)
   local lines = vim.api.nvim_buf_get_lines(buf_id, 0, n, false)
   return table.concat(lines, ''):find('\0') == nil
 end
+
+-- Try getting buffer's full real path (after resolving symlinks)
+H.get_buf_realpath = function(buf_id) return vim.loop.fs_realpath(vim.api.nvim_buf_get_name(buf_id)) or '' end
 
 -- nvim__redraw replaced nvim__buf_redraw_range during the 0.10 release cycle
 H.redraw_buffer = function(buf_id)

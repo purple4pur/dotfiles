@@ -64,6 +64,8 @@
 --- - Requires target path to be part of git repository.
 --- - Present for exploration and navigation purposes. Doing any Git operations
 ---   is suggested to be done in a dedicated Git client and is not planned.
+---@alias __extra_pickers_preserve_order - <preserve_order> `(boolean)` - whether to preserve original order
+---     during query. Default: `false`.
 ---@alias __extra_pickers_git_path - <path> `(string|nil)` - target path for Git operation (if required). Also
 ---     used to find Git repository inside which to construct items.
 ---     Default: `nil` for root of Git repository containing |current-directory|.
@@ -76,17 +78,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniExtra.config|.
 ---
----@usage `require('mini.extra').setup({})` (replace `{}` with your `config` table).
+---@usage >lua
+---   require('mini.extra').setup() -- use default config
+---   -- OR
+---   require('mini.extra').setup({}) -- replace {} with your config table
+--- <
 MiniExtra.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.extra) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniExtra = MiniExtra
 
@@ -109,7 +106,7 @@ MiniExtra.config = {}
 ---
 --- This is a table with function elements. Call to actually get specification.
 ---
---- Assumed to be used as part of |MiniAi.setup()|. Example: >
+--- Assumed to be used as part of |MiniAi.setup()|. Example: >lua
 ---
 ---   local gen_ai_spec = require('mini.extra').gen_ai_spec
 ---   require('mini.ai').setup({
@@ -121,6 +118,7 @@ MiniExtra.config = {}
 ---       N = gen_ai_spec.number(),
 ---     },
 ---   })
+--- <
 MiniExtra.gen_ai_spec = {}
 
 --- Current buffer textobject
@@ -267,7 +265,7 @@ end
 ---
 --- This is a table with function elements. Call to actually get specification.
 ---
---- Assumed to be used as part of |MiniHipatterns.setup()|. Example: >
+--- Assumed to be used as part of |MiniHipatterns.setup()|. Example: >lua
 ---
 ---   local hi_words = require('mini.extra').gen_highlighter.words
 ---   require('mini.hipatterns').setup({
@@ -275,6 +273,7 @@ end
 ---       todo = hi_words({ 'TODO', 'Todo', 'todo' }, 'MiniHipatternsTodo'),
 ---     },
 ---   })
+--- <
 MiniExtra.gen_highlighter = {}
 
 --- Highlight words
@@ -327,12 +326,13 @@ MiniExtra.pickers = {}
 ---   Possible fields:
 ---   - <scope> `(string)` - one of "all" (normal listed buffers) or "current".
 ---     Default: "all".
+---   __extra_pickers_preserve_order
 ---@param opts __extra_pickers_opts
 ---
 ---@return __extra_pickers_return
 MiniExtra.pickers.buf_lines = function(local_opts, opts)
   local pick = H.validate_pick('buf_lines')
-  local_opts = vim.tbl_deep_extend('force', { scope = 'all' }, local_opts or {})
+  local_opts = vim.tbl_deep_extend('force', { scope = 'all', preserve_order = false }, local_opts or {})
 
   local scope = H.pick_validate_scope(local_opts, { 'all', 'current' }, 'buf_lines')
   local is_scope_all = scope == 'all'
@@ -355,9 +355,11 @@ MiniExtra.pickers.buf_lines = function(local_opts, opts)
       if not poke_picker() then return end
       H.buf_ensure_loaded(buf_id)
       local buf_name = H.buf_get_name(buf_id) or ''
+      local n_digits = math.floor(math.log10(vim.api.nvim_buf_line_count(buf_id))) + 1
+      local format_pattern = '%s%' .. n_digits .. 'd\0%s'
       for lnum, l in ipairs(vim.api.nvim_buf_get_lines(buf_id, 0, -1, false)) do
-        local prefix = is_scope_all and string.format('%s:', buf_name) or ''
-        table.insert(items, { text = string.format('%s%s:%s', prefix, lnum, l), bufnr = buf_id, lnum = lnum })
+        local prefix = is_scope_all and (buf_name .. '\0') or ''
+        table.insert(items, { text = format_pattern:format(prefix, lnum, l), bufnr = buf_id, lnum = lnum })
       end
     end
     pick.set_picker_items(items)
@@ -366,7 +368,10 @@ MiniExtra.pickers.buf_lines = function(local_opts, opts)
 
   local show = H.pick_get_config().source.show
   if is_scope_all and show == nil then show = H.show_with_icons end
-  return H.pick_start(items, { source = { name = string.format('Buffer lines (%s)', scope), show = show } }, opts)
+  local match_opts = { preserve_order = local_opts.preserve_order }
+  local match = function(stritems, inds, query) pick.default_match(stritems, inds, query, match_opts) end
+  local default_source = { name = string.format('Buffer lines (%s)', scope), show = show, match = match }
+  return H.pick_start(items, { source = default_source }, opts)
 end
 
 --- Neovim commands picker
@@ -745,6 +750,7 @@ MiniExtra.pickers.git_hunks = function(local_opts, opts)
   if local_opts.path == nil then path = repo_dir end
 
   -- Define source
+  local show = H.pick_get_config().source.show or H.show_with_icons
   local preview = function(buf_id, item)
     vim.bo[buf_id].syntax = 'diff'
     local lines = vim.deepcopy(item.header)
@@ -758,7 +764,7 @@ MiniExtra.pickers.git_hunks = function(local_opts, opts)
   local postprocess = function(lines) return H.git_difflines_to_hunkitems(lines, n_context) end
 
   local name = string.format('Git hunks (%s %s)', scope, local_opts.path == nil and 'all' or 'for path')
-  local default_source = { name = name, cwd = repo_dir, preview = preview }
+  local default_source = { name = name, cwd = repo_dir, show = show, preview = preview }
   opts = vim.tbl_deep_extend('force', { source = default_source }, opts or {})
   return pick.builtin.cli({ command = command, postprocess = postprocess }, opts)
 end
@@ -810,7 +816,7 @@ MiniExtra.pickers.hipatterns = function(local_opts, opts)
   for _, item in ipairs(items) do
     --stylua: ignore
     item.text = string.format(
-      '%s │ %s:%d:%d:%s',
+      '%s │ %s│%d│%d│%s',
       H.ensure_text_width(item.highlighter, highlighter_width),
       item.buf_name, item.lnum, item.col, item.line
     )
@@ -972,7 +978,6 @@ MiniExtra.pickers.keymaps = function(local_opts, opts)
   local scope = H.pick_validate_scope(local_opts, { 'all', 'global', 'buf' }, 'keymaps')
 
   -- Create items
-  local keytrans = vim.fn.has('nvim-0.8') == 1 and vim.fn.keytrans or function(x) return x end
   local items = {}
   local populate_modes = mode == 'all' and { 'n', 'x', 's', 'o', 'i', 'l', 'c', 't' } or { mode }
   local max_lhs_width = 0
@@ -980,7 +985,7 @@ MiniExtra.pickers.keymaps = function(local_opts, opts)
     for _, m in ipairs(populate_modes) do
       for _, maparg in ipairs(source(m)) do
         local desc = maparg.desc ~= nil and vim.inspect(maparg.desc) or maparg.rhs
-        local lhs = keytrans(maparg.lhsraw or maparg.lhs)
+        local lhs = vim.fn.keytrans(maparg.lhsraw or maparg.lhs)
         max_lhs_width = math.max(vim.fn.strchars(lhs), max_lhs_width)
         table.insert(items, { lhs = lhs, desc = desc, maparg = maparg })
       end
@@ -1063,7 +1068,8 @@ MiniExtra.pickers.list = function(local_opts, opts)
   items = vim.tbl_map(H.list_enhance_item, items)
 
   local name = string.format('List (%s)', scope)
-  return H.pick_start(items, { source = { name = name, choose = H.choose_with_buflisted } }, opts)
+  local show = H.pick_get_config().source.show or H.show_with_icons
+  return H.pick_start(items, { source = { name = name, show = show, choose = H.choose_with_buflisted } }, opts)
 end
 
 --- LSP picker
@@ -1078,11 +1084,12 @@ end
 ---     - "references".
 ---     - "type_definition".
 ---     - "workspace_symbol".
---- - Requires Neovim>=0.8.
 --- - Directly relies on `vim.lsp.buf` methods which support |lsp-on-list-handler|.
 ---   In particular, it means that picker is started only if LSP server returns
 ---   list of locations and not a single location.
 --- - Doesn't return anything due to async nature of `vim.lsp.buf` methods.
+--- - Requires set up |mini.icons| to show extra icons and highlighting in
+---   "document_symbol" and "workspace_symbol" scopes.
 ---
 --- Examples ~
 ---
@@ -1090,7 +1097,7 @@ end
 ---   under cursor.
 --- - `:Pick lsp scope='document_symbol'` - symbols in current file.
 ---
----@param local_opts table Options defining behavior of this particular picker.
+---@param local_opts __extra_pickers_local_opts
 ---   Possible fields:
 ---   - <scope> `(string)` - LSP method to use. One of the supported ones (see
 ---     list above). Default: `nil` which means explicit scope is needed.
@@ -1100,7 +1107,6 @@ end
 ---
 ---@return nil Nothing is returned.
 MiniExtra.pickers.lsp = function(local_opts, opts)
-  if vim.fn.has('nvim-0.8') == 0 then H.error('`pickers.lsp` requires Neovim>=0.8.') end
   local pick = H.validate_pick('lsp')
   local_opts = vim.tbl_deep_extend('force', { scope = nil, symbol_query = '' }, local_opts or {})
 
@@ -1146,7 +1152,7 @@ MiniExtra.pickers.marks = function(local_opts, opts)
       if path == nil then buf_id = info.pos[1] end
 
       local line, col = info.pos[2], math.abs(info.pos[3])
-      local text = string.format('%s │ %s%s:%s', info.mark:sub(2), path == nil and '' or (path .. ':'), line, col)
+      local text = string.format('%s │ %s%s│%s', info.mark:sub(2), path == nil and '' or (path .. '│'), line, col)
       table.insert(items, { text = text, bufnr = buf_id, path = path, lnum = line, col = col })
     end
   end
@@ -1163,26 +1169,36 @@ end
 --- Pick from |v:oldfiles| entries representing readable files.
 ---
 ---@param local_opts __extra_pickers_local_opts
----   Not used at the moment.
+---   Possible fields:
+---   - <current_dir> `(boolean)` - whether to return files only from current
+---     working directory and its subdirectories. Default: `false`.
+---   __extra_pickers_preserve_order
 ---@param opts __extra_pickers_opts
 ---
 ---@return __extra_pickers_return
 MiniExtra.pickers.oldfiles = function(local_opts, opts)
   local pick = H.validate_pick('oldfiles')
+  local_opts = vim.tbl_deep_extend('force', { current_dir = false, preserve_order = false }, local_opts or {})
   local oldfiles = vim.v.oldfiles
   if not H.islist(oldfiles) then H.error('`pickers.oldfiles` picker needs valid `v:oldfiles`.') end
 
+  local show_all = not local_opts.current_dir
   local items = vim.schedule_wrap(function()
-    local cwd = pick.get_picker_opts().source.cwd
+    local cwd = H.normalize_path(pick.get_picker_opts().source.cwd) .. '/'
     local res = {}
     for _, path in ipairs(oldfiles) do
-      if vim.fn.filereadable(path) == 1 then table.insert(res, H.short_path(path, cwd)) end
+      path = H.normalize_path(path)
+      if vim.fn.filereadable(path) == 1 and (show_all or vim.startswith(path, cwd)) then
+        table.insert(res, H.short_path(path, cwd))
+      end
     end
     pick.set_picker_items(res)
   end)
 
   local show = H.pick_get_config().source.show or H.show_with_icons
-  return H.pick_start(items, { source = { name = 'Old files', show = show } }, opts)
+  local match_opts = { preserve_order = local_opts.preserve_order }
+  local match = function(stritems, inds, query) pick.default_match(stritems, inds, query, match_opts) end
+  return H.pick_start(items, { source = { name = 'Old files', show = show, match = match } }, opts)
 end
 
 --- Neovim options picker
@@ -1338,7 +1354,6 @@ end
 ---
 --- Pick and navigate to |treesitter| nodes of current buffer.
 --- Notes:
---- - Requires Neovim>=0.8.
 --- - Requires active tree-sitter parser in the current buffer.
 ---
 ---@param local_opts __extra_pickers_local_opts
@@ -1347,7 +1362,6 @@ end
 ---
 ---@return __extra_pickers_return
 MiniExtra.pickers.treesitter = function(local_opts, opts)
-  if vim.fn.has('nvim-0.8') == 0 then H.error('`pickers.treesitter` requires Neovim>=0.8.') end
   local pick = H.validate_pick('treesitter')
 
   local buf_id = vim.api.nvim_get_current_buf()
@@ -1363,7 +1377,7 @@ MiniExtra.pickers.treesitter = function(local_opts, opts)
         local lnum, col, end_lnum, end_col = child:range()
         lnum, col, end_lnum, end_col = lnum + 1, col + 1, end_lnum + 1, end_col + 1
         local indent = string.rep(' ', depth)
-        local text = string.format('%s%s (%s:%s - %s:%s)', indent, child:type() or '', lnum, col, end_lnum, end_col)
+        local text = string.format('%s%s (%s│%s - %s│%s)', indent, child:type() or '', lnum, col, end_lnum, end_col)
         local item = { text = text, bufnr = buf_id, lnum = lnum, col = col, end_lnum = end_lnum, end_col = end_col }
         table.insert(items, item)
 
@@ -1396,8 +1410,7 @@ end
 ---     Default: `nil` to get paths registered for |current-directory|.
 ---   - <filter> `(function|string)` - forwarded to |MiniVisits.list_paths()|.
 ---     Default: `nil` to use all paths.
----   - <preserve_order> `(boolean)` - whether to preserve original order
----     during query. Default: `false`.
+---   __extra_pickers_preserve_order
 ---   - <recency_weight> `(number)` - forwarded to |MiniVisits.gen_sort.default()|.
 ---     Default: 0.5 to use "robust frecency" sorting.
 ---   - <sort> `(function)` - forwarded to |MiniVisits.list_paths()|.
@@ -1417,28 +1430,20 @@ MiniExtra.pickers.visit_paths = function(local_opts, opts)
   local cwd = local_opts.cwd or vim.fn.getcwd()
   -- NOTE: Use separate cwd to allow `cwd = ''` to not mean "current directory"
   local is_for_cwd = cwd ~= ''
-  local picker_cwd = cwd == '' and vim.fn.getcwd() or H.full_path(cwd)
+  local picker_cwd = H.normalize_path(cwd == '' and vim.fn.getcwd() or H.full_path(cwd))
 
   -- Define source
   local filter = local_opts.filter or visits.gen_filter.default()
   local sort = local_opts.sort or visits.gen_sort.default({ recency_weight = local_opts.recency_weight })
   local items = vim.schedule_wrap(function()
     local paths = visits.list_paths(cwd, { filter = filter, sort = sort })
-    paths = vim.tbl_map(function(x) return H.short_path(x, picker_cwd) end, paths)
+    paths = vim.tbl_map(function(x) return H.normalize_path(H.short_path(x, picker_cwd)) end, paths)
     pick.set_picker_items(paths)
   end)
 
   local show = H.pick_get_config().source.show or H.show_with_icons
-
-  local match
-  if local_opts.preserve_order then
-    match = function(stritems, inds, query)
-      -- Return makes call synchronous, but it shouldn't be too big problem
-      local res = pick.default_match(stritems, inds, query, true) or {}
-      table.sort(res)
-      return res
-    end
-  end
+  local match_opts = { preserve_order = local_opts.preserve_order }
+  local match = function(stritems, inds, query) pick.default_match(stritems, inds, query, match_opts) end
 
   local name = string.format('Visit paths (%s)', is_for_cwd and 'cwd' or 'all')
   local default_source = { name = name, cwd = picker_cwd, match = match, show = show }
@@ -1486,7 +1491,7 @@ MiniExtra.pickers.visit_labels = function(local_opts, opts)
   local cwd = local_opts.cwd or vim.fn.getcwd()
   -- NOTE: Use separate cwd to allow `cwd = ''` to not mean "current directory"
   local is_for_cwd = cwd ~= ''
-  local picker_cwd = cwd == '' and vim.fn.getcwd() or H.full_path(cwd)
+  local picker_cwd = H.normalize_path(cwd == '' and vim.fn.getcwd() or H.full_path(cwd))
 
   local filter = local_opts.filter or visits.gen_filter.default()
   local items = visits.list_labels(local_opts.path, local_opts.cwd, { filter = filter })
@@ -1497,7 +1502,7 @@ MiniExtra.pickers.visit_labels = function(local_opts, opts)
       return filter(path_data) and type(path_data.labels) == 'table' and path_data.labels[label]
     end
     local all_paths = visits.list_paths(local_opts.cwd, { filter = new_filter, sort = local_opts.sort })
-    return vim.tbl_map(function(path) return H.short_path(path, picker_cwd) end, all_paths)
+    return vim.tbl_map(function(x) return H.normalize_path(H.short_path(x, picker_cwd)) end, all_paths)
   end
 
   local preview = function(buf_id, label) vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, list_label_paths(label)) end
@@ -1536,6 +1541,9 @@ H.ns_id = {
 
 -- Various cache
 H.cache = {}
+
+-- File system information
+H.is_windows = vim.loop.os_uname().sysname == 'Windows_NT'
 
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
@@ -1648,8 +1656,8 @@ H.pick_prepend_position = function(item)
 
   path = vim.fn.fnamemodify(path, ':p:.')
   local text = item.text or ''
-  local suffix = text == '' and '' or (': ' .. text)
-  item.text = string.format('%s:%s:%s%s', path, item.lnum or 1, item.col or 1, suffix)
+  local suffix = text == '' and '' or ('│ ' .. text)
+  item.text = string.format('%s│%s│%s%s', path, item.lnum or 1, item.col or 1, suffix)
   return item
 end
 
@@ -1822,29 +1830,53 @@ end
 
 -- LSP picker -----------------------------------------------------------------
 H.lsp_make_on_list = function(source, opts)
-  -- Prepend file position info to item and sort
+  local is_symbol = source == 'document_symbol' or source == 'workspace_symbol'
+
+  -- Prepend file position info to item, add decortion, and sort
+  local add_decor_data = function() end
+  if is_symbol and _G.MiniIcons == nil then
+    -- Try using '@...' style highlight group with same name as "kind"
+    add_decor_data = function(item) item.hl = string.format('@%s', string.lower(item.kind or 'unknown')) end
+  end
+  if is_symbol and _G.MiniIcons ~= nil then
+    add_decor_data = function(item)
+      if type(item.kind) ~= 'string' then return end
+      local icon, hl = MiniIcons.get('lsp', item.kind)
+      -- If kind is not original, assume it already contains an icon
+      local icon_prefix = item.kind_orig == item.kind and (icon .. ' ') or ''
+      item.text, item.hl = icon_prefix .. item.text, hl
+    end
+  end
+
   local process = function(items)
     if source ~= 'document_symbol' then items = vim.tbl_map(H.pick_prepend_position, items) end
+    -- Input `item.kind` is a string (resolved before `on_list`). Account for
+    -- possibly tweaked symbol map (like after `MiniIcons.tweak_lsp_kind`).
+    local kind_map = H.get_symbol_kind_map()
+    for _, item in ipairs(items) do
+      item.kind_orig, item.kind = item.kind, kind_map[item.kind]
+      add_decor_data(item)
+      item.kind_orig = nil
+    end
     table.sort(items, H.lsp_items_compare)
     return items
   end
 
-  -- Highlight items with highlight group corresponding to the symbol kind.
-  -- Note: `@type` groups were introduced in Neovim 0.8 which is minimal
-  -- version for `pickers.lsp` to work.
-  local show
-  if source == 'document_symbol' or source == 'workspace_symbol' then
-    local pick = H.validate_pick()
-    show = function(buf_id, items_to_show, query)
-      pick.default_show(buf_id, items_to_show, query)
+  local show_explicit = H.pick_get_config().source.show
+  local show = function(buf_id, items_to_show, query)
+    if show_explicit ~= nil then return show_explicit(buf_id, items_to_show, query) end
+    if is_symbol then
+      H.validate_pick().default_show(buf_id, items_to_show, query)
 
+      -- Highlight whole lines with pre-computed symbol kind highlight groups
       H.pick_clear_namespace(buf_id, H.ns_id.pickers)
       for i, item in ipairs(items_to_show) do
-        -- Highlight using '@...' style highlight group with similar name
-        local hl_group = string.format('@%s', string.lower(item.kind or 'unknown'))
-        H.pick_highlight_line(buf_id, i, hl_group, 199)
+        H.pick_highlight_line(buf_id, i, item.hl, 199)
       end
+      return
     end
+    -- Show with icons as the non-symbol scopes should have paths
+    return H.show_with_icons(buf_id, items_to_show, query)
   end
 
   return function(data)
@@ -1856,6 +1888,17 @@ H.lsp_make_on_list = function(source, opts)
 
     return H.pick_start(items, { source = { name = string.format('LSP (%s)', source), show = show } }, opts)
   end
+end
+
+H.get_symbol_kind_map = function()
+  -- Compute symbol kind map from "resolved" string kind to its "original" (as in
+  -- LSP protocol). Those can be different after `MiniIcons.tweak_lsp_kind()`.
+  local res = {}
+  local double_map = vim.lsp.protocol.SymbolKind
+  for k, v in pairs(double_map) do
+    if type(k) == 'string' and type(v) == 'number' then res[double_map[v]] = k end
+  end
+  return res
 end
 
 H.lsp_items_compare = function(a, b)
@@ -2023,12 +2066,17 @@ H.ensure_text_width = function(text, width)
 end
 
 H.full_path = function(path) return (vim.fn.fnamemodify(path, ':p'):gsub('(.)/$', '%1')) end
+H.normalize_path = function(path) return path end
+if H.is_windows then
+  H.full_path = function(path) return (vim.fn.fnamemodify(path, ':p'):gsub('(.)[\\/]$', '%1')) end
+  H.normalize_path = function(path) return path:gsub('\\', '/') end
+end
 
 H.short_path = function(path, cwd)
   cwd = cwd or vim.fn.getcwd()
-  if not vim.startswith(path, cwd) then return vim.fn.fnamemodify(path, ':~') end
-  local res = path:sub(cwd:len() + 1):gsub('^/+', ''):gsub('/+$', '')
-  return res
+  -- Ensure `cwd` is treated as directory path (to not match similar prefix)
+  cwd = cwd:sub(-1) == '/' and cwd or (cwd .. '/')
+  return vim.startswith(path, cwd) and path:sub(cwd:len() + 1) or vim.fn.fnamemodify(path, ':~')
 end
 
 -- TODO: Remove after compatibility with Neovim=0.9 is dropped

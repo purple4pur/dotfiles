@@ -48,7 +48,7 @@ set t_Co=256
 set t_ZH=[3m     " <C-V><ESC>[3m
 set t_ZR=[23m    " <C-V><ESC>[23m
 set tags+=./tags;,./TAGS;
-set textwidth=80
+set textwidth=0
 set virtualedit=block
 
 " --------------------------------------------------------------------------------

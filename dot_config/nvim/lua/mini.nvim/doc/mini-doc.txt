@@ -146,15 +146,18 @@ Parameters ~
 {config} `(table|nil)` Module config table. See |MiniDoc.config|.
 
 Usage ~
-`require('mini.doc').setup({})` (replace `{}` with your `config` table)
-
+>lua
+  require('mini.doc').setup() -- use default config
+  -- OR
+  require('mini.doc').setup({}) -- replace {} with your config table
+<
 ------------------------------------------------------------------------------
                                                                 *MiniDoc.config*
                                 `MiniDoc.config`
 Module config
 
 Default values:
->
+>lua
   MiniDoc.config = {
     -- Function which extracts part of line used to denote annotation.
     -- For more information see 'Notes' in |MiniDoc.config|.
@@ -378,14 +381,16 @@ Return ~
 Convert afterlines to code
 
 This function is designed to be used together with `@eval` section to
-automate documentation of certain values (notable default values of a
+automate documentation of certain values (notably default values of a
 table). It processes afterlines based on certain directives and makes
-output looking like a code block.
+output look like a Lua code block.
 
-Most common usage is by adding the following section in your annotation:
-`@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)`
+Most common usage is by adding the following section in your annotation: >
 
+  ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
+<
 # Directives ~
+
 Directives are special comments that are processed using Lua string pattern
 capabilities (so beware of false positives). Each directive should be put
 on its separate line. Supported directives:
@@ -397,8 +402,8 @@ on its separate line. Supported directives:
   Useful for manually changing what should be placed in output like in case
   of replacing function body with something else.
 
-Here is an example. Suppose having these afterlines:
->
+Here is an example. Suppose having these afterlines: >lua
+
   --minidoc_replace_start {
   M.config = {
     --minidoc_replace_end
@@ -413,9 +418,8 @@ Here is an example. Suppose having these afterlines:
 
   return M
 <
+After adding `@eval` section those will be formatted as: >
 
-After adding `@eval` section those will be formatted as:
->
   {
     param_one = 1,
     param_fun = --<function>
@@ -427,7 +431,7 @@ Parameters ~
 
 Return ~
 `(string|nil)` Single string (using `\n` to separate lines) describing
-  afterlines as code block in help file. If `nil`, input is not valid.
+  afterlines as Lua code block in help file. If `nil`, input is not valid.
 
 
  vim:tw=78:ts=8:noet:ft=help:norl:

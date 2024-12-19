@@ -50,17 +50,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniTrailspace.config|.
 ---
----@usage `require('mini.trailspace').setup({})` (replace `{}` with your `config` table)
+---@usage >lua
+---   require('mini.trailspace').setup() -- use default config
+---   -- OR
+---   require('mini.trailspace').setup({}) -- replace {} with your config table
+--- <
 MiniTrailspace.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.trailspace) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniTrailspace = MiniTrailspace
 
@@ -152,10 +147,10 @@ end
 H.apply_config = function(config) MiniTrailspace.config = config end
 
 H.create_autocommands = function(config)
-  local augroup = vim.api.nvim_create_augroup('MiniTrailspace', {})
+  local gr = vim.api.nvim_create_augroup('MiniTrailspace', {})
 
   local au = function(event, pattern, callback, desc)
-    vim.api.nvim_create_autocmd(event, { group = augroup, pattern = pattern, callback = callback, desc = desc })
+    vim.api.nvim_create_autocmd(event, { group = gr, pattern = pattern, callback = callback, desc = desc })
   end
 
   -- NOTE: Respecting both `WinEnter` and `BufEnter` seems to be useful to
@@ -170,6 +165,8 @@ H.create_autocommands = function(config)
     -- disappears if buffer is reentered.
     au('OptionSet', 'buftype', H.track_normal_buffer, 'Track normal buffer')
   end
+
+  au('ColorScheme', '*', H.create_default_hl, 'Ensure colors')
 end
 
 H.create_default_hl = function() vim.api.nvim_set_hl(0, 'MiniTrailspace', { default = true, link = 'Error' }) end

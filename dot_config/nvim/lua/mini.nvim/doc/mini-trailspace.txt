@@ -51,22 +51,24 @@ Parameters ~
 {config} `(table|nil)` Module config table. See |MiniTrailspace.config|.
 
 Usage ~
-`require('mini.trailspace').setup({})` (replace `{}` with your `config` table)
-
+>lua
+  require('mini.trailspace').setup() -- use default config
+  -- OR
+  require('mini.trailspace').setup({}) -- replace {} with your config table
+<
 ------------------------------------------------------------------------------
                                                          *MiniTrailspace.config*
                             `MiniTrailspace.config`
 Module config
 
 Default values:
->
+>lua
   MiniTrailspace.config = {
     -- Highlight only in normal buffers (ones with empty 'buftype'). This is
     -- useful to not show trailing whitespace where it usually doesn't matter.
     only_in_normal_buffers = true,
   }
 <
-
 ------------------------------------------------------------------------------
                                                     *MiniTrailspace.highlight()*
                           `MiniTrailspace.highlight`()

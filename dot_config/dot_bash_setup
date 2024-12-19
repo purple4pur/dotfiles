@@ -33,8 +33,8 @@ if ! source <(starship init bash) 2> /dev/null ; then
     PS1="\n${BOLD}${YELLOW}\u${RESET} @ ${BOLD}${GREEN}${BG_BLACK}\H${RESET} in ${BOLD}${BLUE}\w${RESET}\n${BOLD}${GREEN}>${RESET} "
 fi
 
-if ! eval "$(zoxide init bash)" 2> /dev/null ; then
-    echo "'zoxide' not found." 1>&2
-fi
+#if ! eval "$(zoxide init bash)" 2> /dev/null ; then
+#    echo "'zoxide' not found." 1>&2
+#fi
 
 # vim: ft=sh

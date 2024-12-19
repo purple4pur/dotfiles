@@ -89,17 +89,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniNotify.config|.
 ---
----@usage `require('mini.notify').setup({})` (replace `{}` with your `config` table).
+---@usage >lua
+---   require('mini.notify').setup() -- use default config
+---   -- OR
+---   require('mini.notify').setup({}) -- replace {} with your config table
+--- <
 MiniNotify.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.notify) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniNotify = MiniNotify
 
@@ -110,7 +105,7 @@ MiniNotify.setup = function(config)
   H.apply_config(config)
 
   -- Define behavior
-  H.create_autocommands(config)
+  H.create_autocommands()
 
   -- Create default highlighting
   H.create_default_hl()
@@ -136,8 +131,8 @@ end
 --- Note: Input contains notifications before applying `content.format`.
 --- Default: `nil` for |MiniNotify.default_sort()|.
 ---
---- Example:
---- >
+--- Example: >lua
+---
 ---   require('mini.notify').setup({
 ---     content = {
 ---       -- Use notification message as is
@@ -242,8 +237,8 @@ MiniNotify.config = {
 --- soon as safely possible, see |vim.schedule()|) and removed after a configurable
 --- amount of time.
 ---
---- Examples:
---- >
+--- Examples: >lua
+---
 ---   -- Defaults
 ---   vim.notify = require('mini.notify').make_notify()
 ---
@@ -259,7 +254,8 @@ MiniNotify.config = {
 ---     - <hl_group> `(string)` - highlight group of notification.
 ---   Only data different to default can be supplied.
 ---
----   Default: >
+---   Default: >lua
+---
 ---     {
 ---       ERROR = { duration = 5000, hl_group = 'DiagnosticError'  },
 ---       WARN  = { duration = 5000, hl_group = 'DiagnosticWarn'   },
@@ -268,6 +264,7 @@ MiniNotify.config = {
 ---       TRACE = { duration = 0,    hl_group = 'DiagnosticOk'     },
 ---       OFF   = { duration = 0,    hl_group = 'MiniNotifyNormal' },
 ---     }
+--- <
 MiniNotify.make_notify = function(opts)
   local level_names = {}
   for k, v in pairs(vim.log.levels) do
@@ -315,8 +312,8 @@ end
 --- Add notification to history. It is considered "active" and is shown.
 --- To hide, call |MiniNotfiy.remove()| with identifier this function returns.
 ---
---- Example:
---- >
+--- Example: >lua
+---
 ---   local id = MiniNotify.add('Hello', 'WARN', 'Comment')
 ---   vim.defer_fn(function() MiniNotify.remove(id) end, 1000)
 --- <
@@ -459,7 +456,7 @@ MiniNotify.get = function(id) return vim.deepcopy(H.history[id]) end
 ---
 --- Get map of used notifications with keys being notification identifiers.
 ---
---- Can be used to get only active notification objects. Example: >
+--- Can be used to get only active notification objects. Example: >lua
 ---
 ---   -- Get active notifications
 ---   vim.tbl_filter(
@@ -599,14 +596,15 @@ H.apply_config = function(config)
   end
 end
 
-H.create_autocommands = function(config)
-  local augroup = vim.api.nvim_create_augroup('MiniNotify', {})
+H.create_autocommands = function()
+  local gr = vim.api.nvim_create_augroup('MiniNotify', {})
 
   local au = function(event, pattern, callback, desc)
-    vim.api.nvim_create_autocmd(event, { group = augroup, pattern = pattern, callback = callback, desc = desc })
+    vim.api.nvim_create_autocmd(event, { group = gr, pattern = pattern, callback = callback, desc = desc })
   end
 
   au({ 'TabEnter', 'VimResized' }, '*', function() MiniNotify.refresh() end, 'Refresh notifications')
+  au('ColorScheme', '*', H.create_default_hl, 'Ensure colors')
 end
 
 --stylua: ignore
@@ -744,12 +742,10 @@ H.window_open = function(buf_id)
   local win_id = vim.api.nvim_open_win(buf_id, false, config)
 
   vim.wo[win_id].foldenable = false
-  vim.wo[win_id].wrap = true
+  vim.wo[win_id].foldmethod = 'manual'
   vim.wo[win_id].winblend = H.get_config().window.winblend
-
-  -- Neovim=0.7 doesn't support invalid highlight groups in 'winhighlight'
-  vim.wo[win_id].winhighlight = 'NormalFloat:MiniNotifyNormal,FloatBorder:MiniNotifyBorder'
-    .. (vim.fn.has('nvim-0.8') == 1 and ',FloatTitle:MiniNotifyTitle' or '')
+  vim.wo[win_id].winhighlight = 'NormalFloat:MiniNotifyNormal,FloatBorder:MiniNotifyBorder,FloatTitle:MiniNotifyTitle'
+  vim.wo[win_id].wrap = true
 
   return win_id
 end

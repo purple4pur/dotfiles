@@ -85,10 +85,11 @@
 --- - POSITION - table with fields <line> and <col> containing line and column
 ---   numbers respectively. Both are 1-indexed. Example: `{ line = 2, col = 1 }`.
 ---
---- - REGION - table representing region in a buffer. Fields: <from> and
----   <to> for inclusive start and end positions. Example: >
+--- - REGION - table representing region in a buffer. Fields: <from> and <to> for
+---   inclusive start and end positions. Example: >lua
 ---
 ---   { from = { line = 1, col = 1 }, to = { line = 2, col = 1 } }
+--- <
 ---@tag MiniSplitjoin-glossary
 
 ---@alias __splitjoin_options table|nil Options. Has structure from |MiniSplitjoin.config|
@@ -119,17 +120,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniSplitjoin.config|.
 ---
----@usage `require('mini.splitjoin').setup({})` (replace `{}` with your `config` table)
+---@usage >lua
+---   require('mini.splitjoin').setup() -- use default config
+---   -- OR
+---   require('mini.splitjoin').setup({}) -- replace {} with your config table
+--- <
 MiniSplitjoin.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.splitjoin) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniSplitjoin = MiniSplitjoin
 
@@ -151,7 +147,7 @@ end
 --- patterns. General idea is to convert whole buffer into a single line,
 --- perform string search, and convert results back into 2d positions.
 ---
---- Example configuration: >
+--- Example configuration: >lua
 ---
 ---   require('mini.splitjoin').setup({
 ---     detect = {
@@ -165,7 +161,7 @@ end
 ---       exclude_regions = {},
 ---     },
 ---   })
----
+--- <
 --- ## Outer brackets ~
 ---
 --- `detect.brackets` is an array of Lua patterns used to find enclosing region.
@@ -421,7 +417,7 @@ end
 --- All generated post-hooks return updated versions of their input reflecting
 --- changes done inside hook.
 ---
---- Example for `lua` filetype (place it in 'lua.lua' filetype plugin, |ftplugin|): >
+--- Example for `lua` filetype (place it in 'lua.lua' filetype plugin, |ftplugin|): >lua
 ---
 ---   local gen_hook = MiniSplitjoin.gen_hook
 ---   local curly = { brackets = { '%b{}' } }
@@ -440,6 +436,7 @@ end
 ---     split = { hooks_post = { add_comma_curly } },
 ---     join  = { hooks_post = { del_comma_curly, pad_curly } },
 ---   }
+--- <
 MiniSplitjoin.gen_hook = {}
 
 --- Generate hook to pad brackets

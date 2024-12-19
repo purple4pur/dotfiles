@@ -41,7 +41,8 @@
 ---
 --- You can override runtime config settings locally to buffer inside
 --- `vim.b.miniindentscope_config` which should have same structure as
---- `MiniIndentscope.config`. See |mini.nvim-buffer-local-config| for more details.
+--- `MiniIndentscope.config`. See |mini.nvim-buffer-local-config| for more
+--- details.
 ---
 --- # Comparisons ~
 ---
@@ -106,17 +107,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniIndentscope.config|.
 ---
----@usage `require('mini.indentscope').setup({})` (replace `{}` with your `config` table)
+---@usage >lua
+---   require('mini.indentscope').setup() -- use default config
+---   -- OR
+---   require('mini.indentscope').setup({}) -- replace {} with your config table
+--- <
 MiniIndentscope.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.indentscope) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniIndentscope = MiniIndentscope
 
@@ -374,9 +370,10 @@ MiniIndentscope.undraw = function() H.undraw_scope() end
 ---
 --- Examples ~
 --- - Don't use animation: `MiniIndentscope.gen_animation.none()`
---- - Use quadratic "out" easing with total duration of 1000 ms:
----   `gen_animation.quadratic({ easing = 'out', duration = 1000, unit = 'total' })`
+--- - Use quadratic "out" easing with total duration of 1000 ms: >lua
 ---
+---   gen_animation.quadratic({ easing = 'out', duration = 1000, unit = 'total' })
+--- <
 ---@seealso |MiniIndentscope-drawing| for more information about how drawing is done.
 MiniIndentscope.gen_animation = {}
 
@@ -663,24 +660,18 @@ H.apply_config = function(config)
 end
 
 H.create_autocommands = function()
-  local augroup = vim.api.nvim_create_augroup('MiniIndentscope', {})
+  local gr = vim.api.nvim_create_augroup('MiniIndentscope', {})
 
   local au = function(event, pattern, callback, desc)
-    vim.api.nvim_create_autocmd(event, { group = augroup, pattern = pattern, callback = callback, desc = desc })
+    vim.api.nvim_create_autocmd(event, { group = gr, pattern = pattern, callback = callback, desc = desc })
   end
 
-  au(
-    { 'CursorMoved', 'CursorMovedI', 'ModeChanged' },
-    '*',
-    function() H.auto_draw({ lazy = true }) end,
-    'Auto draw indentscope lazily'
-  )
-  au(
-    { 'TextChanged', 'TextChangedI', 'TextChangedP', 'WinScrolled' },
-    '*',
-    function() H.auto_draw() end,
-    'Auto draw indentscope'
-  )
+  local lazy_events = { 'CursorMoved', 'CursorMovedI', 'ModeChanged' }
+  au(lazy_events, '*', function() H.auto_draw({ lazy = true }) end, 'Auto draw indentscope lazily')
+  local now_events = { 'TextChanged', 'TextChangedI', 'TextChangedP', 'WinScrolled' }
+  au(now_events, '*', function() H.auto_draw() end, 'Auto draw indentscope')
+
+  au('ColorScheme', '*', H.create_default_hl, 'Ensure colors')
 end
 
 --stylua: ignore
@@ -950,7 +941,9 @@ H.make_draw_function = function(indicator, opts)
     virt_text_pos = 'overlay',
   }
 
-  if H.has_wrapped_virt_text and vim.wo.breakindent then extmark_opts.virt_text_repeat_linebreak = true end
+  if H.has_wrapped_virt_text and vim.wo.breakindent and vim.wo.showbreak == '' then
+    extmark_opts.virt_text_repeat_linebreak = true
+  end
 
   local current_event_id = opts.event_id
 

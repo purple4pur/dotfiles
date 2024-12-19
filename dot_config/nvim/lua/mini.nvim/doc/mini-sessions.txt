@@ -64,15 +64,18 @@ Parameters ~
 {config} `(table|nil)` Module config table. See |MiniSessions.config|.
 
 Usage ~
-`require('mini.sessions').setup({})` (replace `{}` with your `config` table)
-
+>lua
+  require('mini.sessions').setup() -- use default config
+  -- OR
+  require('mini.sessions').setup({}) -- replace {} with your config table
+<
 ------------------------------------------------------------------------------
                                                            *MiniSessions.config*
                              `MiniSessions.config`
 Module config
 
 Default values:
->
+>lua
   MiniSessions.config = {
     -- Whether to read latest session if Neovim opened without file arguments
     autoread = false,
@@ -102,7 +105,6 @@ Default values:
     verbose = { read = false, write = true, delete = true },
   }
 <
-
 ------------------------------------------------------------------------------
                                                          *MiniSessions.detected*
                             `MiniSessions.detected`
@@ -201,8 +203,7 @@ Parameters ~
 Select session interactively and perform action
 
 Note: this uses |vim.ui.select()| function. For more user-friendly
-experience, override it (for example, with external plugins like
-"stevearc/dressing.nvim").
+experience, override it (for example, see |MiniPick.ui_select()|).
 
 Parameters ~
 {action} `(string|nil)` Action to perform. Should be one of "read" (default),

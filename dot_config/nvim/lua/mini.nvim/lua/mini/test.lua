@@ -32,6 +32,8 @@
 ---
 --- - Customizable project specific testing script.
 ---
+--- - Works on Unix (Linux, MacOS, etc.) and Windows.
+---
 --- What it doesn't support:
 --- - Parallel execution. Due to idea of limiting implementation complexity.
 ---
@@ -143,17 +145,12 @@ local H = {}
 ---
 ---@param config table|nil Module config table. See |MiniTest.config|.
 ---
----@usage `require('mini.test').setup({})` (replace `{}` with your `config` table)
+---@usage >lua
+---   require('mini.test').setup() -- use default config
+---   -- OR
+---   require('mini.test').setup({}) -- replace {} with your config table
+--- <
 MiniTest.setup = function(config)
-  -- TODO: Remove after Neovim<=0.7 support is dropped
-  if vim.fn.has('nvim-0.8') == 0 then
-    vim.notify(
-      '(mini.test) Neovim<0.8 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniTest = MiniTest
 
@@ -280,7 +277,7 @@ MiniTest.current = { all_cases = nil, case = nil }
 ---
 ---@return table A single test set.
 ---
----@usage >
+---@usage >lua
 ---   -- Use with defaults
 ---   T = MiniTest.new_set()
 ---   T['works'] = function() MiniTest.expect.equality(1, 1) end
@@ -295,6 +292,7 @@ MiniTest.current = { all_cases = nil, case = nil }
 ---   T['nested']['works'] = function(x)
 ---     MiniTest.expect.equality(_G.x, x)
 ---   end
+--- <
 MiniTest.new_set = function(opts, tbl)
   opts = opts or {}
   tbl = tbl or {}
@@ -662,10 +660,11 @@ MiniTest.is_executing = function() return H.cache.is_executing == true end
 ---
 --- Mostly designed to be used within 'mini.test' framework.
 ---
----@usage >
+---@usage >lua
 ---   local x = 1 + 1
 ---   MiniTest.expect.equality(x, 2) -- passes
 ---   MiniTest.expect.equality(x, 1) -- fails
+--- <
 MiniTest.expect = {}
 
 --- Expect equality of two objects
@@ -802,12 +801,13 @@ end
 ---
 ---@return function Expectation function.
 ---
----@usage >
+---@usage >lua
 ---   local expect_truthy = MiniTest.new_expectation(
 ---     'truthy',
 ---     function(x) return x end,
 ---     function(x) return 'Object: ' .. vim.inspect(x) end
 ---   )
+--- <
 MiniTest.new_expectation = function(subject, predicate, fail_context)
   return function(...)
     if predicate(...) then return true end
@@ -1038,9 +1038,9 @@ end
 ---
 --- For more information see |MiniTest-child-neovim|.
 ---
----@return `child` Object of |MiniTest-child-neovim|.
+---@return MiniTest.child Object of |MiniTest-child-neovim|.
 ---
----@usage >
+---@usage >lua
 ---   -- Initiate
 ---   local child = MiniTest.new_child_neovim()
 ---   child.start()
@@ -1061,6 +1061,7 @@ end
 ---
 ---   -- Always stop process after it is not needed
 ---   child.stop()
+--- <
 MiniTest.new_child_neovim = function()
   local child = {}
   local start_args, start_opts
@@ -1089,6 +1090,12 @@ MiniTest.new_child_neovim = function()
 
     -- Make unique name for `--listen` pipe
     local job = { address = vim.fn.tempname() }
+
+    if vim.fn.has('win32') == 1 then
+      -- Use special local pipe prefix on Windows with (hopefully) unique name
+      -- Source: https://learn.microsoft.com/en-us/windows/win32/ipc/pipe-names
+      job.address = [[\\.\pipe\mininvim]] .. vim.fn.fnamemodify(job.address, ':t')
+    end
 
     --stylua: ignore
     local full_args = {
@@ -1332,25 +1339,6 @@ MiniTest.new_child_neovim = function()
 
     opts = vim.tbl_deep_extend('force', { redraw = true }, opts or {})
 
-    -- Add note if there is a visible floating window but `screen*()` functions
-    -- don't support them (Neovim<0.8).
-    -- See https://github.com/neovim/neovim/issues/19013
-    if child.fn.has('nvim-0.8') == 0 then
-      local has_visible_floats = child.lua([[
-        for _, win_id in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-          if vim.api.nvim_win_get_config(win_id).relative ~= '' then return true end
-        end
-        return false
-      ]])
-
-      if has_visible_floats then
-        MiniTest.add_note(
-          '`child.get_screenshot()` will not show visible floating windows in this version. Use Neovim>=0.8.'
-        )
-        return
-      end
-    end
-
     if opts.redraw then child.cmd('redraw') end
 
     local res = child.lua([[
@@ -1411,7 +1399,7 @@ end
 ---   then return value). See for `*_notify` variant to use |vim.rpcnotify()|.
 --- - All fields and methods should be called with `.`, not `:`.
 ---
----@class child
+---@class MiniTest.child
 ---
 ---@field start function Start child process. See |MiniTest-child-neovim.start()|.
 ---@field stop function Stop current child process.
@@ -1479,15 +1467,15 @@ end
 --- Start child process and connect to it. Won't work if child is already running.
 ---
 ---@param args table Array with arguments for executable. Will be prepended with
----   the following default arguments (see |startup-options|): >
----   '--clean', '-n', '--listen', <some address>,
----   '--headless', '--cmd', 'set lines=24 columns=80'
+---   the following default arguments (see |startup-options|): >lua
+---   { '--clean', '-n', '--listen', <some address>,
+---     '--headless', '--cmd', 'set lines=24 columns=80' }
 ---@param opts table|nil Options:
 ---   - <nvim_executable> - name of Neovim executable. Default: |v:progpath|.
 ---   - <connection_timeout> - stop trying to connect after this amount of
 ---     milliseconds. Default: 5000.
 ---
----@usage >
+---@usage >lua
 ---   child = MiniTest.new_child_neovim()
 ---
 ---   -- Start default clean Neovim instance
@@ -1495,6 +1483,7 @@ end
 ---
 ---   -- Start with custom 'init.lua' file
 ---   child.start({ '-u', 'scripts/minimal_init.lua' })
+--- <
 ---@tag MiniTest-child-neovim.start()
 
 --- child.type_keys(wait, ...) ~
@@ -1511,7 +1500,7 @@ end
 ---@param ... string|table<number,string> Separate entries for |nvim_input()|,
 ---   after which `wait` will be applied. Can be either string or array of strings.
 ---
----@usage >
+---@usage >lua
 ---   -- All of these type keys 'c', 'a', 'w'
 ---   child.type_keys('caw')
 ---   child.type_keys('c', 'a', 'w')
@@ -1522,6 +1511,7 @@ end
 ---
 ---   -- Special keys can also be used
 ---   child.type_keys('i', 'Hello world', '<Esc>')
+--- <
 ---@tag MiniTest-child-neovim.type_keys()
 
 --- child.get_screenshot() ~
@@ -1531,12 +1521,6 @@ end
 --- cell (row from 1 to 'lines', column from 1 to 'columns').
 ---
 --- Notes:
---- - Due to implementation details of `screenstring()` and `screenattr()` in
----   Neovim<=0.7, this function won't recognize floating windows displayed on
----   screen. It will throw an error if there is a visible floating window. Use
----   Neovim>=0.8 (current nightly) to properly handle floating windows. Details:
----     - https://github.com/neovim/neovim/issues/19013
----     - https://github.com/neovim/neovim/pull/19020
 --- - To make output more portable and visually useful, outputs of
 ---   `screenattr()` are coded with single character symbols. Those are taken from
 ---   94 characters (ASCII codes between 33 and 126), so there will be duplicates
@@ -1560,7 +1544,7 @@ end
 ---   above content and line numbers for each line.
 ---   Returns `nil` if couldn't get a reasonable screenshot.
 ---
----@usage >
+---@usage >lua
 ---   local screenshot = child.get_screenshot()
 ---
 ---   -- Show character displayed row=3 and column=4
@@ -1568,6 +1552,7 @@ end
 ---
 ---   -- Convert to string
 ---   tostring(screenshot)
+--- <
 ---@tag MiniTest-child-neovim.get_screenshot()
 
 -- Helper data ================================================================
@@ -1648,11 +1633,8 @@ end
 H.apply_config = function(config) MiniTest.config = config end
 
 H.create_autocommands = function()
-  local augroup = vim.api.nvim_create_augroup('MiniTest', {})
-  vim.api.nvim_create_autocmd(
-    'ColorScheme',
-    { group = augroup, callback = H.create_default_hl, desc = 'Ensure proper colors' }
-  )
+  local gr = vim.api.nvim_create_augroup('MiniTest', {})
+  vim.api.nvim_create_autocmd('ColorScheme', { group = gr, callback = H.create_default_hl, desc = 'Ensure colors' })
 end
 
 H.create_default_hl = function()
