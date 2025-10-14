@@ -89,10 +89,10 @@ vnoremap g$ $
 vnoremap g0 0
 nnoremap , ;
 vnoremap , ;
-inoremap <A-h> <LEFT>
-inoremap <A-j> <C-O>gj
-inoremap <A-k> <C-O>gk
-inoremap <A-l> <RIGHT>
+nnoremap <DOWN> gj
+nnoremap <UP> gk
+inoremap <DOWN> <C-O>gj
+inoremap <UP> <C-O>gk
 " edit
 nnoremap < <<
 nnoremap > >>
@@ -301,3 +301,11 @@ function! Tabline()
 endfunction
 
 set tabline=%!Tabline()
+
+" --------------------------------------------------------------------------------
+"   Local vimrc
+" --------------------------------------------------------------------------------
+let s:local_vimrc = expand('~/.vimrc.local')
+if filereadable(s:local_vimrc)
+    execute 'source' fnameescape(s:local_vimrc)
+endif
