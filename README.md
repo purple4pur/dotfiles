@@ -14,9 +14,9 @@ For vim/nvim plugin common usages, please refer to [`~/.vimrc`](dot_vimrc) and [
 * [**`dot_vimrc`**](./dot_vimrc) - [mkitt/tabline.vim](https://github.com/mkitt/tabline.vim) w/ modification
 * [**`dot_vim/colors/PaperColor.vim`**](./dot_vim/colors/PaperColor.vim) - [NLKNguyen/papercolor-theme](https://github.com/NLKNguyen/papercolor-theme)
 * [**`dot_vim/colors/onehalfdark.vim (onehalflight)`**](./dot_vim/colors/onehalfdark.vim) - [sonph/onehalf](https://github.com/sonph/onehalf) w/ modification
-* [**`dot_vim/pack/plugins/start/vim-visual-multi`**](./dot_vim/pack/plugins/start/vim-visual-multi) - [mg979/vim-visual-multi](https://github.com/mg979/vim-visual-multi) **(Active)**
+* [**`dot_vim/pack/plugins/start/vim-visual-multi`**](./dot_vim/pack/plugins/start/vim-visual-multi) - [mg979/vim-visual-multi](https://github.com/mg979/vim-visual-multi)
 * [**`dot_config/nvim/lua/glow.nvim`**](./dot_config/nvim/lua/glow.nvim) - [ellisonleao/glow.nvim](https://github.com/ellisonleao/glow.nvim) w/ modification
-* [**`dot_config/nvim/lua/mini.nvim`**](./dot_config/nvim/lua/mini.nvim) - [echasnovski/mini.nvim](https://github.com/echasnovski/mini.nvim) **(Active)**
+* [**`dot_config/nvim/lua/mini.nvim`**](./dot_config/nvim/lua/mini.nvim) - [nvim-mini/mini.nvim](https://github.com/nvim-mini/mini.nvim) **(Active)**
 * [**`dot_config/nvim/lua/nvim-lspconfig`**](./dot_config/nvim/lua/nvim-lspconfig) - [neovim/nvim-lspconfig](https://github.com/neovim/nvim-lspconfig) **(Active, but here will not update often)**
 * [**`dot_config/mpv/exact_scripts/autoload.lua`**](./dot_config/mpv/exact_scripts/autoload.lua) - [mpv-player/mpv/.../autoload.lua](https://github.com/mpv-player/mpv/blob/master/TOOLS/lua/autoload.lua)
 * [**`dot_config/mpv/exact_scripts/modernz.lua`**](./dot_config/mpv/exact_scripts/modernz.lua) - [Samillion/ModernZ](https://github.com/Samillion/ModernZ) **(Active)**
