@@ -18,14 +18,17 @@ alias gb 'git branch'
 alias gcmt 'git commit'
 alias gco 'git checkout'
 alias gd 'git diff'
-alias gdt 'git difftool --dir-diff'
+alias gdt 'git difftool'
 alias glg 'git log --graph --pretty="%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ad) %C(bold blue)<%an>%Creset" --date=short'
 alias gst 'git status'
 
-set GREEN="%{`tput setaf 2`%}"
-set YELLOW="%{`tput setaf 3`%}"
-set BLUE="%{`tput setaf 4`%}"
-set prompt="\n${YELLOW}%B%n%b @ ${GREEN}%B%M%b in ${BLUE}%B%~%b\n${GREEN}%B>%b "
+# fallback if no starship
+if ( ! { eval `starship init tcsh` >& /dev/null } ) then
+    set GREEN="%{`tput setaf 2`%}"
+    set YELLOW="%{`tput setaf 3`%}"
+    set BLUE="%{`tput setaf 4`%}"
+    set prompt="\n${YELLOW}%B%n%b @ ${GREEN}%B%M%b in ${BLUE}%B%~%b\n${GREEN}%B>%b "
+endif
 
 bindkey '^p' history-search-backward
 bindkey '^n' history-search-forward
