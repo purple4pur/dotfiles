@@ -5,12 +5,12 @@ MIT License Copyright (c) 2021 Evgeni Chasnovski
 ==============================================================================
 
 |mini.nvim| is a collection of minimal, independent, and fast Lua modules
-dedicated to improve Neovim (version 0.7 and higher) experience. Each
+dedicated to improve Neovim (version 0.9 and higher) experience. Each
 module can be considered as a separate sub-plugin.
 
 Table of contents:
   General overview ............................................... |mini.nvim|
-  Disabling recepies ........................... |mini.nvim-disabling-recipes|
+  Disabling recipes ............................ |mini.nvim-disabling-recipes|
   Buffer-local config ........................ |mini.nvim-buffer-local-config|
   Plugin colorschemes ................................... |mini-color-schemes|
   Extend and create a/i textobjects ................................ |mini.ai|
@@ -38,6 +38,7 @@ Table of contents:
   Visualize and work with indent scope .................... |mini.indentscope|
   Jump to next/previous single character ......................... |mini.jump|
   Jump within visible lines .................................... |mini.jump2d|
+  Special key mappings ......................................... |mini.keymap|
   Window with buffer text overview ................................ |mini.map|
   Miscellaneous functions ........................................ |mini.misc|
   Move any selection in any direction ............................ |mini.move|
@@ -46,6 +47,7 @@ Table of contents:
   Autopairs ..................................................... |mini.pairs|
   Pick anything .................................................. |mini.pick|
   Session management ......................................... |mini.sessions|
+  Manage and expand snippets ................................. |mini.snippets|
   Split and join arguments .................................. |mini.splitjoin|
   Start screen ................................................ |mini.starter|
   Statusline ............................................... |mini.statusline|
@@ -95,9 +97,21 @@ Table of contents:
       `MiniSurround.config.mappings` won't have any effect (as mappings are
       created once during `setup()`).
 
+    - If module works best with some specific non-default option value, it
+      is set during `setup()`. If the value is not essential to module's
+      functionality, it is done only if user or another plugin hasn't set
+      it beforehand (no matter the value).
+
 - <Buffer local configuration>. Each module can be additionally configured
   to use certain runtime config settings locally to buffer.
   See |mini.nvim-buffer-local-config| for more information.
+
+- <Buffer names>. All module-related buffers are named according to the
+  following format: `mini<module-name>://<buffer-number>/<useful-info>`
+  (forward slashes are used on any platform; `<useful-info>` may be empty).
+  This structure allows creating identifiable, reasonably unique, and useful
+  buffer names. For example, |MiniFiles| buffers are created per displayed
+  directory/file with names like `minifiles://10/path/to/displayed/directory`.
 
 - <Disabling>. Each module's core functionality can be disabled globally or
   locally to buffer. See "Disabling" section in module's help page for more
@@ -117,6 +131,13 @@ Table of contents:
 - <Stability>. Each module upon release is considered to be relatively
   stable: both in terms of setup and functionality. Any non-bugfix
   backward-incompatible change will be released gradually as much as possible.
+
+- <Not filetype/language specific>. Including functionality which needs
+  several filetype/language specific implementations is an explicit no-goal
+  of this project. This is mostly due to the potential increase in maintenance
+  to keep implementation up to date. However, any part which might need
+  filetype/language specific tuning should be designed to allow it by letting
+  user set proper buffer options and/or local configuration.
 
 # List of modules ~
 
@@ -228,6 +249,10 @@ Table of contents:
   within visible lines via iterative label filtering. Supports custom jump
   targets (spots), labels, hooks, allowed windows and lines, and more.
 
+- |MiniKeymap| - utilities to make special key mappings: multi-step actions
+  (with built-in steps for "smart" <Tab>, <S-Tab>, <CR>, <BS>),
+  combos (more general version of "better escape" like behavior).
+
 - |MiniMap| - window with buffer text overview, scrollbar, and highlights.
   Allows configurable symbols for line encode and scrollbar, extensible
   highlight integration (with pre-built ones for builtin search, diagnostic,
@@ -261,6 +286,11 @@ Table of contents:
 - |MiniSessions| - session management (read, write, delete) which works
   using |mksession|. Implements both global (from configured directory) and
   local (from current directory) sessions.
+
+- |MiniSnippets| - manage and expand snippets. Supports only syntax from LSP
+  specification. Provides flexible loaders to manage snippet files, exact and
+  fuzzy prefix matching, interactive selection, and rich interactive snippet
+  session experience with dynamic tabstop visualization.
 
 - |MiniSplitjoin| - split and join arguments (regions inside brackets
   between allowed separators). Has customizable pre and post hooks.
@@ -366,9 +396,8 @@ Automated disabling is suggested to be done inside autocommands: >lua
 Buffer local config
 
 Each module can be additionally configured locally to buffer by creating
-appropriate buffer-scoped variable with values you want to override. It
-will affect only runtime options and not those used once during setup (like
-`mappings` or `set_vim_settings`).
+appropriate buffer-scoped variable with values to override. It affects only
+runtime options and not those used once during setup (like most `mappings`).
 
 Variable names have the same structure: `b:mini*_config` where `*` is
 module's lowercase name. For example, `b:minianimate_config` can store

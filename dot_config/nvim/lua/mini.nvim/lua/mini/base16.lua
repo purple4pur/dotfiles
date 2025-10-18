@@ -33,16 +33,20 @@
 ---     - 'HiPhish/rainbow-delimiters.nvim'
 ---     - 'hrsh7th/nvim-cmp'
 ---     - 'justinmk/vim-sneak'
+---     - 'ibhagwan/fzf-lua'
 ---     - 'kevinhwang91/nvim-bqf'
 ---     - 'kevinhwang91/nvim-ufo'
 ---     - 'lewis6991/gitsigns.nvim'
 ---     - 'lukas-reineke/indent-blankline.nvim'
+---     - 'MeanderingProgrammer/render-markdown.nvim'
 ---     - 'neoclide/coc.nvim'
 ---     - 'NeogitOrg/neogit'
 ---     - 'nvim-lualine/lualine.nvim'
 ---     - 'nvim-neo-tree/neo-tree.nvim'
 ---     - 'nvim-telescope/telescope.nvim'
 ---     - 'nvim-tree/nvim-tree.lua'
+---     - 'OXY2DEV/helpview.nvim'
+---     - 'OXY2DEV/markview.nvim'
 ---     - 'phaazon/hop.nvim'
 ---     - 'rcarriga/nvim-dap-ui'
 ---     - 'rcarriga/nvim-notify'
@@ -163,6 +167,15 @@ local H = {}
 ---                                    -- needs `palette` field present
 --- <
 MiniBase16.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.base16) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniBase16 = MiniBase16
 
@@ -355,15 +368,13 @@ H.default_config = vim.deepcopy(MiniBase16.config)
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
   -- Validate settings
   H.validate_base16_palette(config.palette, 'config.palette')
   H.validate_use_cterm(config.use_cterm, 'config.use_cterm')
-  vim.validate({ plugins = { config.plugins, 'table' } })
+  H.check_type('plugins', config.plugins, 'table')
 
   return config
 end
@@ -470,6 +481,7 @@ H.apply_palette = function(palette, use_cterm)
   -- Builtin highlighting groups. Some groups which are missing in 'base16-vim'
   -- are added based on groups to which they are linked.
   hi('ColorColumn',    {fg=nil,      bg=p.base01, attr=nil,            sp=nil})
+  hi('ComplMatchIns',  {fg=nil,      bg=nil,      attr=nil,            sp=nil})
   hi('Conceal',        {fg=p.base0D, bg=nil,      attr=nil,            sp=nil})
   hi('CurSearch',      {fg=p.base01, bg=p.base09, attr=nil,            sp=nil})
   hi('Cursor',         {fg=p.base00, bg=p.base05, attr=nil,            sp=nil})
@@ -647,6 +659,17 @@ H.apply_palette = function(palette, use_cterm)
   hi('LspCodeLens',          {link='Comment'})
   hi('LspCodeLensSeparator', {link='Comment'})
 
+  -- Built-in snippets
+  hi('SnippetTabstop', {link='Visual'})
+
+  -- Built-in markdown syntax
+  hi('markdownH1', {fg=p.base09, bg=nil, attr=nil, sp=nil})
+  hi('markdownH2', {fg=p.base0A, bg=nil, attr=nil, sp=nil})
+  hi('markdownH3', {fg=p.base0B, bg=nil, attr=nil, sp=nil})
+  hi('markdownH4', {fg=p.base0C, bg=nil, attr=nil, sp=nil})
+  hi('markdownH5', {fg=p.base0D, bg=nil, attr=nil, sp=nil})
+  hi('markdownH6', {fg=p.base0F, bg=nil, attr=nil, sp=nil})
+
   -- Tree-sitter
   -- Sources:
   -- - `:h treesitter-highlight-groups`
@@ -667,7 +690,6 @@ H.apply_palette = function(palette, use_cterm)
     -- Included only those differing from default links
     hi('@lsp.type.variable',      {fg=p.base05, bg=nil, attr=nil, sp=nil})
 
-    hi('@lsp.mod.defaultLibrary', {link='Special'})
     hi('@lsp.mod.deprecated',     {fg=p.base08, bg=nil, attr=nil, sp=nil})
   end
 
@@ -679,6 +701,13 @@ H.apply_palette = function(palette, use_cterm)
     hi('@markup.italic',        {link='@text.emphasis'})
     hi('@markup.strikethrough', {link='@text.strike'})
     hi('@markup.underline',     {link='@text.underline'})
+
+    hi('@markup.heading.1', {link='markdownH1'})
+    hi('@markup.heading.2', {link='markdownH2'})
+    hi('@markup.heading.3', {link='markdownH3'})
+    hi('@markup.heading.4', {link='markdownH4'})
+    hi('@markup.heading.5', {link='markdownH5'})
+    hi('@markup.heading.6', {link='markdownH6'})
 
     hi('@string.special.vimdoc',     {link='SpecialChar'})
     hi('@variable.parameter.vimdoc', {fg=p.base09, bg=nil, attr=nil, sp=nil})
@@ -698,7 +727,8 @@ H.apply_palette = function(palette, use_cterm)
     hi('MiniClueSeparator',           {link='DiagnosticFloatingInfo'})
     hi('MiniClueTitle',               {fg=p.base0D, bg=p.base01, attr='bold', sp=nil})
 
-    hi('MiniCompletionActiveParameter', {fg=nil, bg=p.base02, attr=nil, sp=nil})
+    hi('MiniCompletionActiveParameter',    {link='LspSignatureActiveParameter'})
+    hi('MiniCompletionInfoBorderOutdated', {link='DiagnosticFloatingWarn'})
 
     hi('MiniCursorword',        {fg=nil, bg=nil, attr='underline', sp=nil})
     hi('MiniCursorwordCurrent', {fg=nil, bg=nil, attr='underline', sp=nil})
@@ -714,13 +744,15 @@ H.apply_palette = function(palette, use_cterm)
     hi('MiniDepsTitleSame',     {link='DiffText'})
     hi('MiniDepsTitleUpdate',   {link='DiffAdd'})
 
-    hi('MiniDiffSignAdd',     {fg=p.base0B, bg=p.base01, attr=nil, sp=nil})
-    hi('MiniDiffSignChange',  {fg=p.base0E, bg=p.base01, attr=nil, sp=nil})
-    hi('MiniDiffSignDelete',  {fg=p.base08, bg=p.base01, attr=nil, sp=nil})
-    hi('MiniDiffOverAdd',     {link='DiffAdd'})
-    hi('MiniDiffOverChange',  {link='DiffText'})
-    hi('MiniDiffOverContext', {link='DiffChange'})
-    hi('MiniDiffOverDelete',  {link='DiffDelete'})
+    hi('MiniDiffSignAdd',        {fg=p.base0B, bg=p.base01, attr=nil, sp=nil})
+    hi('MiniDiffSignChange',     {fg=p.base0E, bg=p.base01, attr=nil, sp=nil})
+    hi('MiniDiffSignDelete',     {fg=p.base08, bg=p.base01, attr=nil, sp=nil})
+    hi('MiniDiffOverAdd',        {link='DiffAdd'})
+    hi('MiniDiffOverChange',     {link='DiffText'})
+    hi('MiniDiffOverChangeBuf',  {link='MiniDiffOverChange'})
+    hi('MiniDiffOverContext',    {link='DiffChange'})
+    hi('MiniDiffOverContextBuf', {})
+    hi('MiniDiffOverDelete',     {link='DiffDelete'})
 
     hi('MiniFilesBorder',         {link='NormalFloat'})
     hi('MiniFilesBorderModified', {link='DiagnosticFloatingWarn'})
@@ -761,9 +793,10 @@ H.apply_palette = function(palette, use_cterm)
     hi('MiniMapSymbolLine',  {fg=p.base0D, bg=nil,      attr=nil, sp=nil})
     hi('MiniMapSymbolView',  {fg=p.base0F, bg=nil,      attr=nil, sp=nil})
 
-    hi('MiniNotifyBorder', {link='NormalFloat'})
-    hi('MiniNotifyNormal', {link='NormalFloat'})
-    hi('MiniNotifyTitle',  {link='FloatTitle'})
+    hi('MiniNotifyBorder',      {link='NormalFloat'})
+    hi('MiniNotifyLspProgress', {link='MiniNotifyNormal'})
+    hi('MiniNotifyNormal',      {link='NormalFloat'})
+    hi('MiniNotifyTitle',       {link='FloatTitle'})
 
     hi('MiniOperatorsExchangeFrom', {link='IncSearch'})
 
@@ -780,7 +813,15 @@ H.apply_palette = function(palette, use_cterm)
     hi('MiniPickNormal',        {link='NormalFloat'})
     hi('MiniPickPreviewLine',   {fg=nil,      bg=p.base02, attr=nil,         sp=nil})
     hi('MiniPickPreviewRegion', {link='IncSearch'})
-    hi('MiniPickPrompt',        {fg=p.base0B, bg=p.base01, attr=nil,         sp=nil})
+    hi('MiniPickPrompt',        {link='MiniPickMatchRanges'})
+    hi('MiniPickPromptCaret' ,  {fg=p.base0B, bg=p.base01, attr=nil,         sp=nil})
+    hi('MiniPickPromptPrefix',  {fg=p.base0B, bg=p.base01, attr=nil,         sp=nil})
+
+    hi('MiniSnippetsCurrent',        {fg=nil, bg=nil, attr='underdouble', sp=p.base0E})
+    hi('MiniSnippetsCurrentReplace', {fg=nil, bg=nil, attr='underdouble', sp=p.base08})
+    hi('MiniSnippetsFinal',          {fg=nil, bg=nil, attr='underdouble', sp=p.base0B})
+    hi('MiniSnippetsUnvisited',      {fg=nil, bg=nil, attr='underdouble', sp=p.base0D})
+    hi('MiniSnippetsVisited',        {fg=nil, bg=nil, attr='underdouble', sp=p.base0C})
 
     hi('MiniStarterCurrent',    {fg=nil,      bg=nil, attr=nil,    sp=nil})
     hi('MiniStarterFooter',     {fg=p.base0D, bg=nil, attr=nil,    sp=nil})
@@ -795,7 +836,7 @@ H.apply_palette = function(palette, use_cterm)
     hi('MiniStatuslineDevinfo',     {fg=p.base04, bg=p.base02, attr=nil,    sp=nil})
     hi('MiniStatuslineFileinfo',    {link='MiniStatuslineDevinfo'})
     hi('MiniStatuslineFilename',    {fg=p.base03, bg=p.base01, attr=nil,    sp=nil})
-    hi('MiniStatuslineInactive',    {link='MiniStatuslineFilename'})
+    hi('MiniStatuslineInactive',    {link='StatusLineNC'})
     hi('MiniStatuslineModeCommand', {fg=p.base00, bg=p.base08, attr='bold', sp=nil})
     hi('MiniStatuslineModeInsert',  {fg=p.base00, bg=p.base0D, attr='bold', sp=nil})
     hi('MiniStatuslineModeNormal',  {fg=p.base00, bg=p.base05, attr='bold', sp=nil})
@@ -812,6 +853,7 @@ H.apply_palette = function(palette, use_cterm)
     hi('MiniTablineModifiedHidden',  {fg=p.base01, bg=p.base04, attr=nil,    sp=nil})
     hi('MiniTablineModifiedVisible', {fg=p.base02, bg=p.base04, attr='bold', sp=nil})
     hi('MiniTablineTabpagesection',  {fg=p.base01, bg=p.base0A, attr='bold', sp=nil})
+    hi('MiniTablineTrunc',           {fg=p.base05, bg=p.base01, attr='bold', sp=nil})
     hi('MiniTablineVisible',         {fg=p.base05, bg=p.base01, attr='bold', sp=nil})
 
     hi('MiniTestEmphasis', {fg=nil,      bg=nil, attr='bold', sp=nil})
@@ -1001,6 +1043,20 @@ H.apply_palette = function(palette, use_cterm)
     hi('CmpItemKindVariable',      {link='Delimiter'})
   end
 
+  if H.has_integration('ibhagwan/fzf-lua') then
+    hi('FzfLuaBufFlagAlt', {link='Special'})
+    hi('FzfLuaBufFlagCur', {link='CursorLineNr'})
+    hi('FzfLuaBufNr',      {link='DiagnosticHint'})
+    hi('FzfLuaHeaderBind', {link='DiagnosticWarn'})
+    hi('FzfLuaHeaderText', {link='DiagnosticInfo'})
+    hi('FzfLuaLiveSym',    {link='DiagnosticHint'})
+    hi('FzfLuaPathColNr',  {link='DiagnosticHint'})
+    hi('FzfLuaPathLineNr', {link='DiagnosticInfo'})
+    hi('FzfLuaTabMarker',  {link='DiagnosticHint'})
+    hi('FzfLuaTabTitle',   {link='Title'})
+    hi('FzfLuaTitle',      {link='FloatTitle'})
+  end
+
   if H.has_integration('justinmk/vim-sneak') then
     hi('Sneak',      {fg=p.base00, bg=p.base0E, attr=nil,    sp=nil})
     hi('SneakScope', {fg=p.base00, bg=p.base07, attr=nil,    sp=nil})
@@ -1047,6 +1103,28 @@ H.apply_palette = function(palette, use_cterm)
     hi('IndentBlanklineIndent6',      {fg=p.base0D, bg=nil, attr='nocombine',           sp=nil})
     hi('IndentBlanklineIndent7',      {fg=p.base0E, bg=nil, attr='nocombine',           sp=nil})
     hi('IndentBlanklineIndent8',      {fg=p.base0F, bg=nil, attr='nocombine',           sp=nil})
+  end
+
+  if H.has_integration('MeanderingProgrammer/render-markdown.nvim') then
+    hi('RenderMarkdownBullet',     {fg=p.base0E, bg=nil,      attr=nil, sp=nil})
+    hi('RenderMarkdownChecked',    {link='DiagnosticOk'})
+    hi('RenderMarkdownCode',       {fg=nil,      bg=p.base01, attr=nil, sp=nil})
+    hi('RenderMarkdownCodeInline', {fg=nil,      bg=nil,      attr=nil, sp=nil})
+    hi('RenderMarkdownDash',       {fg=p.base0E, bg=nil,      attr=nil, sp=nil})
+    hi('RenderMarkdownH1',         {fg=p.base09, bg=nil,      attr=nil, sp=nil})
+    hi('RenderMarkdownH1Bg',       {fg=nil,      bg=p.base01, attr=nil, sp=nil})
+    hi('RenderMarkdownH2',         {fg=p.base0A, bg=nil,      attr=nil, sp=nil})
+    hi('RenderMarkdownH2Bg',       {fg=nil,      bg=p.base01, attr=nil, sp=nil})
+    hi('RenderMarkdownH3',         {fg=p.base0B, bg=nil,      attr=nil, sp=nil})
+    hi('RenderMarkdownH3Bg',       {fg=nil,      bg=p.base01, attr=nil, sp=nil})
+    hi('RenderMarkdownH4',         {fg=p.base0C, bg=nil,      attr=nil, sp=nil})
+    hi('RenderMarkdownH4Bg',       {fg=nil,      bg=p.base01, attr=nil, sp=nil})
+    hi('RenderMarkdownH5',         {fg=p.base0D, bg=nil,      attr=nil, sp=nil})
+    hi('RenderMarkdownH5Bg',       {fg=nil,      bg=p.base01, attr=nil, sp=nil})
+    hi('RenderMarkdownH6',         {fg=p.base0F, bg=nil,      attr=nil, sp=nil})
+    hi('RenderMarkdownH6Bg',       {fg=nil,      bg=p.base01, attr=nil, sp=nil})
+    hi('RenderMarkdownTodo',       {link='Todo'})
+    hi('RenderMarkdownUnchecked',  {link='DiagnosticWarn'})
   end
 
   if H.has_integration('neoclide/coc.nvim') then
@@ -1121,6 +1199,52 @@ H.apply_palette = function(palette, use_cterm)
     hi('NvimTreeSpecialFile',  {fg=p.base0D, bg=nil,      attr='bold,underline', sp=nil})
     hi('NvimTreeSymlink',      {fg=p.base0F, bg=nil,      attr='bold',           sp=nil})
     hi('NvimTreeWindowPicker', {fg=p.base05, bg=p.base01, attr="bold",           sp=nil})
+  end
+
+  if H.has_integration('OXY2DEV/helpview.nvim') then
+    hi('HelpviewHeading1',     {link='markdownH1'})
+    hi('HelpviewHeading2',     {link='markdownH2'})
+    hi('HelpviewHeading3',     {link='markdownH3'})
+    hi('HelpviewHeading4',     {link='markdownH4'})
+    hi('HelpviewMentionlink',  {fg=nil,      bg=nil, attr='underline', sp=nil})
+    hi('HelpviewOptionlink',   {fg=p.base0D, bg=nil, attr='underline', sp=nil})
+    hi('HelpviewTaglink',      {fg=p.base0A, bg=nil, attr='bold',      sp=nil})
+    hi('HelpviewTitle',        {link='Title'})
+  end
+
+  if H.has_integration('OXY2DEV/markview.nvim') then
+    hi('MarkviewPalette0',     {fg=p.base0E, bg=p.base00, attr=nil, sp=nil})
+    hi('MarkviewPalette0Fg',   {fg=p.base0E, bg=nil,      attr=nil, sp=nil})
+    hi('MarkviewPalette0Bg',   {fg=nil,      bg=p.base00, attr=nil, sp=nil})
+    hi('MarkviewPalette0Sign', {fg=p.base0E, bg=nil,      attr=nil, sp=nil})
+    hi('MarkviewPalette1',     {fg=p.base08, bg=p.base00, attr=nil, sp=nil})
+    hi('MarkviewPalette1Fg',   {fg=p.base08, bg=nil,      attr=nil, sp=nil})
+    hi('MarkviewPalette1Bg',   {fg=nil,      bg=p.base00, attr=nil, sp=nil})
+    hi('MarkviewPalette1Sign', {fg=p.base08, bg=nil,      attr=nil, sp=nil})
+    hi('MarkviewPalette2',     {fg=p.base09, bg=p.base00, attr=nil, sp=nil})
+    hi('MarkviewPalette2Fg',   {fg=p.base09, bg=nil,      attr=nil, sp=nil})
+    hi('MarkviewPalette2Bg',   {fg=nil,      bg=p.base00, attr=nil, sp=nil})
+    hi('MarkviewPalette2Sign', {fg=p.base09, bg=nil,      attr=nil, sp=nil})
+    hi('MarkviewPalette3',     {fg=p.base0A, bg=p.base00, attr=nil, sp=nil})
+    hi('MarkviewPalette3Fg',   {fg=p.base0A, bg=nil,      attr=nil, sp=nil})
+    hi('MarkviewPalette3Bg',   {fg=nil,      bg=p.base00, attr=nil, sp=nil})
+    hi('MarkviewPalette3Sign', {fg=p.base0A, bg=nil,      attr=nil, sp=nil})
+    hi('MarkviewPalette4',     {fg=p.base0B, bg=p.base00, attr=nil, sp=nil})
+    hi('MarkviewPalette4Fg',   {fg=p.base0B, bg=nil,      attr=nil, sp=nil})
+    hi('MarkviewPalette4Bg',   {fg=nil,      bg=p.base00, attr=nil, sp=nil})
+    hi('MarkviewPalette4Sign', {fg=p.base0B, bg=nil,      attr=nil, sp=nil})
+    hi('MarkviewPalette5',     {fg=p.base0C, bg=p.base00, attr=nil, sp=nil})
+    hi('MarkviewPalette5Fg',   {fg=p.base0C, bg=nil,      attr=nil, sp=nil})
+    hi('MarkviewPalette5Bg',   {fg=nil,      bg=p.base00, attr=nil, sp=nil})
+    hi('MarkviewPalette5Sign', {fg=p.base0C, bg=nil,      attr=nil, sp=nil})
+    hi('MarkviewPalette6',     {fg=p.base0D, bg=p.base00, attr=nil, sp=nil})
+    hi('MarkviewPalette6Fg',   {fg=p.base0D, bg=nil,      attr=nil, sp=nil})
+    hi('MarkviewPalette6Bg',   {fg=nil,      bg=p.base00, attr=nil, sp=nil})
+    hi('MarkviewPalette6Sign', {fg=p.base0D, bg=nil,      attr=nil, sp=nil})
+    hi('MarkviewPalette7',     {fg=p.base0F, bg=p.base00, attr=nil, sp=nil})
+    hi('MarkviewPalette7Fg',   {fg=p.base0F, bg=nil,      attr=nil, sp=nil})
+    hi('MarkviewPalette7Bg',   {fg=nil,      bg=p.base00, attr=nil, sp=nil})
+    hi('MarkviewPalette7Sign', {fg=p.base0F, bg=nil,      attr=nil, sp=nil})
   end
 
   if H.has_integration('phaazon/hop.nvim') then
@@ -1563,6 +1687,14 @@ H.nearest_rgb_id = function(rgb_target, rgb_palette)
   end
 
   return best_id
+end
+
+-- Utilities ------------------------------------------------------------------
+H.error = function(msg) error('(mini.base16) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
 end
 
 return MiniBase16

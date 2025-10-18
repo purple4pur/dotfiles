@@ -229,6 +229,15 @@ local H = {}
 ---                                        -- needs `highlighters` field present
 --- <
 MiniHipatterns.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.hipatterns) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniHipatterns = MiniHipatterns
 
@@ -300,12 +309,6 @@ end
 ---   as callable <group> (`data` will also contain `hl_group` key with <group>
 ---   value) and should return a table with all options for extmark (including
 ---   `end_row`, `end_col`, `hl_group`, and `priority`).
----   Note: if <extmark_opts> is supplied, <priority> is ignored.
----
---- - <priority> `(number|nil)` - SOFT DEPRECATED in favor
----   of `extmark_opts = { priority = <value> }`.
----   Optional highlighting priority (as in |nvim_buf_set_extmark()|).
----   Default: 200. See also |vim.highlight.priorities|.
 ---
 --- See "Common use cases" section for the examples.
 ---
@@ -678,20 +681,14 @@ H.hex_color_groups = {}
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  vim.validate({
-    highlighters = { config.highlighters, 'table' },
-    delay = { config.delay, 'table' },
-  })
+  H.check_type('highlighters', config.highlighters, 'table')
 
-  vim.validate({
-    ['delay.text_change'] = { config.delay.text_change, 'number' },
-    ['delay.scroll'] = { config.delay.scroll, 'number' },
-  })
+  H.check_type('delay', config.delay, 'table')
+  H.check_type('delay.text_change', config.delay.text_change, 'number')
+  H.check_type('delay.scroll', config.delay.scroll, 'number')
 
   return config
 end
@@ -710,12 +707,18 @@ H.create_autocommands = function()
   au('ColorScheme', '*', H.on_colorscheme, 'Reload all enabled pattern highlighters')
 end
 
---stylua: ignore
 H.create_default_hl = function()
-  vim.api.nvim_set_hl(0, 'MiniHipatternsFixme', { default = true, link = 'DiagnosticError' })
-  vim.api.nvim_set_hl(0, 'MiniHipatternsHack',  { default = true, link = 'DiagnosticWarn' })
-  vim.api.nvim_set_hl(0, 'MiniHipatternsTodo',  { default = true, link = 'DiagnosticInfo' })
-  vim.api.nvim_set_hl(0, 'MiniHipatternsNote',  { default = true, link = 'DiagnosticHint' })
+  local hi_link_bold_reverse = function(to, from)
+    local data = vim.fn.has('nvim-0.9') == 1 and vim.api.nvim_get_hl(0, { name = from, link = false })
+      or vim.api.nvim_get_hl_by_name(from, true)
+    data.default, data.bold, data.reverse = true, true, true
+    data.cterm = { bold = true, reverse = true }
+    vim.api.nvim_set_hl(0, to, data)
+  end
+  hi_link_bold_reverse('MiniHipatternsFixme', 'DiagnosticError')
+  hi_link_bold_reverse('MiniHipatternsHack', 'DiagnosticWarn')
+  hi_link_bold_reverse('MiniHipatternsTodo', 'DiagnosticInfo')
+  hi_link_bold_reverse('MiniHipatternsNote', 'DiagnosticHint')
 end
 
 H.is_disabled = function(buf_id)
@@ -735,11 +738,9 @@ end
 
 -- Autocommands ---------------------------------------------------------------
 H.auto_enable = vim.schedule_wrap(function(data)
-  if H.is_buf_enabled(data.buf) then return end
-
-  -- Autoenable only in valid normal buffers. This function is scheduled so as
-  -- to have the relevant `buftype`.
-  if vim.api.nvim_buf_is_valid(data.buf) and vim.bo[data.buf].buftype == '' then MiniHipatterns.enable(data.buf) end
+  local buf = data.buf
+  if not (vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buftype == '') then return end
+  MiniHipatterns.enable(buf)
 end)
 
 H.update_view = vim.schedule_wrap(function(data)
@@ -820,15 +821,7 @@ H.normalize_highlighters = function(highlighters)
 
     local group = type(hi.group) == 'string' and function() return hi.group end or hi.group
 
-    -- TODO: Remove after Neovim 0.11 is released
-    local has_raw_priority = type(hi.priority) == 'number'
-    if has_raw_priority then
-      local msg = '`priority` field of highlighter is soft deprecated.'
-        .. ' Use `extmark_opts = { priority = <value> }`.'
-        .. ' This works for now but will be removed after the next stable release.'
-      vim.notify_once(msg, vim.log.levels.WARN)
-    end
-    local extmark_opts = hi.extmark_opts or { priority = has_raw_priority and hi.priority or 200 }
+    local extmark_opts = hi.extmark_opts or { priority = 200 }
     if type(extmark_opts) == 'table' then
       local t = extmark_opts
       ---@diagnostic disable:cast-local-type
@@ -1006,7 +999,12 @@ H.correct_lightness = function(x)
 end
 
 -- Utilities ------------------------------------------------------------------
-H.error = function(msg) error(string.format('(mini.hipatterns) %s', msg), 0) end
+H.error = function(msg) error('(mini.hipatterns) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
 
 H.get_line = function(buf_id, line_num)
   return vim.api.nvim_buf_get_lines(buf_id, line_num - 1, line_num, false)[1] or ''

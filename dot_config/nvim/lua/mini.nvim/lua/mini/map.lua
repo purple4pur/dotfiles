@@ -194,6 +194,15 @@ local H = {}
 ---   require('mini.map').setup({}) -- replace {} with your config table
 --- <
 MiniMap.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.map) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniMap = MiniMap
 
@@ -1017,16 +1026,17 @@ H.default_symbols = H.block_symbols['3x2']
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  vim.validate({
-    integrations = { config.integrations, H.is_valid_config_integrations },
-    symbols = { config.symbols, H.is_valid_config_symbols },
-    window = { config.window, H.is_valid_config_window },
-  })
+  local ok_integrations, msg_integrations = H.is_valid_config_integrations(config.integrations, 'integrations')
+  if not ok_integrations then H.error(msg_integrations) end
+
+  local ok_symbols, msg_symbols = H.is_valid_config_symbols(config.symbols, 'symbols')
+  if not ok_symbols then H.error(msg_symbols) end
+
+  local ok_window, msg_window = H.is_valid_config_window(config.window, 'window')
+  if not ok_window then H.error(msg_window) end
 
   return config
 end
@@ -1374,6 +1384,7 @@ H.normalize_window_options = function(win_opts, full)
     -- Can be updated at `VimResized` event
     height = vim.o.lines - vim.o.cmdheight - (has_tabline and 1 or 0) - (has_statusline and 1 or 0),
     focusable = win_opts.focusable,
+    border = 'none',
     zindex = win_opts.zindex,
   }
   if not full then return res end
@@ -1394,6 +1405,7 @@ end
 -- Work with map updates ------------------------------------------------------
 H.create_map_buffer = function()
   local buf_id = vim.api.nvim_create_buf(false, true)
+  H.set_buf_name(buf_id, 'content')
 
   -- Set buffer local options (which don't involve `noautocmd`)
   vim.bo[buf_id].filetype = 'minimap'
@@ -1654,7 +1666,14 @@ H.is_pure_scrollbar = function()
 end
 
 -- Utilities ------------------------------------------------------------------
-H.error = function(msg) error(string.format('(mini.map) %s', msg), 0) end
+H.error = function(msg) error('(mini.map) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
+
+H.set_buf_name = function(buf_id, name) vim.api.nvim_buf_set_name(buf_id, 'minimap://' .. buf_id .. '/' .. name) end
 
 H.validate_if = function(predicate, x, x_name)
   local is_valid, msg = predicate(x, x_name)

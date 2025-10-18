@@ -113,6 +113,15 @@ local H = {}
 ---   require('mini.indentscope').setup({}) -- replace {} with your config table
 --- <
 MiniIndentscope.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.indentscope) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniIndentscope = MiniIndentscope
 
@@ -171,6 +180,13 @@ end
 ---        1 and 2    2-5 | 2-4
 ---      3 and more   2-4 | 2-4
 --- <
+--- - Option `n_lines` defines |MiniIndentscope.get_scope()| behavior for how many
+---   lines above/below to check before iteration is stopped. Scope that reached
+---   computation limit has <is_incomplete> field set to `true`. It will also not
+---   be auto drawn with default `config.draw.predicate`.
+---   Lower values will result in better overall performance in exchange for more
+---   frequent incomplete scope computation. Set to `math.huge` for no restriction.
+---
 --- - Option `try_as_border` controls how to act when input line can be
 ---   recognized as a border of some neighbor indent scope. In main example,
 ---   when input line is 1 and can be recognized as border for inner scope,
@@ -190,6 +206,10 @@ MiniIndentscope.config = {
     --minidoc_replace_start animation = --<function: implements constant 20ms between steps>,
     animation = function(s, n) return 20 end,
     --minidoc_replace_end
+
+    -- Whether to auto draw scope: return `true` to draw, `false` otherwise.
+    -- Default draws only fully computed scope (see `options.n_lines`).
+    predicate = function(scope) return not scope.body.is_incomplete end,
 
     -- Symbol priority. Increase to display on top of more symbols.
     priority = 2,
@@ -215,6 +235,9 @@ MiniIndentscope.config = {
     -- Whether to use cursor column when computing reference indent.
     -- Useful to see incremental scopes with horizontal cursor movements.
     indent_at_cursor = true,
+
+    -- Maximum number of lines above or below within which scope is computed
+    n_lines = 10000,
 
     -- Whether to first check input line to be a border of adjacent scope.
     -- Use it if you want to place cursor on function header to get scope of
@@ -249,12 +272,13 @@ MiniIndentscope.config = {
 --- - Compute reference "indent at column". Reference line is an input `line`
 ---   which might be modified to one of its neighbors if `try_as_border` option
 ---   is `true`: if it can be viewed as border of some neighbor scope, it will.
---- - Process upwards and downwards from reference line to search for line with
+--- - Process upwards and downwards from reference line searching for line with
 ---   indent strictly less than reference one. This is like casting rays up and
 ---   down from reference line and reference indent until meeting "a wall"
 ---   (character to the right of indent or buffer edge). Latest line before
----   meeting is a respective end of scope body. It always exists because
+---   meeting a wall is a respective end of scope body. It always exists because
 ---   reference line is a such one.
+---   Casting ray is forced to stop if it goes over `opts.n_lines` lines.
 --- - Based on top and bottom lines with strictly lower indent, construct
 ---   scopes's border. The way it is computed is decided based on `border`
 ---   option (see |MiniIndentscope.config| for more information).
@@ -285,7 +309,8 @@ MiniIndentscope.config = {
 ---@return table Table with scope information:
 ---   - <body> - table with <top> (top line of scope, inclusive), <bottom>
 ---     (bottom line of scope, inclusive), and <indent> (minimum indent within
----     scope) keys. Line numbers start at 1.
+---     scope) keys. Line numbers start at 1. Can also have <is_incomplete> key
+---     set to `true` if computation was stopped due to `opts.n_lines` restriction.
 ---   - <border> - table with <top> (line of top border, might be `nil`),
 ---     <bottom> (line of bottom border, might be `nil`), and <indent> (indent
 ---     of border) keys. Line numbers start at 1.
@@ -316,10 +341,11 @@ MiniIndentscope.get_scope = function(line, col, opts)
   if indent <= 0 then
     body.top, body.bottom, body.indent = 1, vim.fn.line('$'), line_indent
   else
-    local up_min_indent, down_min_indent
-    body.top, up_min_indent = H.cast_ray(line, indent, 'up', opts)
-    body.bottom, down_min_indent = H.cast_ray(line, indent, 'down', opts)
+    local up_line, up_min_indent, up_is_incomplete = H.cast_ray(line, indent, 'up', opts)
+    local down_line, down_min_indent, down_is_incomplete = H.cast_ray(line, indent, 'down', opts)
+    body.top, body.bottom = up_line, down_line
     body.indent = math.min(line_indent, up_min_indent, down_min_indent)
+    body.is_incomplete = up_is_incomplete or down_is_incomplete
   end
 
   return {
@@ -606,33 +632,29 @@ H.has_wrapped_virt_text = vim.fn.has('nvim-0.10') == 1
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  -- Validate per nesting level to produce correct error message
-  vim.validate({
-    draw = { config.draw, 'table' },
-    mappings = { config.mappings, 'table' },
-    options = { config.options, 'table' },
-    symbol = { config.symbol, 'string' },
-  })
+  H.check_type('draw', config.draw, 'table')
+  H.check_type('draw.delay', config.draw.delay, 'number')
+  H.check_type('draw.animation', config.draw.animation, 'function')
+  H.check_type('draw.predicate', config.draw.predicate, 'function')
+  H.check_type('draw.priority', config.draw.priority, 'number')
 
-  vim.validate({
-    ['draw.delay'] = { config.draw.delay, 'number' },
-    ['draw.animation'] = { config.draw.animation, 'function' },
-    ['draw.priority'] = { config.draw.priority, 'number' },
+  H.check_type('mappings', config.mappings, 'table')
+  H.check_type('mappings.object_scope', config.mappings.object_scope, 'string')
+  H.check_type('mappings.object_scope_with_border', config.mappings.object_scope_with_border, 'string')
+  H.check_type('mappings.goto_top', config.mappings.goto_top, 'string')
+  H.check_type('mappings.goto_bottom', config.mappings.goto_bottom, 'string')
 
-    ['mappings.object_scope'] = { config.mappings.object_scope, 'string' },
-    ['mappings.object_scope_with_border'] = { config.mappings.object_scope_with_border, 'string' },
-    ['mappings.goto_top'] = { config.mappings.goto_top, 'string' },
-    ['mappings.goto_bottom'] = { config.mappings.goto_bottom, 'string' },
+  H.check_type('options', config.options, 'table')
+  H.check_type('options.border', config.options.border, 'string')
+  H.check_type('options.indent_at_cursor', config.options.indent_at_cursor, 'boolean')
+  H.check_type('options.n_lines', config.options.n_lines, 'number')
+  H.check_type('options.try_as_border', config.options.try_as_border, 'boolean')
 
-    ['options.border'] = { config.options.border, 'string' },
-    ['options.indent_at_cursor'] = { config.options.indent_at_cursor, 'boolean' },
-    ['options.try_as_border'] = { config.options.try_as_border, 'boolean' },
-  })
+  H.check_type('symbol', config.symbol, 'string')
+
   return config
 end
 
@@ -717,6 +739,9 @@ H.auto_draw = function(opts)
 
     H.undraw_scope(draw_opts)
 
+    -- Don't autodraw if not asked to
+    if not H.get_config().draw.predicate(scope) then return end
+
     H.current.scope = scope
     H.draw_scope(scope, draw_opts)
   end, draw_opts.delay)
@@ -731,10 +756,11 @@ H.get_line_indent = function(line, opts)
   local prev_nonblank = vim.fn.prevnonblank(line)
   local res = vim.fn.indent(prev_nonblank)
 
-  -- Compute indent of blank line depending on `options.border` values
+  -- Compute indent of blank line depending on `border` option
+  local border = opts.border
   if line ~= prev_nonblank then
     local next_indent = vim.fn.indent(vim.fn.nextnonblank(line))
-    local blank_rule = H.blank_indent_funs[opts.border]
+    local blank_rule = H.blank_indent_funs[border]
     res = blank_rule(res, next_indent)
   end
 
@@ -747,14 +773,19 @@ H.cast_ray = function(line, indent, direction, opts)
     final_line, increment = vim.fn.line('$'), 1
   end
 
+  local is_incomplete
+  if math.abs(line - final_line) > opts.n_lines then
+    final_line, is_incomplete = line + increment * opts.n_lines, true
+  end
+
   local min_indent = math.huge
   for l = line, final_line, increment do
     local new_indent = H.get_line_indent(l + increment, opts)
-    if new_indent < indent then return l, min_indent end
+    if new_indent < indent then return l, min_indent, nil end
     if new_indent < min_indent then min_indent = new_indent end
   end
 
-  return final_line, min_indent
+  return final_line, min_indent, is_incomplete
 end
 
 H.scope_get_draw_indent = function(scope) return scope.border.indent or (scope.body.indent - 1) end
@@ -766,6 +797,7 @@ H.scope_is_equal = function(scope_1, scope_2)
     and H.scope_get_draw_indent(scope_1) == H.scope_get_draw_indent(scope_2)
     and scope_1.body.top == scope_2.body.top
     and scope_1.body.bottom == scope_2.body.bottom
+    and scope_1.body.is_incomplete == scope_2.body.is_incomplete
 end
 
 H.scope_has_intersect = function(scope_1, scope_2)
@@ -1101,7 +1133,12 @@ H.normalize_animation_opts = function(x)
 end
 
 -- Utilities ------------------------------------------------------------------
-H.error = function(msg) error(('(mini.indentscope) %s'):format(msg)) end
+H.error = function(msg) error('(mini.indentscope) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
 
 H.map = function(mode, lhs, rhs, opts)
   if lhs == '' then return end

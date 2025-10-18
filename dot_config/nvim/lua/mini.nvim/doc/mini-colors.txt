@@ -222,6 +222,12 @@ Sources for Oklab/Oklch/Okhsl:
   Great way for a hands-on introduction to concepts of lightness, chroma,
   saturation, and hue.
 
+Note that Oklab/Oklch/Okhsl use channel normalization for `l`, `a`, `b`, `c`, `s` that
+is more oriented towards integer numbers (according to the above sources).
+Some implementations (like in CSS) are more oriented towards [0; 1] range or
+percentages. Adjust accordingly by dividing/multiplying output by 100.
+Also use `adjust_lightness = false` in |MiniColors.convert()|.
+
                                                          *MiniColors-gamut-clip*
 Gamut clip ~
 
@@ -663,7 +669,7 @@ Module setup
 Calling this function creates a `:Colorscheme` user command. It takes one or
 more registered color scheme names and performs animated transition between
 them (starting from currently active color scheme).
-It uses |MiniColors.animte()| with default options.
+It uses |MiniColors.animate()| with default options.
 
 Parameters ~
 {config} `(table|nil)` Module config table. See |MiniColors.config|.
@@ -708,7 +714,7 @@ Parameters ~
   - <new_name> `(string|nil)` - new name of colorscheme object.
 
 Return ~
-`(table)` Colorscheme object |(MiniColors-colorscheme|).
+`(table)` Colorscheme object (|MiniColors-colorscheme|).
 
 ------------------------------------------------------------------------------
                                                       *MiniColors.interactive()*
@@ -770,7 +776,7 @@ Start from currently active color scheme and loop through `cs_array`.
 Powers |:Colorscheme| user command created in |MiniColors.setup()|.
 
 Parameters ~
-{cs_array} `(`(table)`)` Array of |MiniColors-colorscheme| objects.
+{cs_array} `(table)` Array of |MiniColors-colorscheme| objects.
 {opts} `(table|nil)` Options. Possible fields:
   - <transition_steps> `(number)` - number of intermediate steps to show
     during transition between two color schemes. Bigger values result in
@@ -793,6 +799,12 @@ Parameters ~
   inferred automatically.
 {to_space} `(string)` Id of allowed color space.
 {opts} `(table|nil)` Options. Possible fields:
+  - <adjust_lightness> `(boolean)` - whether to adjust lightness value to have
+    a more uniform progression from 0 to 100. Set `false` for results more
+    compatible with some other Oklab/Oklch implementations (like in CSS).
+    Source: "Intermission - a new lightness estimate for Oklab" section of
+    https://bottosson.github.io/posts/colorpicker
+    Default: `true`.
   - <gamut_clip> `(string)` - method for |MiniColors-gamut-clip|.
     Default: `'chroma'`.
 

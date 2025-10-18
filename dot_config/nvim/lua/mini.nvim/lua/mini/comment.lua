@@ -64,6 +64,15 @@ local H = {}
 ---   require('mini.comment').setup({}) -- replace {} with your config table
 --- <
 MiniComment.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.comment) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniComment = MiniComment
 
@@ -122,7 +131,7 @@ MiniComment.config = {
     -- Function to compute custom 'commentstring' (optional)
     custom_commentstring = nil,
 
-    -- Whether to ignore blank lines when commenting
+    -- Whether to ignore blank lines in actions and textobject
     ignore_blank_line = false,
 
     -- Whether to recognize as comment only lines without indent
@@ -290,8 +299,10 @@ end
 
 --- Select comment textobject
 ---
---- This selects all commented lines adjacent to cursor line (if it itself is
---- commented). Designed to be used with operator mode mappings (see |mapmode-o|).
+--- This selects all commented lines adjacent to cursor line. If `ignore_blank_line`
+--- option is enabled (see |MiniComment.config|), blank lines between commented
+--- lines are treated as part of textobject.
+--- Designed to be used with operator mode mappings (see |mapmode-o|).
 MiniComment.textobject = function()
   if H.is_disabled() then return end
 
@@ -304,17 +315,30 @@ MiniComment.textobject = function()
   local comment_check = H.make_comment_check(parts, config.options)
   local lnum_from, lnum_to
 
-  if comment_check(vim.fn.getline(lnum_cur)) then
+  local ignore_blank_line = config.options.ignore_blank_line
+  local check = function(lnum)
+    if lnum == 0 then return false end
+    local l = vim.fn.getline(lnum)
+    return comment_check(l) or (ignore_blank_line and H.is_blank(l))
+  end
+
+  -- Recognize textobject only if on comment or blank between comments
+  local lnum_prev, lnum_next = vim.fn.prevnonblank(lnum_cur), vim.fn.nextnonblank(lnum_cur)
+  local is_in_comments = check(lnum_prev) and (lnum_prev == lnum_cur or check(lnum_next))
+
+  if is_in_comments then
     lnum_from = lnum_cur
-    while (lnum_from >= 2) and comment_check(vim.fn.getline(lnum_from - 1)) do
+    while (lnum_from >= 2) and check(lnum_from - 1) do
       lnum_from = lnum_from - 1
     end
+    if ignore_blank_line then lnum_from = vim.fn.nextnonblank(lnum_from) end
 
     lnum_to = lnum_cur
     local n_lines = vim.api.nvim_buf_line_count(0)
-    while (lnum_to <= n_lines - 1) and comment_check(vim.fn.getline(lnum_to + 1)) do
+    while (lnum_to <= n_lines - 1) and check(lnum_to + 1) do
       lnum_to = lnum_to + 1
     end
+    if ignore_blank_line then lnum_to = vim.fn.prevnonblank(lnum_to) end
 
     local is_visual = vim.tbl_contains({ 'v', 'V', '\22' }, vim.fn.mode())
     if is_visual then vim.cmd('normal! \27') end
@@ -350,8 +374,9 @@ MiniComment.get_commentstring = function(ref_position)
   -- Neovim<0.9 can only have buffer 'commentstring'
   if vim.fn.has('nvim-0.9') == 0 then return buf_cs end
 
-  local has_ts_parser, ts_parser = pcall(vim.treesitter.get_parser)
-  if not has_ts_parser then return buf_cs end
+  -- TODO: Remove `opts.error` after compatibility with Neovim=0.11 is dropped
+  local has_parser, parser = pcall(vim.treesitter.get_parser, 0, nil, { error = false })
+  if not has_parser or parser == nil then return buf_cs end
 
   -- Try to get 'commentstring' associated with local tree-sitter language.
   -- This is useful for injected languages (like markdown with code blocks).
@@ -377,14 +402,16 @@ MiniComment.get_commentstring = function(ref_position)
     for _, ft in ipairs(filetypes) do
       -- Using `vim.filetype.get_option()` for performance as it has caching
       local cur_cs = vim.filetype.get_option(ft, 'commentstring')
-      if type(cur_cs) == 'string' and cur_cs ~= '' and level > res_level then ts_cs = cur_cs end
+      if type(cur_cs) == 'string' and cur_cs ~= '' and level > res_level then
+        ts_cs, res_level = cur_cs, level
+      end
     end
 
     for _, child_lang_tree in pairs(lang_tree:children()) do
       traverse(child_lang_tree, level + 1)
     end
   end
-  traverse(ts_parser, 1)
+  traverse(parser, 1)
 
   return ts_cs or buf_cs
 end
@@ -396,30 +423,24 @@ H.default_config = vim.deepcopy(MiniComment.config)
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  -- Validate per nesting level to produce correct error message
-  vim.validate({
-    options = { config.options, 'table' },
-    mappings = { config.mappings, 'table' },
-    hooks = { config.hooks, 'table' },
-  })
+  H.check_type('options', config.options, 'table')
+  H.check_type('options.custom_commentstring', config.options.custom_commentstring, 'function', true)
+  H.check_type('options.ignore_blank_line', config.options.ignore_blank_line, 'boolean')
+  H.check_type('options.start_of_line', config.options.start_of_line, 'boolean')
+  H.check_type('options.pad_comment_parts', config.options.pad_comment_parts, 'boolean')
 
-  vim.validate({
-    ['options.custom_commentstring'] = { config.options.custom_commentstring, 'function', true },
-    ['options.ignore_blank_line'] = { config.options.ignore_blank_line, 'boolean' },
-    ['options.start_of_line'] = { config.options.start_of_line, 'boolean' },
-    ['options.pad_comment_parts'] = { config.options.pad_comment_parts, 'boolean' },
-    ['mappings.comment'] = { config.mappings.comment, 'string' },
-    ['mappings.comment_line'] = { config.mappings.comment_line, 'string' },
-    ['mappings.comment_visual'] = { config.mappings.comment_visual, 'string' },
-    ['mappings.textobject'] = { config.mappings.textobject, 'string' },
-    ['hooks.pre'] = { config.hooks.pre, 'function' },
-    ['hooks.post'] = { config.hooks.post, 'function' },
-  })
+  H.check_type('mappings', config.mappings, 'table')
+  H.check_type('mappings.comment', config.mappings.comment, 'string')
+  H.check_type('mappings.comment_line', config.mappings.comment_line, 'string')
+  H.check_type('mappings.comment_visual', config.mappings.comment_visual, 'string')
+  H.check_type('mappings.textobject', config.mappings.textobject, 'string')
+
+  H.check_type('hooks', config.hooks, 'table')
+  H.check_type('hooks.pre', config.hooks.pre, 'function')
+  H.check_type('hooks.post', config.hooks.post, 'function')
 
   return config
 end
@@ -554,6 +575,11 @@ end
 
 -- Utilities ------------------------------------------------------------------
 H.error = function(msg) error('(mini.comment) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
 
 H.map = function(mode, lhs, rhs, opts)
   if lhs == '' then return end

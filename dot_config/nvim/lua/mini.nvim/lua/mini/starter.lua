@@ -204,6 +204,15 @@ local H = {}
 ---   require('mini.starter').setup({}) -- replace {} with your config table
 --- <
 MiniStarter.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.starter) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniStarter = MiniStarter
 
@@ -309,6 +318,7 @@ MiniStarter.open = function(buf_id)
   vim.b.ministarter_config = config_local
 
   -- Setup buffer behavior
+  H.set_buf_name(buf_id, 'welcome')
   H.make_buffer_autocmd(buf_id)
   H.apply_buffer_options(buf_id)
   H.apply_buffer_mappings(buf_id)
@@ -538,7 +548,7 @@ MiniStarter.sections.recent_files = function(n, current_dir, show_path)
     local items = {}
     for _, f in ipairs(vim.list_slice(files, 1, n)) do
       local name = vim.fn.fnamemodify(f, ':t') .. show_path(f)
-      table.insert(items, { action = 'edit ' .. f, name = name, section = section })
+      table.insert(items, { action = function() H.edit(f) end, name = name, section = section })
     end
 
     return items
@@ -1019,9 +1029,6 @@ H.default_content_hooks = { MiniStarter.gen_hook.adding_bullet(), MiniStarter.ge
 -- - <query> - current search query
 H.buffer_data = {}
 
--- Counter for unique buffer names
-H.buffer_number = 0
-
 -- Namespaces for highlighting
 H.ns = {
   activity = vim.api.nvim_create_namespace(''),
@@ -1032,20 +1039,16 @@ H.ns = {
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  vim.validate({
-    autoopen = { config.autoopen, 'boolean' },
-    evaluate_single = { config.evaluate_single, 'boolean' },
-    items = { config.items, 'table', true },
-    -- `header` and `footer` can have any type
-    content_hooks = { config.content_hooks, 'table', true },
-    query_updaters = { config.query_updaters, 'string' },
-    silent = { config.silent, 'boolean' },
-  })
+  H.check_type('autoopen', config.autoopen, 'boolean')
+  H.check_type('evaluate_single', config.evaluate_single, 'boolean')
+  H.check_type('items', config.items, 'table', true)
+  -- `header` and `footer` can have any type
+  H.check_type('content_hooks', config.content_hooks, 'table', true)
+  H.check_type('query_updaters', config.query_updaters, 'string')
+  H.check_type('silent', config.silent, 'boolean')
 
   return config
 end
@@ -1343,17 +1346,6 @@ H.apply_buffer_options = function(buf_id)
   --   mapping is present (maybe due to non-blocking nature of `nvim_input()`).
   vim.api.nvim_feedkeys('\28\14', 'nx', false)
 
-  -- Set unique buffer name. Prefer "Starter" prefix as more user friendly.
-  H.buffer_number = H.buffer_number + 1
-  local name = H.buffer_number <= 1 and 'Starter' or ('Starter_' .. H.buffer_number)
-  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-    if vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t') == name then
-      name = 'ministarter://' .. H.buffer_number
-      break
-    end
-  end
-  vim.api.nvim_buf_set_name(buf_id, name)
-
   -- Having `noautocmd` is crucial for performance: ~9ms without it, ~1.6ms with it
   vim.cmd('noautocmd silent! set filetype=ministarter')
 
@@ -1373,6 +1365,7 @@ H.apply_buffer_options = function(buf_id)
     'nospell',
     'noswapfile',
     'signcolumn=no',
+    vim.fn.has('nvim-0.9') == 1 and 'statuscolumn=' or '',
     'synmaxcol&',
     -- Differ from 'vim-startify'
     'buftype=nofile',
@@ -1482,6 +1475,15 @@ H.is_something_shown = function()
 end
 
 -- Utilities ------------------------------------------------------------------
+H.error = function(msg) error('(mini.starter) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
+
+H.set_buf_name = function(buf_id, name) vim.api.nvim_buf_set_name(buf_id, 'ministarter://' .. buf_id .. '/' .. name) end
+
 H.echo = function(msg, is_important)
   if H.get_config().silent then return end
 
@@ -1506,7 +1508,18 @@ end
 
 H.message = function(msg) H.echo(msg, true) end
 
-H.error = function(msg) error(string.format('(mini.starter) %s', msg)) end
+H.edit = function(path, win_id)
+  if type(path) ~= 'string' then return end
+  local b = vim.api.nvim_win_get_buf(win_id or 0)
+  local try_mimic_buf_reuse = (vim.fn.bufname(b) == '' and vim.bo[b].buftype ~= 'quickfix' and not vim.bo[b].modified)
+    and (#vim.fn.win_findbuf(b) == 1 and vim.deep_equal(vim.fn.getbufline(b, 1, '$'), { '' }))
+  local buf_id = vim.fn.bufadd(vim.fn.fnamemodify(path, ':.'))
+  -- Showing in window also loads. Use `pcall` to not error with swap messages.
+  pcall(vim.api.nvim_win_set_buf, win_id or 0, buf_id)
+  vim.bo[buf_id].buflisted = true
+  if try_mimic_buf_reuse then pcall(vim.api.nvim_buf_delete, b, { unload = false }) end
+  return buf_id
+end
 
 H.validate_starter_buf_id = function(buf_id, fun_name, severity)
   local is_starter_buf_id = type(buf_id) == 'number'

@@ -23,7 +23,7 @@
 ---       See |MiniVisits.gen_filter| and |MiniVisits.gen_sort|.
 ---
 ---     - Select visited paths/labels using |vim.ui.select()|.
----       See |MiniVisits.select_path()| and |MiniVisits.select_labels()|.
+---       See |MiniVisits.select_path()| and |MiniVisits.select_label()|.
 ---
 ---     - Iterate through visit paths in target direction ("forward", "backward",
 ---       "first", "last"). See |MiniVisits.iterate_paths()|.
@@ -298,6 +298,7 @@
 ---   map_vis('vC', 'select_path(nil, { filter = "core" })', 'Select core (cwd)')
 ---
 ---   -- Iterate based on recency
+---   local sort_latest = MiniVisits.gen_sort.default({ recency_weight = 1 })
 ---   local map_iterate_core = function(lhs, direction, desc)
 ---     local opts = { filter = 'core', sort = sort_latest, wrap = true }
 ---     local rhs = function()
@@ -366,6 +367,15 @@ local H = {}
 ---   require('mini.visits').setup({}) -- replace {} with your config table
 --- <
 MiniVisits.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.visits) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniVisits = MiniVisits
 
@@ -405,7 +415,7 @@ end
 ---
 --- `list.sort` is a callable which should take an array of path data and return
 --- a sorted array of path data (or at least tables each containing <path> field).
---- Default: output of |MiniVisits.get_sort.default()|.
+--- Default: output of |MiniVisits.gen_sort.default()|.
 --- Single path data entry is a table with a same structure as for `list.filter`.
 ---
 --- Note, that `list.sort` can be used both to filter, sort, or even return paths
@@ -737,7 +747,7 @@ MiniVisits.select_path = function(cwd, opts)
   local cwd_to_short = cwd == '' and vim.fn.getcwd() or cwd
   local items = vim.tbl_map(function(path) return { path = path, text = H.short_path(path, cwd_to_short) } end, paths)
   local select_opts = { prompt = 'Visited paths', format_item = function(item) return item.text end }
-  local on_choice = function(item) H.edit_path((item or {}).path) end
+  local on_choice = function(item) H.edit((item or {}).path) end
 
   vim.ui.select(items, select_opts, on_choice)
 end
@@ -764,7 +774,7 @@ end
 ---@param path string|nil Forwarded to |MiniVisits.list_labels()|.
 ---@param cwd string|nil Forwarded to |MiniVisits.list_labels()|.
 ---@param opts table|nil Forwarded to both |MiniVisits.list_labels()|
----  and |MiniVisits.select_paths()| (after choosing a label).
+---  and |MiniVisits.select_path()| (after choosing a label).
 MiniVisits.select_label = function(path, cwd, opts)
   local items = MiniVisits.list_labels(path, cwd, opts)
   opts = opts or {}
@@ -859,7 +869,7 @@ MiniVisits.iterate_paths = function(direction, cwd, opts)
   -- Use `vim.g` instead of `vim.b` to not register in **next** buffer
   local cache_disabled = vim.g.minivisits_disable
   vim.g.minivisits_disable = true
-  H.edit_path(all_paths[res_ind])
+  H.edit(all_paths[res_ind])
   vim.g.minivisits_disable = cache_disabled
 end
 
@@ -1197,29 +1207,23 @@ H.is_windows = vim.loop.os_uname().sysname == 'Windows_NT'
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  vim.validate({
-    list = { config.list, 'table' },
-    silent = { config.silent, 'boolean' },
-    store = { config.store, 'table' },
-    track = { config.track, 'table' },
-  })
+  H.check_type('list', config.list, 'table')
+  H.check_type('list.filter', config.list.filter, 'function', true)
+  H.check_type('list.sort', config.list.sort, 'function', true)
 
-  vim.validate({
-    ['list.filter'] = { config.list.filter, 'function', true },
-    ['list.sort'] = { config.list.sort, 'function', true },
+  H.check_type('silent', config.silent, 'boolean')
 
-    ['store.autowrite'] = { config.store.autowrite, 'boolean' },
-    ['store.normalize'] = { config.store.normalize, 'function', true },
-    ['store.path'] = { config.store.path, 'string' },
+  H.check_type('store', config.store, 'table')
+  H.check_type('store.autowrite', config.store.autowrite, 'boolean')
+  H.check_type('store.normalize', config.store.normalize, 'function', true)
+  H.check_type('store.path', config.store.path, 'string')
 
-    ['track.delay'] = { config.track.delay, 'number' },
-    ['track.event'] = { config.track.event, 'string' },
-  })
+  H.check_type('track', config.track, 'table')
+  H.check_type('track.delay', config.track.delay, 'number')
+  H.check_type('track.event', config.track.event, 'string')
 
   return config
 end
@@ -1486,6 +1490,13 @@ H.validate_string = function(x, name)
 end
 
 -- Utilities ------------------------------------------------------------------
+H.error = function(msg) error('(mini.visits) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
+
 H.echo = function(msg)
   if H.get_config().silent then return end
 
@@ -1497,8 +1508,6 @@ H.echo = function(msg)
   vim.cmd([[echo '' | redraw]])
   vim.api.nvim_echo(msg, false, {})
 end
-
-H.error = function(msg) error(string.format('(mini.visits) %s', msg), 0) end
 
 H.is_valid_buf = function(buf_id) return type(buf_id) == 'number' and vim.api.nvim_buf_is_valid(buf_id) end
 
@@ -1532,24 +1541,17 @@ H.tbl_add_rank = function(arr, key)
   end
 end
 
-H.edit_path = function(path)
-  if path == nil then return end
-
-  -- Try to reuse buffer
-  local path_buf_id
-  for _, buf_id in ipairs(vim.api.nvim_list_bufs()) do
-    local is_target = H.is_valid_buf(buf_id) and H.buf_get_path(buf_id) == path
-    if is_target then path_buf_id = buf_id end
-  end
-
-  if path_buf_id ~= nil then
-    vim.api.nvim_win_set_buf(0, path_buf_id)
-    vim.bo[path_buf_id].buflisted = true
-  else
-    -- Use relative path for a better initial view in `:buffers`
-    local path_norm = vim.fn.fnameescape(vim.fn.fnamemodify(path, ':.'))
-    pcall(vim.cmd, 'edit ' .. path_norm)
-  end
+H.edit = function(path, win_id)
+  if type(path) ~= 'string' then return end
+  local b = vim.api.nvim_win_get_buf(win_id or 0)
+  local try_mimic_buf_reuse = (vim.fn.bufname(b) == '' and vim.bo[b].buftype ~= 'quickfix' and not vim.bo[b].modified)
+    and (#vim.fn.win_findbuf(b) == 1 and vim.deep_equal(vim.fn.getbufline(b, 1, '$'), { '' }))
+  local buf_id = vim.fn.bufadd(vim.fn.fnamemodify(path, ':.'))
+  -- Showing in window also loads. Use `pcall` to not error with swap messages.
+  pcall(vim.api.nvim_win_set_buf, win_id or 0, buf_id)
+  vim.bo[buf_id].buflisted = true
+  if try_mimic_buf_reuse then pcall(vim.api.nvim_buf_delete, b, { unload = false }) end
+  return buf_id
 end
 
 H.full_path = function(path) return (vim.fn.fnamemodify(path, ':p'):gsub('/+', '/'):gsub('(.)/$', '%1')) end

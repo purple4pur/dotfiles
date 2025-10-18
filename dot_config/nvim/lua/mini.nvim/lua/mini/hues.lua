@@ -13,7 +13,7 @@
 ---
 --- - Configurable:
 ---     - Number of hues used for non-base colors (from 0 to 8).
----     - Saturation level ('low', 'medium', 'high').
+---     - Saturation level ("low", "lowmedium", "medium", "mediumhigh", "high").
 ---     - Accent color used for some selected UI elements.
 ---     - Plugin integration (can be selectively enabled for faster startup).
 ---
@@ -48,17 +48,21 @@
 ---     - 'glepnir/lspsaga.nvim'
 ---     - 'HiPhish/rainbow-delimiters.nvim'
 ---     - 'hrsh7th/nvim-cmp'
+---     - 'ibhagwan/fzf-lua'
 ---     - 'justinmk/vim-sneak'
 ---     - 'kevinhwang91/nvim-bqf'
 ---     - 'kevinhwang91/nvim-ufo'
 ---     - 'lewis6991/gitsigns.nvim'
 ---     - 'lukas-reineke/indent-blankline.nvim'
+---     - 'MeanderingProgrammer/render-markdown.nvim'
 ---     - 'neoclide/coc.nvim'
 ---     - 'NeogitOrg/neogit'
 ---     - 'nvim-lualine/lualine.nvim'
 ---     - 'nvim-neo-tree/neo-tree.nvim'
 ---     - 'nvim-telescope/telescope.nvim'
 ---     - 'nvim-tree/nvim-tree.lua'
+---     - 'OXY2DEV/helpview.nvim'
+---     - 'OXY2DEV/markview.nvim'
 ---     - 'phaazon/hop.nvim'
 ---     - 'rcarriga/nvim-dap-ui'
 ---     - 'rcarriga/nvim-notify'
@@ -140,6 +144,15 @@ local H = {}
 ---   })
 --- <
 MiniHues.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.hues) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniHues = MiniHues
 
@@ -203,7 +216,9 @@ end
 ---
 ---   -- Choose saturation of colored text
 ---   setup({ background = '#11262d', foreground = '#c0c8cc', saturation = 'low' })
+---   setup({ background = '#11262d', foreground = '#c0c8cc', saturation = 'lowmedium' })
 ---   setup({ background = '#11262d', foreground = '#c0c8cc', saturation = 'medium' })
+---   setup({ background = '#11262d', foreground = '#c0c8cc', saturation = 'mediumhigh' })
 ---   setup({ background = '#11262d', foreground = '#c0c8cc', saturation = 'high' })
 ---
 ---   -- Choose accent color
@@ -220,7 +235,7 @@ MiniHues.config = {
   -- Number of hues used for non-base colors
   n_hues = 8,
 
-  -- Saturation level. One of 'low', 'medium', 'high'.
+  -- Saturation. One of 'low', 'lowmedium', 'medium', 'mediumhigh', 'high'.
   saturation = 'medium',
 
   -- Accent color. One of: 'bg', 'fg', 'red', 'orange', 'yellow', 'green',
@@ -329,7 +344,7 @@ MiniHues.make_palette = function(config)
   local l_mid = 0.5 * (bg_l + fg_l)
 
   -- Configurable chroma level
-  local chroma = ({ low = 4, medium = 8, high = 16 })[saturation]
+  local chroma = ({ low = 4, lowmedium = 6, medium = 8, mediumhigh = 12, high = 16 })[saturation]
 
   -- Hues
   local hues = H.make_hues(bg_lch.h, fg_lch.h, n_hues)
@@ -444,6 +459,7 @@ MiniHues.apply_palette = function(palette, plugins)
 
   -- Builtin highlighting groups
   hi('ColorColumn',    { fg=nil,       bg=p.bg_mid2 })
+  hi('ComplMatchIns',  { fg=nil,       bg=nil })
   hi('Conceal',        { fg=p.azure,   bg=nil })
   hi('CurSearch',      { fg=p.bg,      bg=p.yellow })
   hi('Cursor',         { fg=p.bg,      bg=p.fg })
@@ -461,7 +477,7 @@ MiniHues.apply_palette = function(palette, plugins)
   hi('EndOfBuffer',    { fg=p.bg_mid2, bg=nil })
   hi('ErrorMsg',       { fg=p.red,     bg=nil })
   hi('FloatBorder',    { fg=p.accent,  bg=p.bg_edge })
-  hi('FloatTitle',     { fg=p.accent,  bg=p.bg_edge, bold = true })
+  hi('FloatTitle',     { fg=p.accent,  bg=p.bg_edge, bold=true })
   hi('FoldColumn',     { fg=p.bg_mid2, bg=nil })
   hi('Folded',         { fg=p.fg_mid2, bg=p.bg_edge })
   hi('IncSearch',      { fg=p.bg,      bg=p.yellow })
@@ -632,6 +648,17 @@ MiniHues.apply_palette = function(palette, plugins)
   hi('LspCodeLens',          { link='Comment' })
   hi('LspCodeLensSeparator', { link='Comment' })
 
+  -- Built-in snippets
+  hi('SnippetTabstop', { fg=nil, bg=p.yellow_bg })
+
+  -- Built-in markdown syntax
+  hi('markdownH1', { link='@markup.heading.1' })
+  hi('markdownH2', { link='@markup.heading.2' })
+  hi('markdownH3', { link='@markup.heading.3' })
+  hi('markdownH4', { link='@markup.heading.4' })
+  hi('markdownH5', { link='@markup.heading.5' })
+  hi('markdownH6', { link='@markup.heading.6' })
+
   -- Tree-sitter
   -- Sources:
   -- - `:h treesitter-highlight-groups`
@@ -699,7 +726,7 @@ MiniHues.apply_palette = function(palette, plugins)
   hi('@tag',              { link='Tag' })
 
   hi('@symbol', { link='Keyword' })
-  hi('@none',   { link='Normal'})
+  hi('@none',   { link='Normal' })
 
   -- Semantic tokens
   if vim.fn.has('nvim-0.9') == 1 then
@@ -720,7 +747,6 @@ MiniHues.apply_palette = function(palette, plugins)
     hi('@lsp.type.typeParameter', { link='@type.definition' })
     hi('@lsp.type.variable',      { link='@variable' })
 
-    hi('@lsp.mod.defaultLibrary', { link='Special' })
     hi('@lsp.mod.deprecated',     { fg=p.red, bg=nil })
   end
 
@@ -814,7 +840,13 @@ MiniHues.apply_palette = function(palette, plugins)
     hi('@markup.strikethrough', { link='@text.strike' })
     hi('@markup.underline',     { link='@text.underline' })
 
-    hi('@markup.heading', { link='@text.title' })
+    hi('@markup.heading',   { link='@text.title' })
+    hi('@markup.heading.1', { fg=p.orange, bg=nil })
+    hi('@markup.heading.2', { fg=p.yellow, bg=nil })
+    hi('@markup.heading.3', { fg=p.green,  bg=nil })
+    hi('@markup.heading.4', { fg=p.cyan,   bg=nil })
+    hi('@markup.heading.5', { fg=p.azure,  bg=nil })
+    hi('@markup.heading.6', { fg=p.blue,   bg=nil })
 
     hi('@markup.quote',       { link='@string.special' })
     hi('@markup.math',        { link='@string.special' })
@@ -854,7 +886,8 @@ MiniHues.apply_palette = function(palette, plugins)
     hi('MiniClueSeparator',           { link='DiagnosticFloatingInfo' })
     hi('MiniClueTitle',               { link='FloatTitle' })
 
-    hi('MiniCompletionActiveParameter', { fg=nil, bg=p.bg_mid2 })
+    hi('MiniCompletionActiveParameter',    { link='LspSignatureActiveParameter' })
+    hi('MiniCompletionInfoBorderOutdated', { link='DiagnosticFloatingWarn' })
 
     hi('MiniCursorword',        { fg=nil, bg=nil, underline=true })
     hi('MiniCursorwordCurrent', { fg=nil, bg=nil, underline=true })
@@ -870,13 +903,15 @@ MiniHues.apply_palette = function(palette, plugins)
     hi('MiniDepsTitleSame',     { link='DiffText' })
     hi('MiniDepsTitleUpdate',   { link='DiffAdd' })
 
-    hi('MiniDiffSignAdd',     { link='diffAdded' })
-    hi('MiniDiffSignChange',  { link='diffChanged' })
-    hi('MiniDiffSignDelete',  { link='diffRemoved' })
-    hi('MiniDiffOverAdd',     { link='DiffAdd' })
-    hi('MiniDiffOverChange',  { link='DiffText' })
-    hi('MiniDiffOverContext', { link='DiffChange' })
-    hi('MiniDiffOverDelete',  { link='DiffDelete' })
+    hi('MiniDiffSignAdd',        { link='diffAdded' })
+    hi('MiniDiffSignChange',     { link='diffChanged' })
+    hi('MiniDiffSignDelete',     { link='diffRemoved' })
+    hi('MiniDiffOverAdd',        { link='DiffAdd' })
+    hi('MiniDiffOverChange',     { link='DiffText' })
+    hi('MiniDiffOverChangeBuf',  { link='MiniDiffOverChange' })
+    hi('MiniDiffOverContext',    { link='DiffChange' })
+    hi('MiniDiffOverContextBuf', {})
+    hi('MiniDiffOverDelete',     { link='DiffDelete' })
 
     hi('MiniFilesBorder',         { link='FloatBorder' })
     hi('MiniFilesBorderModified', { link='DiagnosticFloatingWarn' })
@@ -887,10 +922,10 @@ MiniHues.apply_palette = function(palette, plugins)
     hi('MiniFilesTitle',          { link='FloatTitle'  })
     hi('MiniFilesTitleFocused',   { fg=p.fg, bg=p.bg_edge, bold=true })
 
-    hi('MiniHipatternsFixme', { fg=p.bg, bg=p.red,    bold=true})
-    hi('MiniHipatternsHack',  { fg=p.bg, bg=p.yellow, bold=true})
-    hi('MiniHipatternsNote',  { fg=p.bg, bg=p.cyan,   bold=true})
-    hi('MiniHipatternsTodo',  { fg=p.bg, bg=p.blue,   bold=true})
+    hi('MiniHipatternsFixme', { fg=p.bg, bg=p.red,    bold=true })
+    hi('MiniHipatternsHack',  { fg=p.bg, bg=p.yellow, bold=true })
+    hi('MiniHipatternsNote',  { fg=p.bg, bg=p.cyan,   bold=true })
+    hi('MiniHipatternsTodo',  { fg=p.bg, bg=p.blue,   bold=true })
 
     hi('MiniIconsAzure',  { fg=p.azure,   bg=nil })
     hi('MiniIconsBlue',   { fg=p.blue,    bg=nil })
@@ -917,9 +952,10 @@ MiniHues.apply_palette = function(palette, plugins)
     hi('MiniMapSymbolLine',  { fg=p.accent,  bg=nil })
     hi('MiniMapSymbolView',  { fg=p.accent,  bg=nil })
 
-    hi('MiniNotifyBorder', { link='FloatBorder' })
-    hi('MiniNotifyNormal', { link='NormalFloat' })
-    hi('MiniNotifyTitle',  { link='FloatTitle'  })
+    hi('MiniNotifyBorder',      { link='FloatBorder' })
+    hi('MiniNotifyLspProgress', { link='MiniNotifyNormal' })
+    hi('MiniNotifyNormal',      { link='NormalFloat' })
+    hi('MiniNotifyTitle',       { link='FloatTitle' })
 
     hi('MiniOperatorsExchangeFrom', { link='IncSearch' })
 
@@ -936,7 +972,15 @@ MiniHues.apply_palette = function(palette, plugins)
     hi('MiniPickNormal',        { link='NormalFloat' })
     hi('MiniPickPreviewLine',   { link='CursorLine' })
     hi('MiniPickPreviewRegion', { link='IncSearch' })
-    hi('MiniPickPrompt',        { link='DiagnosticFloatingInfo' })
+    hi('MiniPickPrompt',        { link='MiniPickMatchRanges' })
+    hi('MiniPickPromptCaret',   { link='DiagnosticFloatingInfo' })
+    hi('MiniPickPromptPrefix',  { link='DiagnosticFloatingInfo' })
+
+    hi('MiniSnippetsCurrent',        { fg=nil, bg=nil, sp=p.yellow, underdouble=true })
+    hi('MiniSnippetsCurrentReplace', { fg=nil, bg=nil, sp=p.red,    underdouble=true })
+    hi('MiniSnippetsFinal',          { fg=nil, bg=nil, sp=p.green,  underdouble=true })
+    hi('MiniSnippetsUnvisited',      { fg=nil, bg=nil, sp=p.cyan,   underdouble=true })
+    hi('MiniSnippetsVisited',        { fg=nil, bg=nil, sp=p.blue,   underdouble=true })
 
     hi('MiniStarterCurrent',    { link='MiniStarterItem' })
     hi('MiniStarterFooter',     { link='Comment' })
@@ -951,7 +995,7 @@ MiniHues.apply_palette = function(palette, plugins)
     hi('MiniStatuslineDevinfo',     { fg=p.fg_mid, bg=p.bg_mid })
     hi('MiniStatuslineFileinfo',    { link='MiniStatuslineDevinfo' })
     hi('MiniStatuslineFilename',    { fg=p.fg_mid, bg=p.accent_bg })
-    hi('MiniStatuslineInactive',    { link='MiniStatuslineFilename' })
+    hi('MiniStatuslineInactive',    { link='StatusLineNC' })
     hi('MiniStatuslineModeCommand', { fg=p.bg,     bg=p.yellow, bold=true })
     hi('MiniStatuslineModeInsert',  { fg=p.bg,     bg=p.azure,  bold=true })
     hi('MiniStatuslineModeNormal',  { fg=p.bg,     bg=p.fg,     bold=true })
@@ -968,6 +1012,7 @@ MiniHues.apply_palette = function(palette, plugins)
     hi('MiniTablineModifiedHidden',  { fg=p.bg_edge, bg=p.fg_mid })
     hi('MiniTablineModifiedVisible', { fg=p.bg_edge, bg=p.fg_mid,  bold=true })
     hi('MiniTablineTabpagesection',  { fg=p.bg,      bg=p.green,   bold=true })
+    hi('MiniTablineTrunc',           { fg=p.accent,  bg=p.bg_edge, bold=true })
     hi('MiniTablineVisible',         { fg=p.fg_mid,  bg=p.bg_edge, bold=true })
 
     hi('MiniTestEmphasis', { fg=nil,     bg=nil, bold=true })
@@ -1145,6 +1190,20 @@ MiniHues.apply_palette = function(palette, plugins)
     hi('CmpItemKindVariable',      { link='Delimiter' })
   end
 
+  if has_integration('ibhagwan/fzf-lua') then
+    hi('FzfLuaBufFlagAlt', { link='Special' })
+    hi('FzfLuaBufFlagCur', { link='CursorLineNr' })
+    hi('FzfLuaBufNr',      { link='DiagnosticHint' })
+    hi('FzfLuaHeaderBind', { link='DiagnosticWarn' })
+    hi('FzfLuaHeaderText', { link='DiagnosticInfo' })
+    hi('FzfLuaLiveSym',    { link='DiagnosticHint' })
+    hi('FzfLuaPathColNr',  { link='DiagnosticHint' })
+    hi('FzfLuaPathLineNr', { link='DiagnosticInfo' })
+    hi('FzfLuaTabMarker',  { link='DiagnosticHint' })
+    hi('FzfLuaTabTitle',   { link='Title' })
+    hi('FzfLuaTitle',      { link='FloatTitle' })
+  end
+
   if has_integration('justinmk/vim-sneak') then
     hi('Sneak',      { fg=p.bg, bg=p.orange })
     hi('SneakScope', { fg=p.bg, bg=p.fg_edge2 })
@@ -1193,6 +1252,28 @@ MiniHues.apply_palette = function(palette, plugins)
     hi('IndentBlanklineIndent8',      { fg=p.purple,  bg=nil, nocombine=true })
   end
 
+  if has_integration('MeanderingProgrammer/render-markdown.nvim') then
+    hi('RenderMarkdownBullet',     { fg=p.accent, bg=nil })
+    hi('RenderMarkdownChecked',    { link='DiagnosticOk' })
+    hi('RenderMarkdownCode',       { fg=nil,      bg=p.bg_edge })
+    hi('RenderMarkdownCodeInline', { fg=nil,      bg=p.bg_edge })
+    hi('RenderMarkdownDash',       { fg=p.accent, bg=nil })
+    hi('RenderMarkdownH1',         { fg=p.orange, bg=nil })
+    hi('RenderMarkdownH1Bg',       { fg=nil,      bg=p.orange_bg })
+    hi('RenderMarkdownH2',         { fg=p.yellow, bg=nil })
+    hi('RenderMarkdownH2Bg',       { fg=nil,      bg=p.yellow_bg })
+    hi('RenderMarkdownH3',         { fg=p.green,  bg=nil })
+    hi('RenderMarkdownH3Bg',       { fg=nil,      bg=p.green_bg })
+    hi('RenderMarkdownH4',         { fg=p.cyan,   bg=nil })
+    hi('RenderMarkdownH4Bg',       { fg=nil,      bg=p.cyan_bg })
+    hi('RenderMarkdownH5',         { fg=p.azure,  bg=nil })
+    hi('RenderMarkdownH5Bg',       { fg=nil,      bg=p.azure_bg })
+    hi('RenderMarkdownH6',         { fg=p.blue,   bg=nil })
+    hi('RenderMarkdownH6Bg',       { fg=nil,      bg=p.blue_bg })
+    hi('RenderMarkdownTodo',       { link='Todo' })
+    hi('RenderMarkdownUnchecked',  { link='DiagnosticWarn' })
+  end
+
   if has_integration('neoclide/coc.nvim') then
     hi('CocCodeLens',             { link='LspCodeLens' })
     hi('CocDisabled',             { link='Comment' })
@@ -1213,8 +1294,8 @@ MiniHues.apply_palette = function(palette, plugins)
     hi('NeogitDiffDeleteHighlight', { link='DiffDelete' })
     hi('NeogitDiffDelete',          { link='DiffDelete' })
     hi('NeogitFold',                { link='FoldColumn' })
-    hi('NeogitHunkHeader',          { fg=p.accent, bg=nil})
-    hi('NeogitHunkHeaderHighlight', { fg=p.accent, bg=nil, bold = true})
+    hi('NeogitHunkHeader',          { fg=p.accent, bg=nil })
+    hi('NeogitHunkHeaderHighlight', { fg=p.accent, bg=nil, bold=true })
     hi('NeogitNotificationError',   { link='DiagnosticError' })
     hi('NeogitNotificationInfo',    { link='DiagnosticInfo' })
     hi('NeogitNotificationWarning', { link='DiagnosticWarn' })
@@ -1265,6 +1346,55 @@ MiniHues.apply_palette = function(palette, plugins)
     hi('NvimTreeSpecialFile',  { fg=p.accent,  bg=nil,       underline=true })
     hi('NvimTreeSymlink',      { fg=p.blue,    bg=nil,       bold=true })
     hi('NvimTreeWindowPicker', { fg=p.fg,      bg=p.bg_mid2, bold=true })
+  end
+
+  if has_integration('OXY2DEV/helpview.nvim') then
+    hi('HelpviewCode',         { fg=nil,      bg=p.bg_edge })
+    hi('HelpviewCodeLanguage', { fg=nil,      bg=p.bg_edge })
+    hi('HelpviewHeading1',     { link='@markup.heading.1' })
+    hi('HelpviewHeading2',     { link='@markup.heading.2' })
+    hi('HelpviewHeading3',     { link='@markup.heading.3' })
+    hi('HelpviewHeading4',     { link='@markup.heading.4' })
+    hi('HelpviewInlineCode',   { fg=nil,      bg=p.bg_edge })
+    hi('HelpviewMentionlink',  { fg=p.accent, bg=nil,      underline=true })
+    hi('HelpviewOptionlink',   { fg=p.yellow, bg=nil,      underline=true })
+    hi('HelpviewTaglink',      { fg=p.accent, bg=nil,      bold=true })
+    hi('HelpviewTitle',        { link='Title' })
+  end
+
+  if has_integration('OXY2DEV/markview.nvim') then
+    hi('MarkviewPalette0',     { fg=p.accent, bg=p.accent_bg })
+    hi('MarkviewPalette0Fg',   { fg=p.accent, bg=nil })
+    hi('MarkviewPalette0Bg',   { fg=nil,      bg=p.accent_bg })
+    hi('MarkviewPalette0Sign', { fg=p.accent, bg=nil })
+    hi('MarkviewPalette1',     { fg=p.red,    bg=p.red_bg })
+    hi('MarkviewPalette1Fg',   { fg=p.red,    bg=nil })
+    hi('MarkviewPalette1Bg',   { fg=nil,      bg=p.red_bg })
+    hi('MarkviewPalette1Sign', { fg=p.red,    bg=nil })
+    hi('MarkviewPalette2',     { fg=p.orange, bg=p.orange_bg })
+    hi('MarkviewPalette2Fg',   { fg=p.orange, bg=nil })
+    hi('MarkviewPalette2Bg',   { fg=nil,      bg=p.orange_bg })
+    hi('MarkviewPalette2Sign', { fg=p.orange, bg=nil })
+    hi('MarkviewPalette3',     { fg=p.yellow, bg=p.yellow_bg })
+    hi('MarkviewPalette3Fg',   { fg=p.yellow, bg=nil })
+    hi('MarkviewPalette3Bg',   { fg=nil,      bg=p.yellow_bg })
+    hi('MarkviewPalette3Sign', { fg=p.yellow, bg=nil })
+    hi('MarkviewPalette4',     { fg=p.green,  bg=p.green_bg })
+    hi('MarkviewPalette4Fg',   { fg=p.green,  bg=nil })
+    hi('MarkviewPalette4Bg',   { fg=nil,      bg=p.green_bg })
+    hi('MarkviewPalette4Sign', { fg=p.green,  bg=nil })
+    hi('MarkviewPalette5',     { fg=p.cyan,   bg=p.cyan_bg })
+    hi('MarkviewPalette5Fg',   { fg=p.cyan,   bg=nil })
+    hi('MarkviewPalette5Bg',   { fg=nil,      bg=p.cyan_bg })
+    hi('MarkviewPalette5Sign', { fg=p.cyan,   bg=nil })
+    hi('MarkviewPalette6',     { fg=p.azure,  bg=p.azure_bg })
+    hi('MarkviewPalette6Fg',   { fg=p.azure,  bg=nil })
+    hi('MarkviewPalette6Bg',   { fg=nil,      bg=p.azure_bg })
+    hi('MarkviewPalette6Sign', { fg=p.azure,  bg=nil })
+    hi('MarkviewPalette7',     { fg=p.blue,   bg=p.blue_bg })
+    hi('MarkviewPalette7Fg',   { fg=p.blue,   bg=nil })
+    hi('MarkviewPalette7Bg',   { fg=nil,      bg=p.blue_bg })
+    hi('MarkviewPalette7Sign', { fg=p.blue,   bg=nil })
   end
 
   if has_integration('phaazon/hop.nvim') then
@@ -1443,7 +1573,7 @@ H.default_config = vim.deepcopy(MiniHues.config)
 -- Color conversion constants
 H.tau = 2 * math.pi
 
-H.saturation_values = { 'low', 'medium', 'high' }
+H.saturation_values = { 'low', 'lowmedium', 'medium', 'mediumhigh', 'high' }
 
 H.accent_values = { 'bg', 'fg', 'red', 'orange', 'yellow', 'green', 'cyan', 'azure', 'blue', 'purple' }
 
@@ -1504,23 +1634,23 @@ H.cusps = {
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
   if config.background == nil or config.foreground == nil then
     H.error('`setup()` needs both `background` and `foreground`.')
   end
 
-  vim.validate({
-    background = { config.background, H.is_hex },
-    foreground = { config.foreground, H.is_hex },
-    n_hues = { config.n_hues, H.is_n_hues },
-    saturation = { config.saturation, H.is_saturation },
-    accent = { config.accent, H.is_accent },
-    plugins = { config.plugins, 'table' },
-  })
+  H.validate_hex(config.background, 'background')
+  H.validate_hex(config.foreground, 'foreground')
+  H.validate_n_hues(config.n_hues)
+  if not vim.tbl_contains(H.saturation_values, config.saturation) then
+    H.error('`saturation` should be one of ' .. table.concat(vim.tbl_map(vim.inspect, H.saturation_values), ', '))
+  end
+  if not vim.tbl_contains(H.accent_values, config.accent) then
+    H.error('`accent` should be one of ' .. table.concat(vim.tbl_map(vim.inspect, H.saturation_values), ', '))
+  end
+  H.check_type('plugins', config.plugins, 'table')
 
   return config
 end
@@ -1530,30 +1660,6 @@ H.apply_config = function(config)
 
   -- Apply palette
   MiniHues.apply_palette(MiniHues.make_palette(config), config.plugins)
-end
-
-H.is_hex = function(x)
-  local res = type(x) == 'string' and x:find('^#%x%x%x%x%x%x$') ~= nil
-  if res then return true, nil end
-  return false, 'Color string in the form "#rrggbb"'
-end
-
-H.is_n_hues = function(x)
-  local res = type(x) == 'number' and 0 <= x and x <= 8
-  if res then return true, nil end
-  return false, 'Number between 0 and 8'
-end
-
-H.is_saturation = function(x)
-  local res = vim.tbl_contains(H.saturation_values, x)
-  if res then return true, nil end
-  return false, 'One of ' .. table.concat(vim.tbl_map(vim.inspect, H.saturation_values), ', ')
-end
-
-H.is_accent = function(x)
-  local res = vim.tbl_contains(H.accent_values, x)
-  if res then return true, nil end
-  return false, 'One of ' .. table.concat(vim.tbl_map(vim.inspect, H.accent_values), ', ')
 end
 
 -- Palette --------------------------------------------------------------------
@@ -1604,13 +1710,13 @@ H.make_hues = function(bg_h, fg_h, n_hues)
 end
 
 H.validate_hex = function(x, name)
-  if H.is_hex(x) then return x end
-  local msg = string.format('`%s` should be hex color string in the form "#rrggbb", not %s.', name, vim.inspect(x))
+  if type(x) == 'string' and x:find('^#%x%x%x%x%x%x$') ~= nil then return x end
+  local msg = string.format('`%s` should be hex color string in the form "#rrggbb", not %s', name, vim.inspect(x))
   H.error(msg)
 end
 
 H.validate_n_hues = function(x)
-  if H.is_n_hues(x) then return x end
+  if type(x) == 'number' and 0 <= x and x <= 8 then return x end
   local msg = string.format('`n_hues` should be a number between 0 and 8', name)
   H.error(msg)
 end
@@ -1799,7 +1905,12 @@ end
 
 -- ============================================================================
 -- Utilities ------------------------------------------------------------------
-H.error = function(msg) error(string.format('(mini.hues) %s', msg), 0) end
+H.error = function(msg) error('(mini.hues) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
 
 H.round = function(x)
   if x == nil then return nil end

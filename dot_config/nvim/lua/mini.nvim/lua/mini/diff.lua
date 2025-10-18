@@ -15,10 +15,10 @@
 --- - Special toggleable overlay view with more hunk details inside text area.
 ---   See |MiniDiff.toggle_overlay()|.
 ---
---- - Completely configurable per buffer source of reference text used to keep
----   it up to date and define interactions with it.
----   See |MiniDiff-source-specification|. By default uses buffer's file content
----   in Git index. See |MiniDiff.gen_source.git()|.
+--- - Completely configurable per buffer source(s) of reference text used to keep
+---   it up to date and define interactions with it. Can be array of sources which
+---   are attempted to attach in order. See |MiniDiff-source-specification|.
+---   By default uses Git source. See |MiniDiff.gen_source.git()|.
 ---
 --- - Configurable mappings to manage diff hunks:
 ---     - Apply and reset hunks inside region (selected visually or with
@@ -60,13 +60,15 @@
 ---
 --- # Highlight groups ~
 ---
---- * `MiniDiffSignAdd`     - "add" hunk lines visualization.
---- * `MiniDiffSignChange`  - "change" hunk lines visualization.
---- * `MiniDiffSignDelete`  - "delete" hunk lines visualization.
---- * `MiniDiffOverAdd`     - added text shown in overlay.
---- * `MiniDiffOverChange`  - changed text shown in overlay.
---- * `MiniDiffOverContext` - context of changed text shown in overlay.
---- * `MiniDiffOverDelete`  - deleted text shown in overlay.
+--- * `MiniDiffSignAdd`        - "add" hunk lines visualization.
+--- * `MiniDiffSignChange`     - "change" hunk lines visualization.
+--- * `MiniDiffSignDelete`     - "delete" hunk lines visualization.
+--- * `MiniDiffOverAdd`        - added buffer text shown in overlay.
+--- * `MiniDiffOverChange`     - changed reference text shown in overlay.
+--- * `MiniDiffOverChangeBuf`  - changed buffer text shown in overlay.
+--- * `MiniDiffOverContext`    - context of a change shown in reference overlay.
+--- * `MiniDiffOverContextBuf` - context of a change shown in buffer overlay.
+--- * `MiniDiffOverDelete`     - deleted reference text shown in overlay.
 ---
 --- To change any highlight group, modify it directly with |:highlight|.
 ---
@@ -149,18 +151,20 @@
 ---
 --- - Added buffer lines are highlighted with `MiniDiffOverAdd` highlight group.
 ---
---- - Deleted reference lines are shown as virtual text and highlighted with
+--- - Deleted reference lines are shown as virtual lines and highlighted with
 ---   `MiniDiffOverDelete` highlight group.
 ---
---- - Changed reference lines are shown as virtual text and highlighted with
----   `MiniDiffOverChange` highlight group.
+--- - "Change" hunks with equal number of buffer/reference lines show "word diff".
+---   This is usually the case when `options.linematch` is enabled (as by default).
+---   Reference line is shown next to its buffer counterpart. Changed parts are
+---   highlighted with `MiniDiffOverChange` and `MiniDiffOverChangeBuf` in reference
+---   and buffer lines. The rest of lines have `MiniDiffOverContext`
+---   and `MiniDiffOverContextBuf` highlighting.
 ---
----   "Change" hunks with equal number of buffer and reference lines have special
----   treatment and show "word diff". Reference line is shown next to its buffer
----   counterpart and only changed parts of both lines are highlighted with
----   `MiniDiffOverChange`. The rest of reference line has `MiniDiffOverContext`
----   highlighting.
----   This usually is the case when `config.options.linematch` is enabled.
+---   Change with unequal number of buffer/reference lines is shown with reference
+---   part as virtual lines highlighted with `MiniDiffOverChange` group.
+---   Corresponding buffer lines are treated as context for the change and are
+---   highlighted with `MiniDiffOverContextBuf` group.
 ---
 --- Notes:
 --- - Word diff has non-zero context width. This means if changed characters
@@ -195,7 +199,7 @@
 --- used in custom statusline to show an overview of hunks in current buffer:
 ---
 --- - `vim.b.minidiff_summary` is a table with the following fields:
----     - `source_name` - name of the source.
+---     - `source_name` - name of the active source.
 ---     - `n_ranges` - number of hunk ranges (sequences of contiguous hunks).
 ---     - `add` - number of added lines.
 ---     - `change` - number of changed lines.
@@ -243,6 +247,15 @@ local H = {}
 ---   require('mini.diff').setup({}) -- replace {} with your config table
 --- <
 MiniDiff.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.diff) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniDiff = MiniDiff
 
@@ -290,17 +303,22 @@ end
 ---
 --- `view.priority` is a number with priority used for visualization and
 --- overlay |extmarks|.
---- Default: 199 which is one less than `user` in |vim.highlight.priorities| to have
---- higher priority than automated extmarks but not as in user enabled ones.
+--- Default: 199 which is one less than `user` in |vim.hl.priorities| (on Neovim<0.11
+--- see |vim.highlight.priorities|) to have higher priority than automated
+--- extmarks but not as in user enabled ones.
 ---
 ---                                                  *MiniDiff-source-specification*
 --- # Source ~
 ---
---- `config.source` is a table defining how reference text is managed in
---- a particular buffer. It can have the following fields:
+--- `config.source` is a table with single source or array of them. Single source
+--- defines how reference text is managed in a particular buffer. Sources in array
+--- are attempted to attach in order; call |MiniDiff.disable()| if none attaches.
+---
+--- A single source table can have the following fields:
+---
 --- - <attach> `(function)` - callable which defines how and when reference text
----   should be updated inside a particular buffer. It is called
----   inside |MiniDiff.enable()| with a buffer identifier as a single argument.
+---   is updated inside a particular buffer. It is used inside |MiniDiff.enable()|
+---   with a buffer identifier as a single argument.
 ---
 ---   Should execute logic which results into calling |MiniDiff.set_ref_text()|
 ---   when reference text for buffer needs to be updated. Like inside callback
@@ -309,9 +327,10 @@ end
 ---   For example, default Git source watches when ".git/index" file is changed
 ---   and computes reference text as the one from Git index for current file.
 ---
----   Can return `false` to force buffer to not be enabled. If this can not be
----   inferred immediately (for example, due to asynchronous execution), should
----   call |MiniDiff.disable()| later to disable buffer.
+---   Can return `false` to indicate that attach has failed. If attach fail can
+---   not be inferred immediately (for example, due to asynchronous execution),
+---   should explicitly call |MiniDiff.fail_attch()| with appropriate arguments.
+---   This is important to properly process array of sources.
 ---
 ---   No default value, should be always supplied.
 ---
@@ -334,7 +353,7 @@ end
 ---
 ---   If not supplied, applying hunks throws an error.
 ---
---- Default: |MiniDiff.gen_source.git()|.
+--- Default: a single |MiniDiff.gen_source.git()|.
 ---
 --- # Delay ~
 ---
@@ -400,7 +419,7 @@ MiniDiff.config = {
     priority = 199,
   },
 
-  -- Source for how reference text is computed/updated/etc
+  -- Source(s) for how reference text is computed/updated/etc
   -- Uses content from Git index by default
   source = nil,
 
@@ -461,10 +480,6 @@ MiniDiff.enable = function(buf_id)
   -- Register enabled buffer with cached data for performance
   H.update_buf_cache(buf_id)
 
-  -- Try attaching source
-  local attach_output = H.cache[buf_id].source.attach(buf_id)
-  if attach_output == false then return MiniDiff.disable(buf_id) end
-
   -- Add buffer watchers
   vim.api.nvim_buf_attach(buf_id, false, {
     -- Called on every text change (`:h nvim_buf_lines_event`)
@@ -485,6 +500,11 @@ MiniDiff.enable = function(buf_id)
 
   -- Add buffer autocommands
   H.setup_buf_autocommands(buf_id)
+
+  -- Try attaching source after all necessary watchers are set up. It is needed
+  -- to still have them set up if first source of many returned `false`.
+  local attach_output = H.get_active_source(H.cache[buf_id]).attach(buf_id)
+  if attach_output == false then MiniDiff.fail_attach(buf_id) end
 end
 
 --- Disable diff processing in buffer
@@ -500,7 +520,7 @@ MiniDiff.disable = function(buf_id)
   pcall(vim.api.nvim_del_augroup_by_id, buf_cache.augroup)
   vim.b[buf_id].minidiff_summary, vim.b[buf_id].minidiff_summary_string = nil, nil
   H.clear_all_diff(buf_id)
-  pcall(buf_cache.source.detach, buf_id)
+  pcall(H.get_active_source(buf_cache).detach, buf_id)
 end
 
 --- Toggle diff processing in buffer
@@ -608,10 +628,15 @@ end
 --- Generate builtin sources
 ---
 --- This is a table with function elements. Call to actually get source.
---- Example of using |MiniDiff.gen_source.save()|: >lua
+--- Examples: >lua
 ---
 ---   local diff = require('mini.diff')
+---
+---   -- Single `save` source
 ---   diff.setup({ source = diff.gen_source.save() })
+---
+---   -- Multiple sources (attempted to attach in order)
+---   diff.setup({ source = { diff.gen_source.git(), diff.gen_source.save() } })
 --- <
 MiniDiff.gen_source = {}
 
@@ -680,7 +705,8 @@ MiniDiff.gen_source.save = function()
 
     local set_ref = function()
       if vim.bo[buf_id].modified then return end
-      MiniDiff.set_ref_text(buf_id, vim.api.nvim_buf_get_lines(buf_id, 0, -1, false))
+      local lines = vim.api.nvim_buf_get_lines(buf_id, 0, -1, false)
+      MiniDiff.set_ref_text(buf_id, table.concat(lines, '\n') .. '\n')
     end
 
     -- Autocommand are more efficient than file watcher as it doesn't read disk
@@ -736,7 +762,7 @@ MiniDiff.do_hunks = function(buf_id, action, opts)
 
   local hunks = H.get_hunks_in_range(buf_cache.hunks, line_start, line_end)
   if #hunks == 0 then return H.notify('No hunks to ' .. action, 'INFO') end
-  if action == 'apply' then buf_cache.source.apply_hunks(buf_id, hunks) end
+  if action == 'apply' then H.get_active_source(buf_cache).apply_hunks(buf_id, hunks) end
   if action == 'reset' then H.reset_hunks(buf_id, hunks) end
   if action == 'yank' then H.yank_hunks_ref(buf_cache.ref_text, hunks, opts.register) end
 end
@@ -853,11 +879,35 @@ MiniDiff.textobject = function()
   vim.cmd(string.format('normal! %dGV%dG', cur_region.from, cur_region.to))
 end
 
+--- Indicate source attach fail
+---
+--- Try to attach next source; if there is none - call |MiniDiff.disable()|.
+---
+---@param buf_id integer Buffer identifier for which attach has failed.
+MiniDiff.fail_attach = function(buf_id)
+  buf_id = H.validate_buf_id(buf_id)
+
+  -- Do nothing if there was no attempt to enable
+  local buf_cache = H.cache[buf_id]
+  if buf_cache == nil then return end
+
+  -- If no next source, disable buffer without calling any of `detach`
+  if buf_cache.source_id >= #buf_cache.source then
+    H.cache[buf_id].source_id = math.huge
+    return MiniDiff.disable(buf_id)
+  end
+
+  -- Try attaching next source
+  buf_cache.source_id = buf_cache.source_id + 1
+  local attach_output = H.get_active_source(H.cache[buf_id]).attach(buf_id)
+  if attach_output == false then MiniDiff.fail_attach(buf_id) end
+end
+
 -- Helper data ================================================================
 -- Module default config
 H.default_config = MiniDiff.config
 
-H.default_source = MiniDiff.gen_source.git()
+H.default_source = { MiniDiff.gen_source.git() }
 
 -- Timers
 H.timer_diff_update = vim.loop.new_timer()
@@ -890,8 +940,11 @@ H.style_extmark_data = {
 -- Suffix for overlay virtual lines to be highlighted as full line
 H.overlay_suffix = string.rep(' ', vim.o.columns)
 
--- Flag of whether Neovim version supports invalidating extmarks
-H.extmark_supports_invalidate = vim.fn.has('nvim-0.10') == 1
+-- Flag for whether to invalidate extmarks
+H.extmark_invalidate = vim.fn.has('nvim-0.10') == 1 and true or nil
+
+-- Flag for whether to handle virtual lines overflow
+H.extmark_virt_lines_overflow = vim.fn.has('nvim-0.11') == 1 and 'scroll' or nil
 
 -- Permanent `vim.diff()` options
 H.vimdiff_opts = { result_type = 'indices', ctxlen = 0, interhunkctxlen = 0 }
@@ -906,45 +959,36 @@ if H.vimdiff_supports_linematch then H.worddiff_opts.linematch = 0 end
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  vim.validate({
-    view = { config.view, 'table' },
-    source = { config.source, 'table', true },
-    delay = { config.delay, 'table' },
-    mappings = { config.mappings, 'table' },
-    options = { config.options, 'table' },
-  })
+  H.check_type('view', config.view, 'table')
+  H.check_type('view.style', config.view.style, 'string')
+  H.check_type('view.signs', config.view.signs, 'table')
+  H.check_type('view.signs.add', config.view.signs.add, 'string')
+  H.check_type('view.signs.change', config.view.signs.change, 'string')
+  H.check_type('view.signs.delete', config.view.signs.delete, 'string')
+  H.check_type('view.priority', config.view.priority, 'number')
 
-  vim.validate({
-    ['view.style'] = { config.view.style, 'string' },
-    ['view.signs'] = { config.view.signs, 'table' },
-    ['view.priority'] = { config.view.priority, 'number' },
+  H.check_type('source', config.source, 'table', true)
 
-    ['delay.text_change'] = { config.delay.text_change, 'number' },
+  H.check_type('delay', config.delay, 'table')
+  H.check_type('delay.text_change', config.delay.text_change, 'number')
 
-    ['mappings.apply'] = { config.mappings.apply, 'string' },
-    ['mappings.reset'] = { config.mappings.reset, 'string' },
-    ['mappings.textobject'] = { config.mappings.textobject, 'string' },
-    ['mappings.goto_first'] = { config.mappings.goto_first, 'string' },
-    ['mappings.goto_prev'] = { config.mappings.goto_prev, 'string' },
-    ['mappings.goto_next'] = { config.mappings.goto_next, 'string' },
-    ['mappings.goto_last'] = { config.mappings.goto_last, 'string' },
+  H.check_type('mappings', config.mappings, 'table')
+  H.check_type('mappings.apply', config.mappings.apply, 'string')
+  H.check_type('mappings.reset', config.mappings.reset, 'string')
+  H.check_type('mappings.textobject', config.mappings.textobject, 'string')
+  H.check_type('mappings.goto_first', config.mappings.goto_first, 'string')
+  H.check_type('mappings.goto_prev', config.mappings.goto_prev, 'string')
+  H.check_type('mappings.goto_next', config.mappings.goto_next, 'string')
+  H.check_type('mappings.goto_last', config.mappings.goto_last, 'string')
 
-    ['options.algorithm'] = { config.options.algorithm, 'string' },
-    ['options.indent_heuristic'] = { config.options.indent_heuristic, 'boolean' },
-    ['options.linematch'] = { config.options.linematch, 'number' },
-    ['options.wrap_goto'] = { config.options.wrap_goto, 'boolean' },
-  })
-
-  vim.validate({
-    ['view.signs.add'] = { config.view.signs.add, 'string' },
-    ['view.signs.change'] = { config.view.signs.change, 'string' },
-    ['view.signs.delete'] = { config.view.signs.delete, 'string' },
-  })
+  H.check_type('options', config.options, 'table')
+  H.check_type('options.algorithm', config.options.algorithm, 'string')
+  H.check_type('options.indent_heuristic', config.options.indent_heuristic, 'boolean')
+  H.check_type('options.linematch', config.options.linematch, 'number')
+  H.check_type('options.wrap_goto', config.options.wrap_goto, 'boolean')
 
   return config
 end
@@ -1002,13 +1046,15 @@ H.create_default_hl = function()
   end
 
   local has_core_diff_hl = vim.fn.has('nvim-0.10') == 1
-  hi('MiniDiffSignAdd',     { link = has_core_diff_hl and 'Added' or 'diffAdded' })
-  hi('MiniDiffSignChange',  { link = has_core_diff_hl and 'Changed' or 'diffChanged' })
-  hi('MiniDiffSignDelete',  { link = has_core_diff_hl and 'Removed' or 'diffRemoved'  })
-  hi('MiniDiffOverAdd',     { link = 'DiffAdd' })
-  hi('MiniDiffOverChange',  { link = 'DiffText' })
-  hi('MiniDiffOverContext', { link = 'DiffChange' })
-  hi('MiniDiffOverDelete',  { link = 'DiffDelete'  })
+  hi('MiniDiffSignAdd',        { link = has_core_diff_hl and 'Added' or 'diffAdded' })
+  hi('MiniDiffSignChange',     { link = has_core_diff_hl and 'Changed' or 'diffChanged' })
+  hi('MiniDiffSignDelete',     { link = has_core_diff_hl and 'Removed' or 'diffRemoved'  })
+  hi('MiniDiffOverAdd',        { link = 'DiffAdd' })
+  hi('MiniDiffOverChange',     { link = 'DiffText' })
+  hi('MiniDiffOverChangeBuf',  { link = 'MiniDiffOverChange'})
+  hi('MiniDiffOverContext',    { link = 'DiffChange' })
+  hi('MiniDiffOverContextBuf', {})
+  hi('MiniDiffOverDelete',     { link = 'DiffDelete'  })
 end
 
 H.is_disabled = function(buf_id)
@@ -1030,7 +1076,7 @@ end
 H.auto_enable = vim.schedule_wrap(function(data)
   if H.is_buf_enabled(data.buf) or H.is_disabled(data.buf) then return end
   local buf = data.buf
-  if not (vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buftype == '' and vim.bo[buf].buflisted) then return end
+  if not (vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buftype == '' and vim.bo[buf].buflisted) then return end
   if not H.is_buf_text(buf) then return end
   MiniDiff.enable(buf)
 end)
@@ -1087,6 +1133,7 @@ H.update_buf_cache = function(buf_id)
   new_cache.config = buf_config
   new_cache.extmark_opts = H.convert_view_to_extmark_opts(buf_config.view)
   new_cache.source = H.normalize_source(buf_config.source or H.default_source)
+  new_cache.source_id = new_cache.source_id or 1
 
   new_cache.hunks = new_cache.hunks or {}
   new_cache.summary = new_cache.summary or {}
@@ -1121,20 +1168,29 @@ H.setup_buf_autocommands = function(buf_id)
 end
 
 H.normalize_source = function(source)
+  -- Normalize to an array of sources
   if type(source) ~= 'table' then H.error('`source` should be table.') end
+  if source[1] == nil then source = { source } end
 
-  local res = { attach = source.attach }
-  res.name = source.name or 'unknown'
-  res.detach = source.detach or function(_) end
-  res.apply_hunks = source.apply_hunks or function(_) H.error('Current source does not support applying hunks.') end
+  local res = {}
+  for i, s in ipairs(source) do
+    local cur_s = { attach = s.attach }
+    cur_s.name = s.name or 'unknown'
+    cur_s.detach = s.detach or function(_) end
+    cur_s.apply_hunks = s.apply_hunks or function(_) H.error('Current source does not support applying hunks.') end
 
-  if type(res.name) ~= 'string' then H.error('`source.name` should be string.') end
-  H.validate_callable(res.attach, 'source.attach')
-  H.validate_callable(res.detach, 'source.detach')
-  H.validate_callable(res.apply_hunks, 'source.apply_hunks')
+    if type(cur_s.name) ~= 'string' then H.error('`source.name` should be string.') end
+    H.validate_callable(cur_s.attach, 'source.attach')
+    H.validate_callable(cur_s.detach, 'source.detach')
+    H.validate_callable(cur_s.apply_hunks, 'source.apply_hunks')
+
+    res[i] = cur_s
+  end
 
   return res
 end
+
+H.get_active_source = function(buf_cache) return buf_cache.source[buf_cache.source_id] or {} end
 
 H.convert_view_to_extmark_opts = function(view)
   local extmark_data = H.style_extmark_data[view.style]
@@ -1142,13 +1198,11 @@ H.convert_view_to_extmark_opts = function(view)
 
   local signs = view.style == 'sign' and view.signs or {}
   local field, hl_group_prefix = extmark_data.field, extmark_data.hl_group_prefix
-  local invalidate
-  if H.extmark_supports_invalidate then invalidate = true end
   --stylua: ignore
   return {
-    add =    { [field] = hl_group_prefix .. 'Add',    sign_text = signs.add,    priority = view.priority, invalidate = invalidate },
-    change = { [field] = hl_group_prefix .. 'Change', sign_text = signs.change, priority = view.priority, invalidate = invalidate },
-    delete = { [field] = hl_group_prefix .. 'Delete', sign_text = signs.delete, priority = view.priority, invalidate = invalidate },
+    add =    { [field] = hl_group_prefix .. 'Add',    sign_text = signs.add,    priority = view.priority, invalidate = H.extmark_invalidate },
+    change = { [field] = hl_group_prefix .. 'Change', sign_text = signs.change, priority = view.priority, invalidate = H.extmark_invalidate },
+    delete = { [field] = hl_group_prefix .. 'Delete', sign_text = signs.delete, priority = view.priority, invalidate = H.extmark_invalidate },
   }
 end
 
@@ -1158,16 +1212,25 @@ H.set_decoration_provider = function(ns_id_viz, ns_id_overlay)
     local buf_cache = H.cache[buf_id]
     if buf_cache == nil then return false end
 
+    local viz_lines, overlay_lines = buf_cache.viz_lines, buf_cache.overlay_lines
     if buf_cache.needs_clear then
       H.clear_all_diff(buf_id)
-      buf_cache.needs_clear = false
+      buf_cache.needs_clear, buf_cache.dummy_extmark = false, nil
+      -- Ensure that sign column is visible even if hunks are outside of window
+      -- view (matters with `signcolumn=auto`)
+      if buf_cache.config.view.style == 'sign' and not vim.tbl_isempty(viz_lines) then
+        local dummy_opts = { sign_text = '  ', priority = 0, right_gravity = false }
+        dummy_opts.sign_hl_group, dummy_opts.cursorline_hl_group = 'SignColumn', 'CursorLineSign'
+        buf_cache.dummy_extmark = vim.api.nvim_buf_set_extmark(buf_id, ns_id_viz, 0, 0, dummy_opts)
+      end
     end
 
-    local viz_lines, overlay_lines = buf_cache.viz_lines, buf_cache.overlay_lines
+    local has_viz_extmarks = false
     for i = top + 1, bottom + 1 do
       if viz_lines[i] ~= nil then
         H.set_extmark(buf_id, ns_id_viz, i - 1, 0, viz_lines[i])
         viz_lines[i] = nil
+        has_viz_extmarks = true
       end
       if overlay_lines[i] ~= nil then
         -- Allow several overlays at one line (like for "delete" and "change")
@@ -1176,6 +1239,13 @@ H.set_decoration_provider = function(ns_id_viz, ns_id_overlay)
         end
         overlay_lines[i] = nil
       end
+    end
+
+    -- Make sure to clear dummy extmark when it is not needed (otherwise it
+    -- affects signcolumn for cases like `yes:2` and `auto:2`)
+    if buf_cache.dummy_extmark ~= nil and has_viz_extmarks then
+      vim.api.nvim_buf_del_extmark(buf_id, ns_id_viz, buf_cache.dummy_extmark)
+      buf_cache.dummy_extmark = nil
     end
   end
   vim.api.nvim_set_decoration_provider(ns_id_viz, { on_win = on_win })
@@ -1203,7 +1273,7 @@ H.update_buf_diff = vim.schedule_wrap(function(buf_id)
     return
   end
   if type(buf_cache.ref_text) ~= 'string' or H.is_disabled(buf_id) then
-    local summary = { source_name = buf_cache.source.name }
+    local summary = { source_name = H.get_active_source(buf_cache).name }
     buf_cache.hunks, buf_cache.viz_lines, buf_cache.overlay_lines, buf_cache.summary = {}, {}, {}, summary
     vim.b[buf_id].minidiff_summary, vim.b[buf_id].minidiff_summary_string = summary, ''
     return
@@ -1289,7 +1359,7 @@ H.update_hunk_data = function(diff, buf_cache, buf_lines)
 
   buf_cache.hunks, buf_cache.viz_lines, buf_cache.overlay_lines = hunks, viz_lines, overlay_lines
   buf_cache.summary = { add = n_add, change = n_change, delete = n_delete, n_ranges = n_ranges }
-  buf_cache.summary.source_name = buf_cache.source.name
+  buf_cache.summary.source_name = H.get_active_source(buf_cache).name
 end
 
 H.clear_all_diff = function(buf_id)
@@ -1327,10 +1397,12 @@ H.append_overlay_change = function(overlay_lines, hunk, ref_lines, buf_lines, pr
   -- If not one-to-one change, show reference lines above first real one
   local changed_lines = {}
   for i = hunk.ref_start, hunk.ref_start + hunk.ref_count - 1 do
-    local l = { { ref_lines[i], 'MiniDiffOverChange' }, { H.overlay_suffix, 'MiniDiffOverChange' } }
+    local l = { { ref_lines[i] .. H.overlay_suffix, 'MiniDiffOverChange' } }
     table.insert(changed_lines, l)
   end
-  H.append_overlay(overlay_lines, hunk.buf_start, { type = 'change', lines = changed_lines, priority = priority })
+  local to = hunk.buf_start + hunk.buf_count - 1
+  local data = { type = 'change', to = to, lines = changed_lines, show_above = true, priority = priority }
+  H.append_overlay(overlay_lines, hunk.buf_start, data)
 end
 
 H.append_overlay_delete = function(overlay_lines, hunk, ref_lines, priority)
@@ -1344,36 +1416,28 @@ H.append_overlay_delete = function(overlay_lines, hunk, ref_lines, priority)
 end
 
 H.draw_overlay_line = function(buf_id, ns_id, row, data)
-  -- "Add" hunk: highlight whole buffer range
-  if data.type == 'add' then
-    local opts =
-      { end_row = data.to, end_col = 0, hl_group = 'MiniDiffOverAdd', hl_eol = true, priority = data.priority }
-    return H.set_extmark(buf_id, ns_id, row, 0, opts)
-  end
-
-  -- "Change" hunk: show changed lines above first hunk line
-  if data.type == 'change' then
-    -- NOTE: virtual lines above line 1 need manual scroll (with `<C-y>`)
-    -- See https://github.com/neovim/neovim/issues/16166
-    local opts = { virt_lines = data.lines, virt_lines_above = true, priority = data.priority }
-    return H.set_extmark(buf_id, ns_id, row, 0, opts)
-  end
-
   -- "Change worddif" hunk: compute word diff and show it above and over text
   if data.type == 'change_worddiff' then return H.draw_overlay_line_worddiff(buf_id, ns_id, row, data) end
 
-  -- "Delete" hunk: show deleted lines below buffer line (if possible)
-  if data.type == 'delete' then
-    local opts = { virt_lines = data.lines, virt_lines_above = data.show_above, priority = data.priority }
-    return H.set_extmark(buf_id, ns_id, row, 0, opts)
+  local opts = { priority = data.priority }
+
+  -- "Add"/"Change" hunks highlight whole lines in affected buffer range
+  if data.type ~= 'delete' then
+    opts.end_row, opts.end_col, opts.hl_eol = data.to, 0, true
+    opts.hl_group = data.type == 'add' and 'MiniDiffOverAdd' or 'MiniDiffOverContextBuf'
   end
+
+  -- "Change"/"Delete" hunks show affected reference range as virtual lines
+  opts.virt_lines, opts.virt_lines_above, opts.virt_lines_overflow =
+    data.lines, data.show_above, H.extmark_virt_lines_overflow
+  H.set_extmark(buf_id, ns_id, row, 0, opts)
 end
 
 H.draw_overlay_line_worddiff = function(buf_id, ns_id, row, data)
-  local ref_line, buf_line = data.ref_line, data.buf_line
+  local ref_line, buf_line, priority = data.ref_line, data.buf_line, data.priority
   local ref_parts, buf_parts = H.compute_worddiff_changed_parts(ref_line, buf_line)
 
-  -- Show changed parts in reference line as virtual line above
+  -- Show changes in reference as two-colored virtual line above
   local virt_line, index = {}, 1
   for i = 1, #ref_parts do
     local part = ref_parts[i]
@@ -1384,15 +1448,23 @@ H.draw_overlay_line_worddiff = function(buf_id, ns_id, row, data)
   if index <= ref_line:len() then table.insert(virt_line, { ref_line:sub(index), 'MiniDiffOverContext' }) end
   table.insert(virt_line, { H.overlay_suffix, 'MiniDiffOverContext' })
 
-  local ref_opts = { virt_lines = { virt_line }, virt_lines_above = true, priority = data.priority }
+  --stylua: ignore
+  local ref_opts = {
+    virt_lines = { virt_line }, virt_lines_above = true, virt_lines_overflow = H.extmark_virt_lines_overflow,
+    priority = priority,
+  }
   H.set_extmark(buf_id, ns_id, row, 0, ref_opts)
 
-  -- Show changed parts in current line with separate extmarks
+  -- Show changes in buffer line as one whole-line highlighting with separate
+  -- highlighting for changed regions on top (as priority of context is lower)
   for i = 1, #buf_parts do
     local part = buf_parts[i]
-    local buf_opts = { end_row = row, end_col = part[2], hl_group = 'MiniDiffOverChange', priority = data.priority }
+    local buf_opts = { end_row = row, end_col = part[2], hl_group = 'MiniDiffOverChangeBuf', priority = priority }
     H.set_extmark(buf_id, ns_id, row, part[1] - 1, buf_opts)
   end
+  local context_opts =
+    { end_row = row + 1, end_col = 0, hl_group = 'MiniDiffOverContextBuf', hl_eol = true, priority = priority - 1 }
+  H.set_extmark(buf_id, ns_id, row, 0, context_opts)
 end
 
 H.compute_worddiff_changed_parts = function(ref_line, buf_line)
@@ -1572,12 +1644,18 @@ H.export_qf = function(opts)
   buffers = vim.tbl_filter(vim.api.nvim_buf_is_valid, buffers)
   table.sort(buffers)
 
+  local type_text = { add = 'Add', change = 'Change', delete = 'Delete' }
+
   local res = {}
   for _, buf_id in ipairs(buffers) do
     local filename = vim.api.nvim_buf_get_name(buf_id)
+    local buf_lines = vim.api.nvim_buf_get_lines(buf_id, 0, -1, false)
     for _, h in ipairs(H.cache[buf_id].hunks) do
-      local entry = { bufnr = buf_id, filename = filename, type = h.type:sub(1, 1):upper() }
+      local text = type_text[h.type]
+      local entry = { bufnr = buf_id, filename = filename, type = text:sub(1, 1), text = text }
       entry.lnum, entry.end_lnum = H.get_hunk_buf_range(h)
+      -- Make 'add' and 'change' hunks represent actual buffer regions
+      entry.col, entry.end_col = 1, h.type == 'delete' and 1 or buf_lines[entry.end_lnum]:len() + 1
       table.insert(res, entry)
     end
   end
@@ -1597,7 +1675,11 @@ H.git_start_watching_index = function(buf_id, path)
   -- If path is not in Git, disable buffer but make sure that it will not try
   -- to re-attach until buffer is properly disabled
   local on_not_in_git = vim.schedule_wrap(function()
-    MiniDiff.disable(buf_id)
+    if not vim.api.nvim_buf_is_valid(buf_id) then
+      H.cache[buf_id] = nil
+      return
+    end
+    MiniDiff.fail_attach(buf_id)
     H.git_cache[buf_id] = {}
   end)
 
@@ -1637,6 +1719,7 @@ H.git_setup_index_watch = function(buf_id, git_dir_path)
 end
 
 H.git_set_ref_text = vim.schedule_wrap(function(buf_id)
+  if not vim.api.nvim_buf_is_valid(buf_id) then return end
   local buf_set_ref_text = vim.schedule_wrap(function(text) pcall(MiniDiff.set_ref_text, buf_id, text) end)
 
   -- NOTE: Do not cache buffer's name to react to its possible rename
@@ -1756,7 +1839,12 @@ H.git_invalidate_cache = function(cache)
 end
 
 -- Utilities ------------------------------------------------------------------
-H.error = function(msg) error(string.format('(mini.diff) %s', msg), 0) end
+H.error = function(msg) error('(mini.diff) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
 
 H.notify = function(msg, level_name) vim.notify('(mini.diff) ' .. msg, vim.log.levels[level_name]) end
 

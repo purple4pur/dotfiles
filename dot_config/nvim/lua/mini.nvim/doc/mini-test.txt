@@ -260,6 +260,8 @@ Parameters ~
     `parametrize` option at all.
   - <data> - user data to be forwarded to cases. Can be used for a more
     granular filtering.
+  - <n_retry> - number of times to retry each case until success.
+    Default: 1.
 {tbl} `(table|nil)` Initial test items (possibly nested). Will be executed
   without any guarantees on order.
 
@@ -273,15 +275,14 @@ Usage ~
   T['works'] = function() MiniTest.expect.equality(1, 1) end
 
   -- Use with custom options. This will result into two actual cases: first
-  -- will pass, second - fail.
+  -- will pass, second - fail after two attempts.
   T['nested'] = MiniTest.new_set({
     hooks = { pre_case = function() _G.x = 1 end },
-    parametrize = { { 1 }, { 2 } }
+    parametrize = { { 1 }, { 2 } },
+    n_retry = 2,
   })
 
-  T['nested']['works'] = function(x)
-    MiniTest.expect.equality(_G.x, x)
-  end
+  T['nested']['works'] = function(x) MiniTest.expect.equality(_G.x, x) end
 <
 ------------------------------------------------------------------------------
                                                             *MiniTest-test-case*
@@ -295,7 +296,9 @@ of test execution.
 Execution of test case goes by the following rules:
 - Call functions in order:
     - All elements of `hooks.pre` from first to last without arguments.
-    - Field `test` with arguments unpacked from `args`.
+    - Field `test` with arguments unpacked from `args`. If execution fails,
+      retry it (along with hooks that come from `pre_case` and `post_case`)
+      at most `n_retry` times until first success (if any).
     - All elements of `hooks.post` from first to last without arguments.
 - Error in any call gets appended to `exec.fails`, meaning error in any
   hook will lead to test fail.
@@ -318,18 +321,25 @@ Fields ~
         - 'Pass with notes' (no fails, some notes).
         - 'Fail' (some fails, no notes).
         - 'Fail with notes' (some fails, some notes).
-{hooks} `(table)` Hooks to be executed as part of test case. Has fields
-  <pre> and <post> with arrays to be consecutively executed before and
-  after execution of `test`.
+{hooks} `(table)` Hooks to be executed as part of test case. Has fields:
+  - <pre> and <post> - arrays of functions to be consecutively executed
+    before and after every execution of `test`.
+  - <pre_source> and <post_source> - arrays of strings with sources of
+    corresponding elements in <pre> and <post> arrays. Source is one of
+    `"once"` (for `pre_once` and `post_once` hooks) and
+    `"case"` (for `pre_case` and `post_case` hooks).
 {test} `(function|table)` Main callable object representing test action.
 
 ------------------------------------------------------------------------------
                                                                *MiniTest.skip()*
                              `MiniTest.skip`({msg})
-Skip rest of current callable execution
+Skip the rest of current case
 
-Can be used inside hooks and main test callable of test case. Note: at the
-moment implemented as a specially handled type of error.
+Notes:
+- When called inside test case, stops execution while adding message to notes.
+- When called inside `pre_case` hook, registers skip at the start of its
+  test case. Calling in other hooks has no effect.
+- Currently implemented as a specially handled type of error.
 
 Parameters ~
 {msg} `(string|nil)` Message to be added to current case notes.
@@ -349,7 +359,7 @@ Parameters ~
                             `MiniTest.finally`({f})
 Register callable execution after current callable
 
-Can be used inside hooks and main test callable of test case.
+Can be used several times inside hooks and main test callable of test case.
 
 Parameters ~
 {f} `(function|table)` Callable to be executed after current callable is
@@ -458,8 +468,8 @@ Overview of execution process:
 - Execute each case in natural array order (aligned with their integer
   keys). Set `MiniTest.current.case` to currently executed case. Detailed
   test case execution is described in |MiniTest-test-case|. After any state
-  change, call `reporter.update(case_num)` (if present), where `case_num` is an
-  integer key of current test case.
+  change (including case retry attempts), call `reporter.update(case_num)`
+  (if present), where `case_num` is an integer key of current test case.
 - Call `reporter.finish()` (if present).
 
 Notes:
@@ -565,7 +575,7 @@ Parameters ~
   of `child.get_screenshot()` (see |MiniTest-child-neovim.get_screenshot()|).
   If `nil`, expectation passed.
 {path} `(string|nil)` Path to reference screenshot. If `nil`, constructed
-  automatically in directory 'tests/screenshots' from current case info and
+  automatically in directory `opts.directory` from current case info and
   total number of times it was called inside current case. If there is no
   file at `path`, it is created with content of `screenshot`.
 {opts} `(table|nil)` Options:
@@ -573,6 +583,8 @@ Parameters ~
     Temporary useful during test writing. Default: `false`.
   - <ignore_lines> `(table)` - array of line numbers to ignore during compare.
     Default: `nil` to check all lines.
+  - <directory> `(string)` - directory where automatically constructed `path`
+    is located. Default: "tests/screenshots".
 
 ------------------------------------------------------------------------------
                                                     *MiniTest.new_expectation()*
@@ -684,7 +696,7 @@ interact with it through |RPC| messages.
 For more information see |MiniTest-child-neovim|.
 
 Return ~
-MiniTest.child Object of |MiniTest-child-neovim|.
+`(MiniTest.child)` Object of |MiniTest-child-neovim|.
 
 Usage ~
 >lua
@@ -787,6 +799,7 @@ Fields ~
 {diagnostic} `(table)` Redirection table for |vim.diagnostic|.
 {fn} `(table)` Redirection table for |vim.fn|.
 {highlight} `(table)` Redirection table for `vim.highlight` (|lua-highlight)|.
+{hl} `(table)` Redirection table for |vim.hl|.
 {json} `(table)` Redirection table for `vim.json`.
 {loop} `(table)` Redirection table for |vim.loop|.
 {lsp} `(table)` Redirection table for `vim.lsp` (|lsp-core)|.

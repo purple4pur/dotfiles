@@ -56,6 +56,15 @@ local H = {}
 ---   require('mini.trailspace').setup({}) -- replace {} with your config table
 --- <
 MiniTrailspace.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.trailspace) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniTrailspace = MiniTrailspace
 
@@ -134,12 +143,10 @@ H.default_config = vim.deepcopy(MiniTrailspace.config)
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  vim.validate({ only_in_normal_buffers = { config.only_in_normal_buffers, 'boolean' } })
+  H.check_type('only_in_normal_buffers', config.only_in_normal_buffers, 'boolean')
 
   return config
 end
@@ -198,6 +205,14 @@ H.get_match_id = function()
   for _, match in ipairs(vim.fn.getmatches()) do
     if match.group == 'MiniTrailspace' then return match.id end
   end
+end
+
+-- Utilities ------------------------------------------------------------------
+H.error = function(msg) error('(mini.trailspace) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
 end
 
 return MiniTrailspace

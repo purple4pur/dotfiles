@@ -219,6 +219,12 @@
 ---   Great way for a hands-on introduction to concepts of lightness, chroma,
 ---   saturation, and hue.
 ---
+--- Note that Oklab/Oklch/Okhsl use channel normalization for `l`, `a`, `b`, `c`, `s` that
+--- is more oriented towards integer numbers (according to the above sources).
+--- Some implementations (like in CSS) are more oriented towards [0; 1] range or
+--- percentages. Adjust accordingly by dividing/multiplying output by 100.
+--- Also use `adjust_lightness = false` in |MiniColors.convert()|.
+---
 ---                                                          *MiniColors-gamut-clip*
 --- Gamut clip ~
 ---
@@ -630,7 +636,7 @@ local H = {}
 --- Calling this function creates a `:Colorscheme` user command. It takes one or
 --- more registered color scheme names and performs animated transition between
 --- them (starting from currently active color scheme).
---- It uses |MiniColors.animte()| with default options.
+--- It uses |MiniColors.animate()| with default options.
 ---
 ---@param config table|nil Module config table. See |MiniColors.config|.
 ---
@@ -640,6 +646,15 @@ local H = {}
 ---   require('mini.colors').setup({}) -- replace {} with your config table
 --- <
 MiniColors.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.colors) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniColors = MiniColors
 
@@ -727,7 +742,7 @@ end
 ---@param opts table|nil Options. Possible fields:
 ---   - <new_name> `(string|nil)` - new name of colorscheme object.
 ---
----@return table Colorscheme object |(MiniColors-colorscheme|).
+---@return table Colorscheme object (|MiniColors-colorscheme|).
 MiniColors.get_colorscheme = function(name, opts)
   if not (name == nil or type(name) == 'string') then H.error('Argument `name` should be string or `nil`.') end
   opts = vim.tbl_deep_extend('force', { new_name = nil }, opts or {})
@@ -816,6 +831,7 @@ MiniColors.interactive = function(opts)
   local init_cs = opts.colorscheme == nil and MiniColors.get_colorscheme()
     or MiniColors.as_colorscheme(opts.colorscheme)
   local buf_id = vim.api.nvim_create_buf(true, true)
+  H.set_buf_name(buf_id, 'interactive')
 
   -- Write header lines
   local header_lines = {
@@ -886,7 +902,7 @@ end
 ---
 --- Powers |:Colorscheme| user command created in |MiniColors.setup()|.
 ---
----@param cs_array `(table)` Array of |MiniColors-colorscheme| objects.
+---@param cs_array table Array of |MiniColors-colorscheme| objects.
 ---@param opts table|nil Options. Possible fields:
 ---   - <transition_steps> `(number)` - number of intermediate steps to show
 ---     during transition between two color schemes. Bigger values result in
@@ -939,6 +955,12 @@ end
 ---   inferred automatically.
 ---@param to_space string Id of allowed color space.
 ---@param opts table|nil Options. Possible fields:
+---   - <adjust_lightness> `(boolean)` - whether to adjust lightness value to have
+---     a more uniform progression from 0 to 100. Set `false` for results more
+---     compatible with some other Oklab/Oklch implementations (like in CSS).
+---     Source: "Intermission - a new lightness estimate for Oklab" section of
+---     https://bottosson.github.io/posts/colorpicker
+---     Default: `true`.
 ---   - <gamut_clip> `(string)` - method for |MiniColors-gamut-clip|.
 ---     Default: `'chroma'`.
 ---
@@ -949,8 +971,11 @@ MiniColors.convert = function(x, to_space, opts)
     local spaces = table.concat(vim.tbl_map(vim.inspect, H.allowed_spaces), ', ')
     H.error('Argument `to_space` should be one of ' .. spaces .. '.')
   end
-  opts = vim.tbl_deep_extend('force', { gamut_clip = 'chroma' }, opts or {})
+  opts = vim.tbl_deep_extend('force', { adjust_lightness = true, gamut_clip = 'chroma' }, opts or {})
 
+  -- Set reference value here once to not have to pass it as argument to many
+  -- downstream places
+  H.adjust_lightness = opts.adjust_lightness
   return H.converters[to_space](x, H.infer_color_space(x), opts)
 end
 
@@ -1139,9 +1164,7 @@ H.ns_id = { interactive = vim.api.nvim_create_namespace('MiniColorsInteractive')
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
   return config
@@ -1495,11 +1518,11 @@ H.cs_write = function(self, opts)
     vim.list_extend(lines, { '', '-- No highlight groups defined' })
   end
 
-  local lines_groups = vim.tbl_map(
-    function(hl) return string.format('hi(0, "%s", %s)', hl.name, vim.inspect(hl.spec, { newline = ' ', indent = '' })) end,
-    H.hl_groups_to_array(cs.groups)
-  )
-  vim.list_extend(lines, lines_groups)
+  local make_hi_line = function(hl)
+    local spec = setmetatable(hl.spec, nil)
+    return string.format('hi(0, "%s", %s)', hl.name, vim.inspect(spec, { newline = ' ', indent = '' }))
+  end
+  vim.list_extend(lines, vim.tbl_map(make_hi_line, H.hl_groups_to_array(cs.groups)))
 
   -- - Terminal colors
   if vim.tbl_count(cs.terminal) > 0 then
@@ -1639,7 +1662,8 @@ H.get_hl_by_name = function(name)
   -- default it links to `Identifier`).
   res[true] = nil
 
-  return res
+  -- Return plain `{}` instead of `vim.empty_dict()`
+  return setmetatable(res, nil)
 end
 
 H.get_current_terminal = function()
@@ -2196,6 +2220,8 @@ end
 -- Functions for lightness correction
 -- https://bottosson.github.io/posts/colorpicker/#intermission---a-new-lightness-estimate-for-oklab
 H.correct_lightness = function(x)
+  if not H.adjust_lightness then return x end
+
   x = 0.01 * x
   local k1, k2 = 0.206, 0.03
   local k3 = (1 + k1) / (1 + k2)
@@ -2205,6 +2231,8 @@ H.correct_lightness = function(x)
 end
 
 H.correct_lightness_inv = function(x)
+  if not H.adjust_lightness then return x end
+
   x = 0.01 * x
   local k1, k2 = 0.206, 0.03
   local k3 = (1 + k1) / (1 + k2)
@@ -2336,7 +2364,14 @@ H.apply_interactive_buffer = function(buf_id, init_cs)
 end
 
 -- Utilities ------------------------------------------------------------------
-H.error = function(msg) error(string.format('(mini.colors) %s', msg), 0) end
+H.error = function(msg) error('(mini.colors) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
+
+H.set_buf_name = function(buf_id, name) vim.api.nvim_buf_set_name(buf_id, 'minicolors://' .. buf_id .. '/' .. name) end
 
 H.round = function(x)
   if x == nil then return nil end

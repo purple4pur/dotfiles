@@ -111,6 +111,7 @@ For more details about specific operator, see help for its function:
 All operators are automatically mapped during |MiniOperators.setup()| execution.
 Mappings keys are deduced from `prefix` field of corresponding `config` entry.
 All built-in conflicting mappings are removed (like |gra|, |grn| in Neovim>=0.11).
+Both |gx| and |v_gx| are remapped to `gX` (if that is not already taken).
 
 For each operator the following mappings are created:
 
@@ -299,7 +300,7 @@ By default it is |MiniOperators.default_evaluate_func()| which evaluates
 text as Lua code depending on the region submode.
 
 Parameters ~
-{mode} `(string|nil)` One of `nil`, `'char'`, `'line'`, `''block`, `'visual'`.
+{mode} `(string|nil)` One of `nil`, `'char'`, `'line'`, `'block'`, `'visual'`.
 
 ------------------------------------------------------------------------------
                                                       *MiniOperators.exchange()*
@@ -320,7 +321,7 @@ Notes:
 - Works with most cases of intersecting regions, but not officially supported.
 
 Parameters ~
-{mode} `(string|nil)` One of `nil`, `'char'`, `'line'`, `''block`, `'visual'`.
+{mode} `(string|nil)` One of `nil`, `'char'`, `'line'`, `'block'`, `'visual'`.
 
 ------------------------------------------------------------------------------
                                                       *MiniOperators.multiply()*
@@ -344,7 +345,7 @@ Notes:
      while "multiply" makes it at once.
 
 Parameters ~
-{mode} `(string|nil)` One of `nil`, `'char'`, `'line'`, `''block`, `'visual'`.
+{mode} `(string|nil)` One of `nil`, `'char'`, `'line'`, `'block'`, `'visual'`.
 
 ------------------------------------------------------------------------------
                                                        *MiniOperators.replace()*
@@ -365,7 +366,7 @@ Notes:
    - Can automatically reindent.
 
 Parameters ~
-{mode} `(string|nil)` One of `nil`, `'char'`, `'line'`, `''block`, `'visual'`.
+{mode} `(string|nil)` One of `nil`, `'char'`, `'line'`, `'block'`, `'visual'`.
 
 ------------------------------------------------------------------------------
                                                           *MiniOperators.sort()*
@@ -381,7 +382,7 @@ Notes:
   linewise a single line). This also results into no |[count]| support.
 
 Parameters ~
-{mode} `(string|nil)` One of `nil`, `'char'`, `'line'`, `''block`, `'visual'`.
+{mode} `(string|nil)` One of `nil`, `'char'`, `'line'`, `'block'`, `'visual'`.
 
 ------------------------------------------------------------------------------
                                                  *MiniOperators.make_mappings()*

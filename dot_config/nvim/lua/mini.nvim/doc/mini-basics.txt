@@ -82,7 +82,7 @@ Default values:
       -- Basic options ('number', 'ignorecase', and many more)
       basic = true,
 
-      -- Extra UI features ('winblend', 'cmdheight=0', ...)
+      -- Extra UI features ('winblend', 'listchars', 'pumheight', ...)
       extra_ui = false,
 
       -- Presets for window borders ('single', 'double', ...)
@@ -247,6 +247,9 @@ Notes:
 - See |[count]| for its meaning.
 - On Neovim>=0.10 mappings for `#` and `*` are not created as their
   enhanced variants are made built-in. See |v_star-default| and |v_#-default|.
+- On Neovim>=0.11 there are |[<Space>| / |]<Space>| for adding empty lines.
+  The `gO` and `go` mappings are still created as they are more aligned with
+  similarly purposed |O| and |o| keys (although sometimes conflict with |gO|).
 
 ## mappings.option_toggle_prefix ~
 
@@ -301,7 +304,7 @@ Here is a list with created Normal mode mappings (all mappings respect |[count]|
     - `<C-up>`    - increase window height.
     - `<C-right>` - increase window width.
 
-## mappings.move_with_alt
+## mappings.move_with_alt ~
 
 The `config.mappings.move_with_alt` creates mappings for a more consistent
 cursor move in Insert, Command, and Terminal modes. For example, it proves
@@ -333,8 +336,8 @@ Usage example: >lua
 The `config.autocommands.basic` creates some common autocommands:
 
 - Starts insert mode when opening terminal (see |startinsert| and |TermOpen|).
-- Highlights yanked text for a brief period of time (see
-  |vim.highlight.on_yank()| and |TextYankPost|).
+- Highlights yanked text for a brief period of time (see |vim.hl.on_yank()|;
+  on Neovim<0.11 - |vim.highlight.on_yank|) and |TextYankPost|).
 
 ## autocommands.relnum_in_visual_mode ~
 

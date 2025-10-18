@@ -6,7 +6,7 @@
 [![Current version](https://badgen.net/badge/Current%20version/development/cyan)](https://github.com/echasnovski/mini.nvim/blob/main/CHANGELOG.md)
 <!-- badges: end -->
 
-Library of 40+ independent Lua modules improving overall [Neovim](https://github.com/neovim/neovim) (version 0.8 and higher) experience with minimal effort. They all share same configuration approaches and general design principles.
+Library of 40+ independent Lua modules improving overall [Neovim](https://github.com/neovim/neovim) (version 0.9 and higher) experience with minimal effort. They all share same configuration approaches and general design principles.
 
 Think about this project as "Swiss Army knife" among Neovim plugins: it has many different independent tools (modules) suitable for most common tasks. Each module can be used separately without any startup and usage overhead.
 
@@ -50,10 +50,10 @@ end
 
 - With [folke/lazy.nvim](https://github.com/folke/lazy.nvim):
 
-| Branch | Code snippet                                         |
-|--------|------------------------------------------------------|
-| Main   | `{ 'echasnovski/mini.nvim', version = false },`      |
-| Stable | `{ 'echasnovski/mini.nvim', version = '*' },`        |
+| Branch | Code snippet                                    |
+|--------|-------------------------------------------------|
+| Main   | `{ 'echasnovski/mini.nvim', version = false },` |
+| Stable | `{ 'echasnovski/mini.nvim', version = '*' },`   |
 
 - With [junegunn/vim-plug](https://github.com/junegunn/vim-plug):
 
@@ -72,55 +72,78 @@ end
 
 ## Modules
 
-If you are browsing without particular objective and don't know which module to look at:
+'mini.nvim' contains many modules which is slightly daunting at first. All of them can be used independently, one at a time. For easier exploration, here they are presented in groups based on module's primary functionality (although some modules can fit in several groups).
 
-- To improve your editing experience, start with 'mini.ai', 'mini.operators', 'mini.pairs', 'mini.surround'.
-- To improve your general workflow, start with 'mini.bracketed', 'mini.files', 'mini.jump2d', 'mini.pick'.
-- To make your Neovim more beautiful, start with 'mini.animate', 'mini.hues', 'mini.icons', 'mini.notify'.
+### Text editing
 
-| Module           | Description                              | Overview                              | Details                               |
-|------------------|------------------------------------------|---------------------------------------|---------------------------------------|
-| mini.ai          | Extend and create `a`/`i` textobjects    | [README](readmes/mini-ai.md)          | [Help file](doc/mini-ai.txt)          |
-| mini.align       | Align text interactively                 | [README](readmes/mini-align.md)       | [Help file](doc/mini-align.txt)       |
-| mini.animate     | Animate common Neovim actions            | [README](readmes/mini-animate.md)     | [Help file](doc/mini-animate.txt)     |
-| mini.base16      | Base16 colorscheme creation              | [README](readmes/mini-base16.md)      | [Help file](doc/mini-base16.txt)      |
-| mini.basics      | Common configuration presets             | [README](readmes/mini-basics.md)      | [Help file](doc/mini-basics.txt)      |
-| mini.bracketed   | Go forward/backward with square brackets | [README](readmes/mini-bracketed.md)   | [Help file](doc/mini-bracketed.txt)   |
-| mini.bufremove   | Remove buffers                           | [README](readmes/mini-bufremove.md)   | [Help file](doc/mini-bufremove.txt)   |
-| mini.clue        | Show next key clues                      | [README](readmes/mini-clue.md)        | [Help file](doc/mini-clue.txt)        |
-| mini.colors      | Tweak and save any color scheme          | [README](readmes/mini-colors.md)      | [Help file](doc/mini-colors.txt)      |
-| mini.comment     | Comment lines                            | [README](readmes/mini-comment.md)     | [Help file](doc/mini-comment.txt)     |
-| mini.completion  | Completion and signature help            | [README](readmes/mini-completion.md)  | [Help file](doc/mini-completion.txt)  |
-| mini.cursorword  | Autohighlight word under cursor          | [README](readmes/mini-cursorword.md)  | [Help file](doc/mini-cursorword.txt)  |
-| mini.deps        | Plugin manager                           | [README](readmes/mini-deps.md)        | [Help file](doc/mini-deps.txt)        |
-| mini.diff        | Work with diff hunks                     | [README](readmes/mini-diff.md)        | [Help file](doc/mini-diff.txt)        |
-| mini.doc         | Generate Neovim help files               | [README](readmes/mini-doc.md)         | [Help file](doc/mini-doc.txt)         |
-| mini.extra       | Extra 'mini.nvim' functionality          | [README](readmes/mini-extra.md)       | [Help file](doc/mini-extra.txt)       |
-| mini.files       | Navigate and manipulate file system      | [README](readmes/mini-files.md)       | [Help file](doc/mini-files.txt)       |
-| mini.fuzzy       | Fuzzy matching                           | [README](readmes/mini-fuzzy.md)       | [Help file](doc/mini-fuzzy.txt)       |
-| mini.git         | Git integration                          | [README](readmes/mini-git.md)         | [Help file](doc/mini-git.txt)         |
-| mini.hipatterns  | Highlight patterns in text               | [README](readmes/mini-hipatterns.md)  | [Help file](doc/mini-hipatterns.txt)  |
-| mini.hues        | Generate configurable color scheme       | [README](readmes/mini-hues.md)        | [Help file](doc/mini-hues.txt)        |
-| mini.icons       | Icon provider                            | [README](readmes/mini-icons.md)       | [Help file](doc/mini-icons.txt)       |
-| mini.indentscope | Visualize and work with indent scope     | [README](readmes/mini-indentscope.md) | [Help file](doc/mini-indentscope.txt) |
-| mini.jump        | Jump to next/previous single character   | [README](readmes/mini-jump.md)        | [Help file](doc/mini-jump.txt)        |
-| mini.jump2d      | Jump within visible lines                | [README](readmes/mini-jump2d.md)      | [Help file](doc/mini-jump2d.txt)      |
-| mini.map         | Window with buffer text overview         | [README](readmes/mini-map.md)         | [Help file](doc/mini-map.txt)         |
-| mini.misc        | Miscellaneous functions                  | [README](readmes/mini-misc.md)        | [Help file](doc/mini-misc.txt)        |
-| mini.move        | Move any selection in any direction      | [README](readmes/mini-move.md)        | [Help file](doc/mini-move.txt)        |
-| mini.notify      | Show notifications                       | [README](readmes/mini-notify.md)      | [Help file](doc/mini-notify.txt)      |
-| mini.operators   | Text edit operators                      | [README](readmes/mini-operators.md)   | [Help file](doc/mini-operators.txt)   |
-| mini.pairs       | Autopairs                                | [README](readmes/mini-pairs.md)       | [Help file](doc/mini-pairs.txt)       |
-| mini.pick        | Pick anything                            | [README](readmes/mini-pick.md)        | [Help file](doc/mini-pick.txt)        |
-| mini.sessions    | Session management                       | [README](readmes/mini-sessions.md)    | [Help file](doc/mini-sessions.txt)    |
-| mini.splitjoin   | Split and join arguments                 | [README](readmes/mini-splitjoin.md)   | [Help file](doc/mini-splitjoin.txt)   |
-| mini.starter     | Start screen                             | [README](readmes/mini-starter.md)     | [Help file](doc/mini-starter.txt)     |
-| mini.statusline  | Statusline                               | [README](readmes/mini-statusline.md)  | [Help file](doc/mini-statusline.txt)  |
-| mini.surround    | Surround actions                         | [README](readmes/mini-surround.md)    | [Help file](doc/mini-surround.txt)    |
-| mini.tabline     | Tabline                                  | [README](readmes/mini-tabline.md)     | [Help file](doc/mini-tabline.txt)     |
-| mini.test        | Test Neovim plugins                      | [README](readmes/mini-test.md)        | [Help file](doc/mini-test.txt)        |
-| mini.trailspace  | Trailspace (highlight and remove)        | [README](readmes/mini-trailspace.md)  | [Help file](doc/mini-trailspace.txt)  |
-| mini.visits      | Track and reuse file system visits       | [README](readmes/mini-visits.md)      | [Help file](doc/mini-visits.txt)      |
+These modules improve your text editing experience. Start with 'mini.ai', 'mini.operators', and 'mini.surround'.
+
+| Module          | Description                           | Overview                             | Details                              |
+|-----------------|---------------------------------------|--------------------------------------|--------------------------------------|
+| mini.ai         | Extend and create `a`/`i` textobjects | [README](readmes/mini-ai.md)         | [Help file](doc/mini-ai.txt)         |
+| mini.align      | Align text interactively              | [README](readmes/mini-align.md)      | [Help file](doc/mini-align.txt)      |
+| mini.comment    | Comment lines                         | [README](readmes/mini-comment.md)    | [Help file](doc/mini-comment.txt)    |
+| mini.completion | Completion and signature help         | [README](readmes/mini-completion.md) | [Help file](doc/mini-completion.txt) |
+| mini.keymap     | Special key mappings                  | [README](readmes/mini-keymap.md)     | [Help file](doc/mini-keymap.txt)     |
+| mini.move       | Move any selection in any direction   | [README](readmes/mini-move.md)       | [Help file](doc/mini-move.txt)       |
+| mini.operators  | Text edit operators                   | [README](readmes/mini-operators.md)  | [Help file](doc/mini-operators.txt)  |
+| mini.pairs      | Autopairs                             | [README](readmes/mini-pairs.md)      | [Help file](doc/mini-pairs.txt)      |
+| mini.snippets   | Manage and expand snippets            | [README](readmes/mini-snippets.md)   | [Help file](doc/mini-snippets.txt)   |
+| mini.splitjoin  | Split and join arguments              | [README](readmes/mini-splitjoin.md)  | [Help file](doc/mini-splitjoin.txt)  |
+| mini.surround   | Surround actions                      | [README](readmes/mini-surround.md)   | [Help file](doc/mini-surround.txt)   |
+
+### General workflow
+
+These modules improve your general workflow. Start with 'mini.bracketed', 'mini.files', and 'mini.pick'.
+
+| Module         | Description                              | Overview                            | Details                             |
+|----------------|------------------------------------------|-------------------------------------|-------------------------------------|
+| mini.basics    | Common configuration presets             | [README](readmes/mini-basics.md)    | [Help file](doc/mini-basics.txt)    |
+| mini.bracketed | Go forward/backward with square brackets | [README](readmes/mini-bracketed.md) | [Help file](doc/mini-bracketed.txt) |
+| mini.bufremove | Remove buffers                           | [README](readmes/mini-bufremove.md) | [Help file](doc/mini-bufremove.txt) |
+| mini.clue      | Show next key clues                      | [README](readmes/mini-clue.md)      | [Help file](doc/mini-clue.txt)      |
+| mini.deps      | Plugin manager                           | [README](readmes/mini-deps.md)      | [Help file](doc/mini-deps.txt)      |
+| mini.diff      | Work with diff hunks                     | [README](readmes/mini-diff.md)      | [Help file](doc/mini-diff.txt)      |
+| mini.extra     | Extra 'mini.nvim' functionality          | [README](readmes/mini-extra.md)     | [Help file](doc/mini-extra.txt)     |
+| mini.files     | Navigate and manipulate file system      | [README](readmes/mini-files.md)     | [Help file](doc/mini-files.txt)     |
+| mini.git       | Git integration                          | [README](readmes/mini-git.md)       | [Help file](doc/mini-git.txt)       |
+| mini.jump      | Jump to next/previous single character   | [README](readmes/mini-jump.md)      | [Help file](doc/mini-jump.txt)      |
+| mini.jump2d    | Jump within visible lines                | [README](readmes/mini-jump2d.md)    | [Help file](doc/mini-jump2d.txt)    |
+| mini.misc      | Miscellaneous functions                  | [README](readmes/mini-misc.md)      | [Help file](doc/mini-misc.txt)      |
+| mini.pick      | Pick anything                            | [README](readmes/mini-pick.md)      | [Help file](doc/mini-pick.txt)      |
+| mini.sessions  | Session management                       | [README](readmes/mini-sessions.md)  | [Help file](doc/mini-sessions.txt)  |
+| mini.visits    | Track and reuse file system visits       | [README](readmes/mini-visits.md)    | [Help file](doc/mini-visits.txt)    |
+
+### Appearance
+
+These modules improve your Neovim appearance. Start with 'mini.hues', 'mini.icons', and 'mini.statusline'.
+
+| Module           | Description                          | Overview                              | Details                               |
+|------------------|--------------------------------------|---------------------------------------|---------------------------------------|
+| mini.animate     | Animate common Neovim actions        | [README](readmes/mini-animate.md)     | [Help file](doc/mini-animate.txt)     |
+| mini.base16      | Base16 colorscheme creation          | [README](readmes/mini-base16.md)      | [Help file](doc/mini-base16.txt)      |
+| mini.colors      | Tweak and save any color scheme      | [README](readmes/mini-colors.md)      | [Help file](doc/mini-colors.txt)      |
+| mini.cursorword  | Autohighlight word under cursor      | [README](readmes/mini-cursorword.md)  | [Help file](doc/mini-cursorword.txt)  |
+| mini.hipatterns  | Highlight patterns in text           | [README](readmes/mini-hipatterns.md)  | [Help file](doc/mini-hipatterns.txt)  |
+| mini.hues        | Generate configurable color scheme   | [README](readmes/mini-hues.md)        | [Help file](doc/mini-hues.txt)        |
+| mini.icons       | Icon provider                        | [README](readmes/mini-icons.md)       | [Help file](doc/mini-icons.txt)       |
+| mini.indentscope | Visualize and work with indent scope | [README](readmes/mini-indentscope.md) | [Help file](doc/mini-indentscope.txt) |
+| mini.map         | Window with buffer text overview     | [README](readmes/mini-map.md)         | [Help file](doc/mini-map.txt)         |
+| mini.notify      | Show notifications                   | [README](readmes/mini-notify.md)      | [Help file](doc/mini-notify.txt)      |
+| mini.starter     | Start screen                         | [README](readmes/mini-starter.md)     | [Help file](doc/mini-starter.txt)     |
+| mini.statusline  | Statusline                           | [README](readmes/mini-statusline.md)  | [Help file](doc/mini-statusline.txt)  |
+| mini.tabline     | Tabline                              | [README](readmes/mini-tabline.md)     | [Help file](doc/mini-tabline.txt)     |
+| mini.trailspace  | Trailspace (highlight and remove)    | [README](readmes/mini-trailspace.md)  | [Help file](doc/mini-trailspace.txt)  |
+
+### Other
+
+These modules don't quite fit in any of the previous categories.
+
+| Module     | Description                | Overview                        | Details                         |
+|------------|----------------------------|---------------------------------|---------------------------------|
+| mini.doc   | Generate Neovim help files | [README](readmes/mini-doc.md)   | [Help file](doc/mini-doc.txt)   |
+| mini.fuzzy | Fuzzy matching             | [README](readmes/mini-fuzzy.md) | [Help file](doc/mini-fuzzy.txt) |
+| mini.test  | Test Neovim plugins        | [README](readmes/mini-test.md)  | [Help file](doc/mini-test.txt)  |
 
 ## General principles
 
@@ -139,7 +162,11 @@ If you are browsing without particular objective and don't know which module to 
 
     - Values of `config` which affect runtime activity can be changed on the fly to have effect. For example, `MiniSurround.config.n_lines` can be changed during runtime; but changing `MiniSurround.config.mappings` won't have any effect (as mappings are created once during `setup()`).
 
+    - If module works best with some specific non-default option value, it is set during `setup()`. If the value is not essential to module's functionality, it is done only if user or another plugin hasn't set it beforehand (no matter the value).
+
 - **Buffer local configuration**. Each module can be additionally configured to use certain runtime config settings locally to buffer. See `mini.nvim-buffer-local-config` section in help file for more information.
+
+- **Buffer names**. All module-related buffers are named according to the following format: `mini<module-name>://<buffer-number>/<useful-info>` (forward slashes are used on any platform; `<useful-info>` may be empty). This structure allows creating identifiable, reasonably unique, and useful buffer names. For example, 'mini.files' buffers are created per displayed directory/file with names like `minifiles://10/path/to/displayed/directory`.
 
 - **Disabling**. Each module's core functionality can be disabled globally or locally to buffer. See "Disabling" section in module's help page for more details. See `mini.nvim-disabling-recipes` section in main help file for common recipes.
 
@@ -165,9 +192,13 @@ Activate them as regular `colorscheme` (for example, `:colorscheme randomhue` or
 
 This is the list of modules I currently intend to implement eventually (as my free time and dedication will allow), in alphabetical order:
 
+- 'mini.abbrev' - helper to manage/setup Insert mode abbreviations.
+- 'mini.cmdline' - improved Command line. Possibly with custom `vim.ui.input` implementation.
 - 'mini.cycle' - cycle through alternatives with pre-defined rules. Something like [monaqa/dial.nvim](https://github.com/monaqa/dial.nvim) and [AndrewRadev/switch.vim](https://github.com/AndrewRadev/switch.vim)
-- 'mini.keymap' - utilities to make non-trivial mappings (like [max397574/better-escape.nvim](https://github.com/max397574/better-escape.nvim) and dot-repeatable mappings).
-- 'mini.snippets' - work with snippets. Something like [L3MON4D3/LuaSnip](https://github.com/L3MON4D3/LuaSnip) but only with more straightforward functionality.
+- 'mini.folds' - more capable and user-friendly folds.
+- 'mini.repl' - extendable wrapper for REPLs with built-in support for R, Python, Julia, and maybe (just maybe) some AI tools.
+- 'mini.sendtext' - send text between buffers. In particular between regular and built-in terminal buffers.
 - 'mini.statuscolumn' - customizable 'statuscolumn'.
-- 'mini.terminals' - coherently manage terminal windows and send text from buffers to terminal windows. Something like [kassio/neoterm](https://github.com/kassio/neoterm).
-- 'mini.quickfix' - fuzzy search and preview of quickfix entries. Possibly with some presets for populating quickfix list (like files, help tags, etc.). Similar to [kevinhwang91/nvim-bqf](https://github.com/kevinhwang91/nvim-bqf).
+- 'mini.terminals' - coherently manage interactive terminal buffers. Something like [kassio/neoterm](https://github.com/kassio/neoterm). Might also incorporate functionality to asynchronously run code in shell with post-processed results.
+- 'mini.quickfix' - more capable and user-friendly quickfix list. Possibly with preview and inline editing for search-and-replace workflow.
+- 'mini.windows' - window manager. Interactive picker, layout organizer, and maybe more.

@@ -116,6 +116,15 @@ local H = {}
 ---   require('mini.animate').setup({}) -- replace {} with your config table
 --- <
 MiniAnimate.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.animate) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniAnimate = MiniAnimate
 
@@ -241,8 +250,14 @@ end
 ---   '<Cmd>lua vim.cmd("normal! n"); ' ..
 ---     'MiniAnimate.execute_after("scroll", "normal! zvzz")<CR>'
 --- <
---- - This animation works best with Neovim>=0.9 (after certain updates to
----   |WinScrolled| event).
+--- - Default timing might conflict with scrolling via holding a key (like `j` or `k`
+---   with 'wrap' enabled) due to high key repeat rate: next scroll is done before
+---   first step of current one finishes. Resolve this by not scrolling like that
+---   or by ensuring maximum value of step duration to be lower than between
+---   repeated keys: set timing like `function(_, n) return math.min(250/n, 10) end`
+---   or use timing with constant step duration.
+--- - This animation works best with Neovim>=0.9 (after certain updates
+---   to |WinScrolled| event).
 ---
 --- Configuration example: >lua
 ---
@@ -342,14 +357,14 @@ end
 ---     {
 ---       row      = 0,        col    = 0,
 ---       width    = 10,       height = 10,
----       relative = 'editor', anchor = 'NW', focusable = false,
----       zindex   = 1,        style  = 'minimal',
+---       relative = 'editor', anchor = 'NW',   focusable = false,
+---       zindex   = 1,        border = 'none', style  = 'minimal',
 ---     },
 ---     {
 ---       row      = 0,        col    = 0,
 ---       width    = 5,        height = 5,
----       relative = 'editor', anchor = 'NW', focusable = false,
----       zindex   = 1,        style  = 'minimal',
+---       relative = 'editor', anchor = 'NW',   focusable = false,
+---       zindex   = 1,        border = 'none', style  = 'minimal',
 ---     },
 ---   }
 --- <
@@ -400,13 +415,15 @@ MiniAnimate.config = {
     enable = true,
 
     -- Timing of animation (how steps will progress in time)
-    --minidoc_replace_start timing = --<function: implements linear total 250ms animation duration>,
+    --minidoc_replace_start timing = --<function: linear animation, total 250ms>,
     timing = function(_, n) return 250 / n end,
     --minidoc_replace_end
 
     -- Path generator for visualized cursor movement
-    --minidoc_replace_start path = --<function: implements shortest line path>,
-    path = function(destination) return H.path_line(destination, { predicate = H.default_path_predicate }) end,
+    --minidoc_replace_start path = --<function: implements shortest line path no longer than 1000>,
+    path = function(destination)
+      return H.path_line(destination, { predicate = H.default_path_predicate, max_output_steps = 1000 })
+    end,
     --minidoc_replace_end
   },
 
@@ -416,7 +433,7 @@ MiniAnimate.config = {
     enable = true,
 
     -- Timing of animation (how steps will progress in time)
-    --minidoc_replace_start timing = --<function: implements linear total 250ms animation duration>,
+    --minidoc_replace_start timing = --<function: linear animation, total 250ms>,
     timing = function(_, n) return 250 / n end,
     --minidoc_replace_end
 
@@ -434,7 +451,7 @@ MiniAnimate.config = {
     enable = true,
 
     -- Timing of animation (how steps will progress in time)
-    --minidoc_replace_start timing = --<function: implements linear total 250ms animation duration>,
+    --minidoc_replace_start timing = --<function: linear animation, total 250ms>,
     timing = function(_, n) return 250 / n end,
     --minidoc_replace_end
 
@@ -452,7 +469,7 @@ MiniAnimate.config = {
     enable = true,
 
     -- Timing of animation (how steps will progress in time)
-    --minidoc_replace_start timing = --<function: implements linear total 250ms animation duration>,
+    --minidoc_replace_start timing = --<function: linear animation, total 250ms>,
     timing = function(_, n) return 250 / n end,
     --minidoc_replace_end
 
@@ -475,7 +492,7 @@ MiniAnimate.config = {
     enable = true,
 
     -- Timing of animation (how steps will progress in time)
-    --minidoc_replace_start timing = --<function: implements linear total 250ms animation duration>,
+    --minidoc_replace_start timing = --<function: linear animation, total 250ms>,
     timing = function(_, n) return 250 / n end,
     --minidoc_replace_end
 
@@ -720,10 +737,12 @@ MiniAnimate.gen_path = {}
 --- Generate path as shortest line
 ---
 ---@param opts __animate_path_opts_common
+---   - <max_output_steps> `(number)` - maximum number of steps in output.
+---     Default: 1000.
 ---
 ---@return __animate_path_return
 MiniAnimate.gen_path.line = function(opts)
-  opts = vim.tbl_deep_extend('force', { predicate = H.default_path_predicate }, opts or {})
+  opts = vim.tbl_deep_extend('force', { predicate = H.default_path_predicate, max_output_steps = 1000 }, opts or {})
 
   return function(destination) return H.path_line(destination, opts) end
 end
@@ -731,39 +750,42 @@ end
 --- Generate path as line/column angle
 ---
 ---@param opts __animate_path_opts_common
+---   - <max_output_steps> `(number)` - maximum number of steps per side in output.
+---     Default: 1000.
 ---   - <first_direction> `(string)` - one of `"horizontal"` (default; animates
 ---     across initial line first) or `"vertical"` (animates across initial
 ---     column first).
 ---
 ---@return __animate_path_return
 MiniAnimate.gen_path.angle = function(opts)
-  opts = opts or {}
-  local predicate = opts.predicate or H.default_path_predicate
-  local first_direction = opts.first_direction or 'horizontal'
+  local default_opts = { predicate = H.default_path_predicate, max_output_steps = 1000, first_direction = 'horizontal' }
+  opts = vim.tbl_deep_extend('force', default_opts, opts or {})
 
   local append_horizontal = function(res, dest_col, const_line)
-    local step = H.make_step(dest_col)
-    if step == 0 then return end
-    for i = 0, dest_col - step, step do
-      table.insert(res, { const_line, i })
+    if dest_col == 0 then return end
+    local n_steps = math.min(math.abs(dest_col), opts.max_output_steps)
+    local coef = dest_col / n_steps
+    for i = 0, n_steps - 1 do
+      table.insert(res, { const_line, H.round(coef * i) })
     end
   end
 
   local append_vertical = function(res, dest_line, const_col)
-    local step = H.make_step(dest_line)
-    if step == 0 then return end
-    for i = 0, dest_line - step, step do
-      table.insert(res, { i, const_col })
+    if dest_line == 0 then return end
+    local n_steps = math.min(math.abs(dest_line), opts.max_output_steps)
+    local coef = dest_line / n_steps
+    for i = 0, n_steps - 1 do
+      table.insert(res, { H.round(coef * i), const_col })
     end
   end
 
   return function(destination)
     -- Don't animate in case of false predicate
-    if not predicate(destination) then return {} end
+    if not opts.predicate(destination) then return {} end
 
     -- Travel along horizontal/vertical lines
     local res = {}
-    if first_direction == 'horizontal' then
+    if opts.first_direction == 'horizontal' then
       append_horizontal(res, destination[2], 0)
       append_vertical(res, destination[1], destination[2])
     else
@@ -1012,6 +1034,7 @@ MiniAnimate.gen_winconfig.center = function(opts)
         height    = math.ceil((1 - coef) * height),
         focusable = false,
         zindex    = 1,
+        border    = 'none',
         style     = 'minimal',
       }
     end
@@ -1088,6 +1111,7 @@ MiniAnimate.gen_winconfig.wipe = function(opts)
         height = cur_height,
         focusable = false,
         zindex = 1,
+        border = 'none',
         style = 'minimal',
       }
       cur_row = cur_row + increment_row
@@ -1192,18 +1216,35 @@ H.animation_done_events = {
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  vim.validate({
-    cursor = { config.cursor, H.is_config_cursor },
-    scroll = { config.scroll, H.is_config_scroll },
-    resize = { config.resize, H.is_config_resize },
-    open = { config.open, H.is_config_open },
-    close = { config.close, H.is_config_close },
-  })
+  H.check_type('cursor', config.cursor, 'table')
+  H.check_type('cursor.enable', config.cursor.enable, 'boolean')
+  H.check_type('cursor.timing', config.cursor.timing, 'callable')
+  H.check_type('cursor.path', config.cursor.path, 'callable')
+
+  H.check_type('scroll', config.scroll, 'table')
+  H.check_type('scroll.enable', config.scroll.enable, 'boolean')
+  H.check_type('scroll.timing', config.scroll.timing, 'callable')
+  H.check_type('scroll.subscroll', config.scroll.subscroll, 'callable')
+
+  H.check_type('resize', config.resize, 'table')
+  H.check_type('resize.enable', config.resize.enable, 'boolean')
+  H.check_type('resize.timing', config.resize.timing, 'callable')
+  H.check_type('resize.subresize', config.resize.subresize, 'callable')
+
+  H.check_type('open', config.open, 'table')
+  H.check_type('open.enable', config.open.enable, 'boolean')
+  H.check_type('open.timing', config.open.timing, 'callable')
+  H.check_type('open.winconfig', config.open.winconfig, 'callable')
+  H.check_type('open.winblend', config.open.winblend, 'callable')
+
+  H.check_type('close', config.close, 'table')
+  H.check_type('close.enable', config.close.enable, 'boolean')
+  H.check_type('close.timing', config.close.timing, 'callable')
+  H.check_type('close.winconfig', config.close.winconfig, 'callable')
+  H.check_type('close.winblend', config.close.winblend, 'callable')
 
   return config
 end
@@ -1491,7 +1532,8 @@ end
 -- Scroll ---------------------------------------------------------------------
 H.make_scroll_step = function(state_from, state_to, opts)
   -- Do not animate in Select mode because it resets it
-  if H.is_select_mode() then return end
+  local is_select_mode = ({ s = true, S = true, ['\19'] = true })[vim.fn.mode()]
+  if is_select_mode then return end
 
   -- Compute how subscrolling is done
   local from_line, to_line = state_from.view.topline, state_to.view.topline
@@ -1566,8 +1608,13 @@ H.scroll_action = function(key, n, cursor_data)
   local line = math.min(math.max(cursor_data.line, top), bottom)
 
   -- Cursor can only be set using byte column. To place it in the most correct
-  -- virtual column, use tweaked version of `virtcol2col()`
-  local col = H.virtcol2col(line, cursor_data.virtcol)
+  -- virtual column, tweak output of `virtcol2col()`
+  local virtcol = cursor_data.virtcol
+  local col = vim.fn.virtcol2col(0, line, virtcol)
+  -- - Correct for virtual column being outside of line's last virtual column
+  local virtcol_past_lineend = vim.fn.virtcol({ line, '$' })
+  if virtcol_past_lineend <= virtcol then col = col + virtcol - virtcol_past_lineend + 1 end
+
   pcall(vim.api.nvim_win_set_cursor, 0, { line, col - 1 })
 end
 
@@ -1771,6 +1818,7 @@ H.make_openclose_step = function(action_type, win_id, config)
       -- Empty buffer should always be valid (might have been closed by user command)
       if H.empty_buf_id == nil or not vim.api.nvim_buf_is_valid(H.empty_buf_id) then
         H.empty_buf_id = vim.api.nvim_create_buf(false, true)
+        H.set_buf_name(H.empty_buf_id, 'open-close-scratch')
       end
 
       -- Set step config to window. Possibly (re)open (it could have been
@@ -1938,7 +1986,7 @@ H.path_line = function(destination, opts)
   -- step before destination
   local l, c = destination[1], destination[2]
   local l_abs, c_abs = math.abs(l), math.abs(c)
-  local max_diff = math.max(l_abs, c_abs)
+  local max_diff = math.min(math.max(l_abs, c_abs), opts.max_output_steps)
 
   local res = {}
   for i = 0, max_diff - 1 do
@@ -1955,9 +2003,13 @@ H.subscroll_equal = function(total_scroll, opts)
   -- Don't animate in case of false predicate
   if not opts.predicate(total_scroll) then return {} end
 
-  -- Don't make more than `max_output_steps` steps
+  -- Make equal steps, but no more than `max_output_steps`
   local n_steps = math.min(total_scroll, opts.max_output_steps)
-  return H.divide_equal(total_scroll, n_steps)
+  local res, coef = {}, total_scroll / n_steps
+  for i = 1, n_steps do
+    res[i] = math.floor(i * coef) - math.floor((i - 1) * coef)
+  end
+  return res
 end
 
 H.default_subscroll_predicate = function(total_scroll) return total_scroll > 1 end
@@ -2017,6 +2069,7 @@ H.winconfig_static = function(win_id, opts)
         height    = height,
         focusable = false,
         zindex    = 1,
+        border    = 'none',
         style     = 'minimal',
       }
   end
@@ -2048,58 +2101,15 @@ end
 
 H.default_winconfig_predicate = function(win_id) return true end
 
--- Predicators ----------------------------------------------------------------
-H.is_config_cursor = function(x)
-  if type(x) ~= 'table' then return false, H.msg_config('cursor', 'table') end
-  if type(x.enable) ~= 'boolean' then return false, H.msg_config('cursor.enable', 'boolean') end
-  if not vim.is_callable(x.timing) then return false, H.msg_config('cursor.timing', 'callable') end
-  if not vim.is_callable(x.path) then return false, H.msg_config('cursor.path', 'callable') end
-
-  return true
-end
-
-H.is_config_scroll = function(x)
-  if type(x) ~= 'table' then return false, H.msg_config('scroll', 'table') end
-  if type(x.enable) ~= 'boolean' then return false, H.msg_config('scroll.enable', 'boolean') end
-  if not vim.is_callable(x.timing) then return false, H.msg_config('scroll.timing', 'callable') end
-  if not vim.is_callable(x.subscroll) then return false, H.msg_config('scroll.subscroll', 'callable') end
-
-  return true
-end
-
-H.is_config_resize = function(x)
-  if type(x) ~= 'table' then return false, H.msg_config('resize', 'table') end
-  if type(x.enable) ~= 'boolean' then return false, H.msg_config('resize.enable', 'boolean') end
-  if not vim.is_callable(x.timing) then return false, H.msg_config('resize.timing', 'callable') end
-  if not vim.is_callable(x.subresize) then return false, H.msg_config('resize.subresize', 'callable') end
-
-  return true
-end
-
-H.is_config_open = function(x)
-  if type(x) ~= 'table' then return false, H.msg_config('open', 'table') end
-  if type(x.enable) ~= 'boolean' then return false, H.msg_config('open.enable', 'boolean') end
-  if not vim.is_callable(x.timing) then return false, H.msg_config('open.timing', 'callable') end
-  if not vim.is_callable(x.winconfig) then return false, H.msg_config('open.winconfig', 'callable') end
-  if not vim.is_callable(x.winblend) then return false, H.msg_config('open.winblend', 'callable') end
-
-  return true
-end
-
-H.is_config_close = function(x)
-  if type(x) ~= 'table' then return false, H.msg_config('close', 'table') end
-  if type(x.enable) ~= 'boolean' then return false, H.msg_config('close.enable', 'boolean') end
-  if not vim.is_callable(x.timing) then return false, H.msg_config('close.timing', 'callable') end
-  if not vim.is_callable(x.winconfig) then return false, H.msg_config('close.winconfig', 'callable') end
-  if not vim.is_callable(x.winblend) then return false, H.msg_config('close.winblend', 'callable') end
-
-  return true
-end
-
-H.msg_config = function(x_name, msg) return string.format('`%s` should be %s.', x_name, msg) end
-
 -- Utilities ------------------------------------------------------------------
-H.error = function(msg) error(string.format('(mini.animate) %s', msg), 0) end
+H.error = function(msg) error('(mini.animate) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
+
+H.set_buf_name = function(buf_id, name) vim.api.nvim_buf_set_name(buf_id, 'minianimate://' .. buf_id .. '/' .. name) end
 
 H.validate_if = function(predicate, x, x_name)
   local is_valid, msg = predicate(x, x_name)
@@ -2122,30 +2132,8 @@ H.get_n_visible_lines = function(from_line, to_line)
   return res
 end
 
-H.make_step = function(x) return x == 0 and 0 or (x < 0 and -1 or 1) end
-
 H.round = function(x) return math.floor(x + 0.5) end
 
-H.divide_equal = function(x, n)
-  local res, coef = {}, x / n
-  for i = 1, n do
-    res[i] = math.floor(i * coef) - math.floor((i - 1) * coef)
-  end
-  return res
-end
-
 H.convex_point = function(x, y, coef) return H.round((1 - coef) * x + coef * y) end
-
-H.virtcol2col = function(line, virtcol)
-  local col = vim.fn.virtcol2col(0, line, virtcol)
-
-  -- Current for virtual column being outside of line's last virtual column
-  local virtcol_past_lineend = vim.fn.virtcol({ line, '$' })
-  if virtcol_past_lineend <= virtcol then col = col + virtcol - virtcol_past_lineend + 1 end
-
-  return col
-end
-
-H.is_select_mode = function() return ({ s = true, S = true, ['\19'] = true })[vim.fn.mode()] end
 
 return MiniAnimate

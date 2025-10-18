@@ -25,7 +25,7 @@ Features:
     - Argument.
     - Tag.
     - Derived from user prompt.
-    - Default for punctuation, digit, space, or tab.
+    - Default for anything but Latin letters (to fall back to |text-objects|).
 
     For more textobjects see |MiniExtra.gen_ai_spec|.
 
@@ -85,8 +85,7 @@ To stop module from showing non-error feedback, set `config.silent = true`.
       textobjects. 'mini.ai' does it via |MiniAi.find_textobject()|.
     - Has no implementation of "moving to edge of textobject". 'mini.ai'
       does it via |MiniAi.move_cursor()| and `g[` and `g]` default mappings.
-    - Has elaborate ways to control searching of the next textobject.
-      'mini.ai' relies on handful of 'config.search_method'.
+    - Both implement the notion of manual "next"/"last" search directions.
     - Implements `A`, `I` operators. 'mini.ai' does not by design: it is
       assumed to be a property of textobject, not operator.
     - Doesn't implement "function call" and "user prompt" textobjects.
@@ -98,8 +97,8 @@ To stop module from showing non-error feedback, set `config.silent = true`.
     - Along with textobject functionality provides a curated and maintained
       set of popular textobject queries for many languages (which can power
       |MiniAi.gen_spec.treesitter()| functionality).
-    - Operates with custom treesitter directives (see
-      |lua-treesitter-directives|) allowing more fine-tuned textobjects.
+    - Both support working with |lua-treesitter-directives| allowing more
+      fine-tuned textobjects.
     - Implements only textobjects based on treesitter.
     - Doesn't support |v:count|.
     - Doesn't support multiple search method (basically, only 'cover').
@@ -119,8 +118,8 @@ Builtin textobjects ~
 
 This table describes all builtin textobjects along with what they
 represent. Explanation:
-- `Key` represents the textobject identifier: single alphanumeric,
-  punctuation, space, or tab character which should be typed after `a`/`i`.
+- `Key` represents the textobject identifier: single character which should
+  be typed after `a`/`i`.
 - `Name` is a description of textobject.
 - `Example line` contains a string for which examples are constructed. The
   `*` denotes the cursor position.
@@ -164,18 +163,15 @@ to left/right edge of `a` textobject.
  |---|---------------|-1234567890123456-|--------|--------|--------|--------|
  | a |   Argument    | f(*a, g(b, c) )  | [3;5]  | [3;4]  | [5;14] | [7;13] |
  |---|---------------|-1234567890123456-|--------|--------|--------|--------|
- |   |    Default    |                  |        |        |        |        |
- |   |   (digits,    | aa_*b__cc___     | [4;7]  | [4;5]  | [8;12] | [8;9]  |
- |   | punctuation,  | (example for _)  |        |        |        |        |
- |   | or whitespace)|                  |        |        |        |        |
+ |   |    Default    | aa_*b__cc___     | [4;7]  | [4;5]  | [8;12] | [8;9]  |
+ |   |   (typed _)   |                  |        |        |        |        |
  |---|---------------|-1234567890123456-|--------|--------|--------|--------|
 <
 Notes:
 - All examples assume default `config.search_method`.
 - Open brackets differ from close brackets by how they treat inner edge
   whitespace for `i` textobject: open ignores it, close - includes.
-- Default textobject is activated for identifiers from digits (0, ..., 9),
-  punctuation (like `_`, `*`, `,`, etc.), whitespace (space, tab, etc.).
+- Default textobject is activated for identifiers which are not Latin letters.
   They are designed to be treated as separators, so include only right edge
   in `a` textobject. To include both edges, use custom textobjects
   (see |MiniAi-textobject-specification| and |MiniAi.config|). Note:
@@ -456,6 +452,8 @@ Default values:
     search_method = 'cover_or_next',
 
     -- Whether to disable showing non-error feedback
+    -- This also affects (purely informational) helper messages shown after
+    -- idle time if user input is required.
     silent = false,
   }
 <
@@ -463,11 +461,17 @@ Default values:
 
 ## Custom textobjects ~
 
-Each named entry of `config.custom_textobjects` is a textobject with
-that identifier and specification (see |MiniAi-textobject-specification|).
-They are also used to override builtin ones (|MiniAi-textobject-builtin|).
-Supply non-valid input (not in specification format) to disable module's
-builtin textobject in favor of external or Neovim's builtin mapping.
+User can define own textobjects by supplying `config.custom_textobjects`.
+It should be a table with keys being single character textobject identifier
+(supported by |getcharstr()|) and values - textobject specification
+(see |MiniAi-textobject-specification|).
+
+General recommendations:
+- This can be used to override builtin ones (|MiniAi-textobject-builtin|).
+  Supply non-valid input (not in specification format) to disable module's
+  builtin textobject in favor of external or Neovim's builtin mapping.
+- Keys should use character representation which can be |getcharstr()| output.
+  For example, `'\r'` and not `'<CR>'`.
 
 Examples:
 >lua
@@ -748,6 +752,11 @@ Notes:
   (falls back to builtin methods otherwise). This allows for a more
   advanced features (like multiple buffer languages, custom directives, etc.).
   See `opts.use_nvim_treesitter` for how to disable this.
+- Be sure that query files don't contain unknown |treesitter-directives|
+  (like `#make-range!`, for example). Otherwise textobject for such capture
+  might not be found as |vim.treesitter| won't treat them as captures. Verify
+  with `:=vim.treesitter.query.get('lang', 'textobjects')` and see if the
+  target capture is recognized as one.
 - It uses buffer's |filetype| to determine query language.
 - On large files it is slower than pattern-based textobjects. Still very
   fast though (one search should be magnitude of milliseconds or tens of

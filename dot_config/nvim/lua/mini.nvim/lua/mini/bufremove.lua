@@ -60,6 +60,15 @@ local H = {}
 ---   require('mini.bufremove').setup({}) -- replace {} with your config table
 --- <
 MiniBufremove.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.bufremove) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniBufremove = MiniBufremove
 
@@ -75,9 +84,6 @@ end
 --- Default values:
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 MiniBufremove.config = {
-  -- Whether to set Vim's settings for buffers (allow hidden buffers)
-  set_vim_settings = true,
-
   -- Whether to disable showing non-error feedback
   silent = false,
 }
@@ -161,7 +167,8 @@ MiniBufremove.unshow_in_window = function(win_id)
     local has_previous = pcall(vim.cmd, 'bprevious')
     if has_previous and cur_buf ~= vim.api.nvim_win_get_buf(win_id) then return end
 
-    -- Create new listed buffer
+    -- Create new listed scratch buffer
+    -- NOTE: leave it unnamed to allow `:h buffer-reuse`
     local new_buf = vim.api.nvim_create_buf(true, false)
     vim.api.nvim_win_set_buf(win_id, new_buf)
   end)
@@ -176,26 +183,15 @@ H.default_config = vim.deepcopy(MiniBufremove.config)
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  vim.validate({
-    set_vim_settings = { config.set_vim_settings, 'boolean' },
-    silent = { config.silent, 'boolean' },
-  })
+  H.check_type('silent', config.silent, 'boolean')
 
   return config
 end
 
-H.apply_config = function(config)
-  MiniBufremove.config = config
-
-  if config.set_vim_settings then
-    vim.o.hidden = true -- Allow hidden buffers
-  end
-end
+H.apply_config = function(config) MiniBufremove.config = config end
 
 H.is_disabled = function() return vim.g.minibufremove_disable == true or vim.b.minibufremove_disable == true end
 
@@ -241,6 +237,13 @@ H.unshow_and_cmd = function(buf_id, force, cmd)
 end
 
 -- Utilities ------------------------------------------------------------------
+H.error = function(msg) error('(mini.bufremove) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
+
 H.echo = function(msg, is_important)
   if MiniBufremove.config.silent then return end
 

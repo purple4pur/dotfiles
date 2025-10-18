@@ -109,6 +109,7 @@
 --- All operators are automatically mapped during |MiniOperators.setup()| execution.
 --- Mappings keys are deduced from `prefix` field of corresponding `config` entry.
 --- All built-in conflicting mappings are removed (like |gra|, |grn| in Neovim>=0.11).
+--- Both |gx| and |v_gx| are remapped to `gX` (if that is not already taken).
 ---
 --- For each operator the following mappings are created:
 ---
@@ -149,7 +150,7 @@
 --- <
 ---@tag MiniOperators-overview
 
----@alias __operators_mode string|nil One of `nil`, `'char'`, `'line'`, `''block`, `'visual'`.
+---@alias __operators_mode string|nil One of `nil`, `'char'`, `'line'`, `'block'`, `'visual'`.
 ---@alias __operators_content table Table with the following fields:
 ---   - <lines> `(table)` - array with content lines.
 ---   - <submode> `(string)` - region submode. One of `'v'`, `'V'`, `'<C-v>'` (escaped).
@@ -173,6 +174,15 @@ local H = {}
 ---   require('mini.operators').setup({}) -- replace {} with your config table
 --- <
 MiniOperators.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.operators) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniOperators = MiniOperators
 
@@ -668,35 +678,28 @@ H.submode_keys = {
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  vim.validate({
-    evaluate = { config.evaluate, 'table' },
-    exchange = { config.exchange, 'table' },
-    multiply = { config.multiply, 'table' },
-    replace = { config.replace, 'table' },
-    sort = { config.sort, 'table' },
-  })
+  H.check_type('evaluate', config.evaluate, 'table')
+  H.check_type('evaluate.prefix', config.evaluate.prefix, 'string')
+  H.check_type('evaluate.func', config.evaluate.func, 'function', true)
 
-  vim.validate({
-    ['evaluate.prefix'] = { config.evaluate.prefix, 'string' },
-    ['evaluate.func'] = { config.evaluate.func, 'function', true },
+  H.check_type('exchange', config.exchange, 'table')
+  H.check_type('exchange.prefix', config.exchange.prefix, 'string')
+  H.check_type('exchange.reindent_linewise', config.exchange.reindent_linewise, 'boolean')
 
-    ['exchange.prefix'] = { config.exchange.prefix, 'string' },
-    ['exchange.reindent_linewise'] = { config.exchange.reindent_linewise, 'boolean' },
+  H.check_type('multiply', config.multiply, 'table')
+  H.check_type('multiply.prefix', config.multiply.prefix, 'string')
+  H.check_type('multiply.func', config.multiply.func, 'function', true)
 
-    ['multiply.prefix'] = { config.multiply.prefix, 'string' },
-    ['multiply.func'] = { config.multiply.func, 'function', true },
+  H.check_type('replace', config.replace, 'table')
+  H.check_type('replace.prefix', config.replace.prefix, 'string')
+  H.check_type('replace.reindent_linewise', config.replace.reindent_linewise, 'boolean')
 
-    ['replace.prefix'] = { config.replace.prefix, 'string' },
-    ['replace.reindent_linewise'] = { config.replace.reindent_linewise, 'boolean' },
-
-    ['sort.prefix'] = { config.sort.prefix, 'string' },
-    ['sort.func'] = { config.sort.func, 'function', true },
-  })
+  H.check_type('sort', config.sort, 'table')
+  H.check_type('sort.prefix', config.sort.prefix, 'string')
+  H.check_type('sort.func', config.sort.func, 'function', true)
 
   return config
 end
@@ -710,6 +713,14 @@ H.apply_config = function(config)
     vim.keymap.del(mode, lhs)
   end
 
+  local remap_builtin_gx = function(mode)
+    if vim.fn.maparg('gX', mode) ~= '' then return end
+    local keymap = vim.fn.maparg('gx', mode, false, true)
+    local rhs = keymap.callback or keymap.rhs
+    if rhs == nil or (keymap.desc or ''):find('URI under cursor') == nil then return end
+    vim.keymap.set(mode, 'gX', rhs, { desc = keymap.desc })
+  end
+
   -- Make mappings
   local map_all = function(operator_name)
     -- Map only valid LHS
@@ -720,8 +731,14 @@ H.apply_config = function(config)
     if prefix == 'gr' and vim.fn.has('nvim-0.11') == 1 then
       remove_lsp_mapping('n', 'gra')
       remove_lsp_mapping('x', 'gra')
+      remove_lsp_mapping('n', 'gri')
       remove_lsp_mapping('n', 'grr')
       remove_lsp_mapping('n', 'grn')
+    end
+
+    if prefix == 'gx' and vim.fn.has('nvim-0.10') == 1 then
+      remap_builtin_gx('n')
+      remap_builtin_gx('x')
     end
 
     local lhs_tbl = {
@@ -883,7 +900,7 @@ H.exchange_set_region_extmark = function(mode, add_highlight)
   if add_highlight and extmark_hl_group == nil then
     -- Highlighting blockwise region needs full register type with width
     local opts = { regtype = H.exchange_get_blockwise_regtype(markcoords_from, markcoords_to) }
-    vim.highlight.range(buf_id, ns_id, 'MiniOperatorsExchangeFrom', extmark_from, extmark_to, opts)
+    H.highlight_range(buf_id, ns_id, 'MiniOperatorsExchangeFrom', extmark_from, extmark_to, opts)
   end
 
   -- Return data to cache
@@ -995,9 +1012,15 @@ H.replace_do = function(data)
   local register, submode = data.register, data.submode
   local mark_from, mark_to = data.mark_from, data.mark_to
 
-  -- Do nothing with empty/unknown register
+  -- Do nothing with invalid register (don't allow A-Z because they are used to
+  -- append to lowercase register and have no use here)
+  local reg_is_invalid = string.find(register, '^[0-9a-z"%-:.%%#=*+_/]$') == nil
+  if reg_is_invalid then H.error('Register ' .. vim.inspect(register) .. ' is invalid.') end
+
+  -- Get reginfo and infer missing data (can be empty for special registers)
   local reg_info = vim.fn.getreginfo(register)
-  if reg_info.regtype == nil then H.error('Register ' .. vim.inspect(register) .. ' is empty or unknown.') end
+  if reg_info.regcontents == nil then H.error('Register ' .. vim.inspect(register) .. ' is empty.') end
+  reg_info.regtype = reg_info.regtype or 'v'
 
   -- Determine if region is at edge which is needed for the correct paste key
   local from_line, from_col = unpack(H.get_mark(mark_from))
@@ -1025,18 +1048,23 @@ H.replace_do = function(data)
     { mark_from = mark_from, mark_to = mark_to, submode = forced_motion, mode = data.mode, register = '_' }
   H.do_between_marks('d', delete_data)
 
-  -- Modify register data to have proper submode and indent
-  local new_reg_info = vim.deepcopy(reg_info)
-  if new_reg_info.regtype:sub(1, 1) ~= submode then new_reg_info.regtype = submode end
-  if should_reindent then new_reg_info.regcontents = H.update_indent(new_reg_info.regcontents, init_indent) end
-  vim.fn.setreg(register, new_reg_info)
+  -- Set temporary register data to have proper submode and indent
+  -- NOTE: use dedicated temporary register to workaround not being able to
+  -- write register data into readonly registers ('%', '#', '.').
+  local tmp_register, tmp_reg_info = register == '=' and '=' or 'x', vim.deepcopy(reg_info)
+  if tmp_reg_info.regtype:sub(1, 1) ~= submode then tmp_reg_info.regtype = submode end
+  if should_reindent then tmp_reg_info.regcontents = H.update_indent(tmp_reg_info.regcontents, init_indent) end
+
+  local cache_reg_info = vim.fn.getreginfo(tmp_register)
+  vim.fn.setreg(tmp_register, tmp_reg_info)
 
   -- Paste
-  local paste_keys = string.format('%d"%s%s', data.count or 1, register, (is_edge and 'p' or 'P'))
+  local expr_reg_keys = tmp_register == '=' and (reg_info.regcontents[1] .. '\r') or ''
+  local paste_keys = (data.count or 1) .. '"' .. tmp_register .. expr_reg_keys .. (is_edge and 'p' or 'P')
   H.cmd_normal(paste_keys)
 
-  -- Restore register data
-  vim.fn.setreg(register, reg_info)
+  -- Restore temporary register data
+  vim.fn.setreg(tmp_register, cache_reg_info)
 
   -- Adjust cursor to be at start mark
   vim.api.nvim_win_set_cursor(0, { from_line, from_col })
@@ -1128,9 +1156,14 @@ H.do_between_marks = function(operator, data)
   local cache_selection = vim.o.selection
   if data.mode == 'block' and vim.o.selection == 'exclusive' then vim.o.selection = 'inclusive' end
 
+  -- Don't trigger `TextYankPost` event as these yanks are not user-facing
+  local is_yank = operator == 'y'
+  local cache_eventignore = vim.o.eventignore
+  if is_yank then vim.o.eventignore = 'TextYankPost' end
+
   -- Make sure that marks `[` and `]` don't change after `y`
   local context_marks = { '<', '>' }
-  if operator == 'y' then context_marks = vim.list_extend(context_marks, { '[', ']' }) end
+  if is_yank then context_marks = vim.list_extend(context_marks, { '[', ']' }) end
   H.with_temp_context({ marks = context_marks }, function()
     local mark_from, mark_to, submode, register = data.mark_from, data.mark_to, data.submode, data.register
     local keys
@@ -1143,12 +1176,11 @@ H.do_between_marks = function(operator, data)
     -- Make sure that outer action is dot-repeatable by cancelling effect of
     -- `d` or dot-repeatable `y`
     local cancel_redo = operator == 'd' or (operator == 'y' and vim.o.cpoptions:find('y') ~= nil)
-    -- Don't trigger `TextYankPost` event as this yank is not user-facing
-    local noautocmd = operator == 'y'
-    H.cmd_normal(keys, { cancel_redo = cancel_redo, noautocmd = noautocmd })
+    H.cmd_normal(keys, { cancel_redo = cancel_redo })
   end)
 
   vim.o.selection = cache_selection
+  if is_yank then vim.o.eventignore = cache_eventignore end
 end
 
 H.is_content = function(x) return type(x) == 'table' and H.islist(x.lines) and type(x.submode) == 'string' end
@@ -1211,7 +1243,12 @@ H.update_indent = function(lines, new_indent)
 end
 
 -- Utilities ------------------------------------------------------------------
-H.error = function(msg) error(string.format('(mini.operators) %s', msg), 0) end
+H.error = function(msg) error('(mini.operators) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
 
 H.map = function(mode, lhs, rhs, opts)
   if lhs == '' then return end
@@ -1272,15 +1309,17 @@ H.cmd_normal = function(command, opts)
   opts = opts or {}
   local cancel_redo = opts.cancel_redo
   if cancel_redo == nil then cancel_redo = true end
-  local noautocmd = opts.noautocmd
-  if noautocmd == nil then noautocmd = false end
 
-  vim.cmd('silent keepjumps ' .. (noautocmd and 'noautocmd ' or '') .. 'normal! ' .. command)
+  vim.cmd('silent keepjumps normal! ' .. command)
 
   if cancel_redo then H.cancel_redo() end
 end
 
 -- TODO: Remove after compatibility with Neovim=0.9 is dropped
 H.islist = vim.fn.has('nvim-0.10') == 1 and vim.islist or vim.tbl_islist
+
+-- TODO: Remove after compatibility with Neovim=0.10 is dropped
+H.highlight_range = function(...) vim.hl.range(...) end
+if vim.fn.has('nvim-0.11') == 0 then H.highlight_range = function(...) vim.highlight.range(...) end end
 
 return MiniOperators

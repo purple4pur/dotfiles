@@ -62,7 +62,7 @@
 ---   Window in current tab........... `[W` `[w` `]w` `]W` .... |MiniBracketed.window()|
 ---
 ---   Yank selection replacing
----   latest put region................`[Y` `[y` `]y` `]Y` .... |MiniBracketed.yank()|
+---   latest put region............... `[Y` `[y` `]y` `]Y` .... |MiniBracketed.yank()|
 ---
 --- Notes:
 --- - The `undo` target remaps |u| and |<C-R>| keys to register undo state
@@ -130,6 +130,15 @@ local H = {}
 ---   require('mini.bracketed').setup({}) -- replace {} with your config table
 --- <
 MiniBracketed.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.bracketed) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniBracketed = MiniBracketed
 
@@ -410,10 +419,10 @@ end
 
 --- Diagnostic
 ---
---- Go to next/previous diagnostic. This is mostly similar to
---- |vim.diagnostic.goto_next()| and |vim.diagnostic.goto_prev()| for
---- current buffer which supports |[count]| and functionality to go to
---- first/last diagnostic entry.
+--- Go to next/previous diagnostic. This is mostly similar to built-in
+--- |vim.diagnostic.jump()| (on Neovim<0.11 it is |vim.diagnostic.goto_next()| and
+--- |vim.diagnostic.goto_prev()|) which has an interface and behavior
+--- consistent with other methods of the module.
 ---
 --- Direction "forward" increases line number, "backward" - decreases.
 ---
@@ -436,30 +445,28 @@ MiniBracketed.diagnostic = function(direction, opts)
   if H.is_disabled() then return end
 
   H.validate_direction(direction, { 'first', 'backward', 'forward', 'last' }, 'diagnostic')
-  opts = vim.tbl_deep_extend(
-    'force',
-    { float = nil, n_times = vim.v.count1, severity = nil, wrap = true },
-    H.get_config().diagnostic.options,
-    opts or {}
-  )
+  local default_opts = { float = vim.diagnostic.config().float, n_times = vim.v.count1, severity = nil, wrap = true }
+  local buf_id = vim.api.nvim_get_current_buf()
+  if vim.is_callable(default_opts.float) then default_opts.float = default_opts.float(nil, buf_id) end
+  opts = vim.tbl_extend('force', default_opts, H.get_config().diagnostic.options, opts or {})
 
   -- Define iterator that traverses all diagnostic entries in current buffer
-  local is_position = function(x) return type(x) == 'table' and #x == 2 end
-  local diag_pos_to_cursor_pos = function(pos) return { pos[1] + 1, pos[2] } end
+  local to_cursor_pos = function(pos) return { pos[1] + 1, pos[2] } end
+  local pos_field = vim.fn.has('nvim-0.11') == 1 and 'pos' or 'cursor_position'
   local iterator = {}
 
   iterator.next = function(position)
-    local goto_opts = { cursor_position = diag_pos_to_cursor_pos(position), severity = opts.severity, wrap = false }
-    local new_pos = vim.diagnostic.get_next_pos(goto_opts)
-    if not is_position(new_pos) then return end
-    return new_pos
+    local next_opts = { [pos_field] = to_cursor_pos(position), severity = opts.severity, wrap = false }
+    local next = vim.diagnostic.get_next(next_opts)
+    if next == nil then return end
+    return { next.lnum, next.col }
   end
 
   iterator.prev = function(position)
-    local goto_opts = { cursor_position = diag_pos_to_cursor_pos(position), severity = opts.severity, wrap = false }
-    local new_pos = vim.diagnostic.get_prev_pos(goto_opts)
-    if not is_position(new_pos) then return end
-    return new_pos
+    local prev_opts = { [pos_field] = to_cursor_pos(position), severity = opts.severity, wrap = false }
+    local prev = vim.diagnostic.get_prev(prev_opts)
+    if prev == nil then return end
+    return { prev.lnum, prev.col }
   end
 
   -- - Define states with zero-based indexing as used in `vim.diagnostic`.
@@ -477,13 +484,9 @@ MiniBracketed.diagnostic = function(direction, opts)
   local res_pos = MiniBracketed.advance(iterator, direction, opts)
   if res_pos == nil or res_pos == iterator.state then return end
 
-  -- Apply. Use `goto_next()` with offsetted cursor position to make it respect
+  -- Apply. Use built-in jump with offsetted cursor position to make it respect
   -- `vim.diagnostic.config()`.
-  vim.diagnostic.goto_next({
-    cursor_position = { res_pos[1] + 1, res_pos[2] - 1 },
-    float = opts.float,
-    severity = opts.severity,
-  })
+  H.diagnostic_jump({ res_pos[1] + 1, res_pos[2] - 1 }, opts.float, opts.severity)
 end
 
 --- File on disk
@@ -549,7 +552,7 @@ MiniBracketed.file = function(direction, opts)
   -- Apply. Open target_path.
   local path_sep = package.config:sub(1, 1)
   local target_path = directory .. path_sep .. file_basenames[res_ind]
-  vim.cmd('edit ' .. target_path)
+  H.edit(target_path)
 end
 
 --- Indent change
@@ -698,7 +701,7 @@ MiniBracketed.jump = function(direction, opts)
 
   -- Iterate
   local res_jump_num = MiniBracketed.advance(iterator, direction, opts)
-  if res_jump_num == nil then return end
+  if res_jump_num == nil or jump_list[res_jump_num] == nil then return end
 
   -- Apply. Make jump. Allow jumping to current jump entry as it might be
   -- different from current cursor position.
@@ -781,7 +784,7 @@ MiniBracketed.oldfile = function(direction, opts)
 
   -- Apply. Edit file at path while marking it not for tracking.
   H.cache.oldfile.is_advancing = true
-  vim.cmd('edit ' .. oldfile_arr[res_arr_ind])
+  H.edit(oldfile_arr[res_arr_ind])
 end
 
 --- Quickfix from quickfix list
@@ -825,12 +828,6 @@ end
 ---   - <n_times> `(number)` - Number of times to advance. Default: |v:count1|.
 ---   __bracketed_add_to_jumplist
 MiniBracketed.treesitter = function(direction, opts)
-  if H.get_treesitter_node == nil then
-    H.error(
-      '`treesitter()` target requires either `vim.treesitter.get_node()` or `vim.treesitter.get_node_at_pos()`.'
-        .. ' Use newer Neovim version.'
-    )
-  end
   if H.is_disabled() then return end
 
   H.validate_direction(direction, { 'first', 'backward', 'forward', 'last' }, 'treesitter')
@@ -1337,73 +1334,64 @@ H.cache = {
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  --stylua: ignore
-  vim.validate({
-    ['buffer']     = { config.buffer,     'table' },
-    ['comment']    = { config.comment,    'table' },
-    ['conflict']   = { config.conflict,   'table' },
-    ['diagnostic'] = { config.diagnostic, 'table' },
-    ['file']       = { config.file,       'table' },
-    ['indent']     = { config.indent,     'table' },
-    ['jump']       = { config.jump,       'table' },
-    ['location']   = { config.location,   'table' },
-    ['oldfile']    = { config.oldfile,    'table' },
-    ['quickfix']   = { config.quickfix,   'table' },
-    ['treesitter'] = { config.treesitter, 'table' },
-    ['undo']       = { config.undo,       'table' },
-    ['window']     = { config.window,     'table' },
-    ['yank']       = { config.yank,       'table' },
-  })
+  H.check_type('buffer', config.buffer, 'table')
+  H.check_type('buffer.suffix', config.buffer.suffix, 'string')
+  H.check_type('buffer.options', config.buffer.options, 'table')
 
-  --stylua: ignore
-  vim.validate({
-    ['buffer.suffix']  = { config.buffer.suffix, 'string' },
-    ['buffer.options'] = { config.buffer.options, 'table' },
+  H.check_type('comment', config.comment, 'table')
+  H.check_type('comment.suffix', config.comment.suffix, 'string')
+  H.check_type('comment.options', config.comment.options, 'table')
 
-    ['comment.suffix']  = { config.comment.suffix, 'string' },
-    ['comment.options'] = { config.comment.options, 'table' },
+  H.check_type('conflict', config.conflict, 'table')
+  H.check_type('conflict.suffix', config.conflict.suffix, 'string')
+  H.check_type('conflict.options', config.conflict.options, 'table')
 
-    ['conflict.suffix']  = { config.conflict.suffix, 'string' },
-    ['conflict.options'] = { config.conflict.options, 'table' },
+  H.check_type('diagnostic', config.diagnostic, 'table')
+  H.check_type('diagnostic.suffix', config.diagnostic.suffix, 'string')
+  H.check_type('diagnostic.options', config.diagnostic.options, 'table')
 
-    ['diagnostic.suffix']  = { config.diagnostic.suffix, 'string' },
-    ['diagnostic.options'] = { config.diagnostic.options, 'table' },
+  H.check_type('file', config.file, 'table')
+  H.check_type('file.suffix', config.file.suffix, 'string')
+  H.check_type('file.options', config.file.options, 'table')
 
-    ['file.suffix']  = { config.file.suffix, 'string' },
-    ['file.options'] = { config.file.options, 'table' },
+  H.check_type('indent', config.indent, 'table')
+  H.check_type('indent.suffix', config.indent.suffix, 'string')
+  H.check_type('indent.options', config.indent.options, 'table')
 
-    ['indent.suffix']  = { config.indent.suffix, 'string' },
-    ['indent.options'] = { config.indent.options, 'table' },
+  H.check_type('jump', config.jump, 'table')
+  H.check_type('jump.suffix', config.jump.suffix, 'string')
+  H.check_type('jump.options', config.jump.options, 'table')
 
-    ['jump.suffix']  = { config.jump.suffix, 'string' },
-    ['jump.options'] = { config.jump.options, 'table' },
+  H.check_type('location', config.location, 'table')
+  H.check_type('location.suffix', config.location.suffix, 'string')
+  H.check_type('location.options', config.location.options, 'table')
 
-    ['location.suffix']  = { config.location.suffix, 'string' },
-    ['location.options'] = { config.location.options, 'table' },
+  H.check_type('oldfile', config.oldfile, 'table')
+  H.check_type('oldfile.suffix', config.oldfile.suffix, 'string')
+  H.check_type('oldfile.options', config.oldfile.options, 'table')
 
-    ['oldfile.suffix']  = { config.oldfile.suffix, 'string' },
-    ['oldfile.options'] = { config.oldfile.options, 'table' },
+  H.check_type('quickfix', config.quickfix, 'table')
+  H.check_type('quickfix.suffix', config.quickfix.suffix, 'string')
+  H.check_type('quickfix.options', config.quickfix.options, 'table')
 
-    ['quickfix.suffix']  = { config.quickfix.suffix, 'string' },
-    ['quickfix.options'] = { config.quickfix.options, 'table' },
+  H.check_type('treesitter', config.treesitter, 'table')
+  H.check_type('treesitter.suffix', config.treesitter.suffix, 'string')
+  H.check_type('treesitter.options', config.treesitter.options, 'table')
 
-    ['treesitter.suffix']  = { config.treesitter.suffix, 'string' },
-    ['treesitter.options'] = { config.treesitter.options, 'table' },
+  H.check_type('undo', config.undo, 'table')
+  H.check_type('undo.suffix', config.undo.suffix, 'string')
+  H.check_type('undo.options', config.undo.options, 'table')
 
-    ['undo.suffix']  = { config.undo.suffix, 'string' },
-    ['undo.options'] = { config.undo.options, 'table' },
+  H.check_type('window', config.window, 'table')
+  H.check_type('window.suffix', config.window.suffix, 'string')
+  H.check_type('window.options', config.window.options, 'table')
 
-    ['window.suffix']  = { config.window.suffix, 'string' },
-    ['window.options'] = { config.window.options, 'table' },
-
-    ['yank.suffix']  = { config.yank.suffix, 'string' },
-    ['yank.options'] = { config.yank.options, 'table' },
-  })
+  H.check_type('yank', config.yank, 'table')
+  H.check_type('yank.suffix', config.yank.suffix, 'string')
+  H.check_type('yank.options', config.yank.options, 'table')
 
   return config
 end
@@ -1686,6 +1674,16 @@ H.is_conflict_mark = function(line_num)
   return l_start == '<<<<<<< ' or l_start == '=======' or l_start == '>>>>>>> '
 end
 
+-- Diagnostic -----------------------------------------------------------------
+H.diagnostic_jump = function(pos, float, severity)
+  vim.diagnostic.jump({ count = 1, pos = pos, float = float, severity = severity })
+end
+if vim.fn.has('nvim-0.11') == 0 then
+  H.diagnostic_jump = function(pos, float, severity)
+    vim.diagnostic.goto_next({ cursor_position = pos, float = float, severity = severity })
+  end
+end
+
 -- Files ----------------------------------------------------------------------
 H.get_file_data = function()
   -- Compute target directory
@@ -1754,7 +1752,7 @@ H.oldfile_ensure_initialized = function()
   local n = #vim.v.oldfiles
   local recency = {}
   for i, path in ipairs(vim.v.oldfiles) do
-    if vim.fn.filereadable(path) == 1 then recency[path] = n - i + 1 end
+    recency[path] = n - i + 1
   end
 
   H.cache.oldfile = { recency = recency, max_recency = n, is_advancing = false }
@@ -1813,9 +1811,8 @@ H.qf_loc_implementation = function(list_type, direction, opts)
 end
 
 -- Treesitter -----------------------------------------------------------------
-if vim.fn.has('nvim-0.9') == 1 then
-  H.get_treesitter_node = function(row, col) return vim.treesitter.get_node({ pos = { row, col } }) end
-else
+H.get_treesitter_node = function(row, col) return vim.treesitter.get_node({ pos = { row, col } }) end
+if vim.fn.has('nvim-0.9') == 0 then
   H.get_treesitter_node = function(row, col) return vim.treesitter.get_node_at_pos(0, row, col, {}) end
 end
 
@@ -1995,7 +1992,12 @@ H.get_register_mode = function(register)
 end
 
 -- Utilities ------------------------------------------------------------------
-H.error = function(msg) error(string.format('(mini.bracketed) %s', msg), 0) end
+H.error = function(msg) error('(mini.bracketed) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
 
 H.validate_direction = function(direction, choices, fun_name)
   if not vim.tbl_contains(choices, direction) then
@@ -2009,6 +2011,19 @@ H.map = function(mode, lhs, rhs, opts)
   if lhs == '' then return end
   opts = vim.tbl_deep_extend('force', { silent = true }, opts or {})
   vim.keymap.set(mode, lhs, rhs, opts)
+end
+
+H.edit = function(path, win_id)
+  if type(path) ~= 'string' then return end
+  local b = vim.api.nvim_win_get_buf(win_id or 0)
+  local try_mimic_buf_reuse = (vim.fn.bufname(b) == '' and vim.bo[b].buftype ~= 'quickfix' and not vim.bo[b].modified)
+    and (#vim.fn.win_findbuf(b) == 1 and vim.deep_equal(vim.fn.getbufline(b, 1, '$'), { '' }))
+  local buf_id = vim.fn.bufadd(vim.fn.fnamemodify(path, ':.'))
+  -- Showing in window also loads. Use `pcall` to not error with swap messages.
+  pcall(vim.api.nvim_win_set_buf, win_id or 0, buf_id)
+  vim.bo[buf_id].buflisted = true
+  if try_mimic_buf_reuse then pcall(vim.api.nvim_buf_delete, b, { unload = false }) end
+  return buf_id
 end
 
 H.add_to_jumplist = function() vim.cmd([[normal! m']]) end

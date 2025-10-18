@@ -252,8 +252,8 @@
 ---   Default: `nil` to rely on source set up during install.
 ---   Notes:
 ---     - It is required for creating plugin, but can be omitted afterwards.
----     - As the most common case, URI of the format "user/repo" is transformed
----       into "https://github.com/user/repo".
+---     - As the most common case, URI of the format "user/repo" (if it contains
+---       valid characters) is transformed into "https://github.com/user/repo".
 ---
 --- - <name> `(string|nil)` - directory basename of where to put plugin source.
 ---   It is put in "pack/deps/opt" subdirectory of `config.path.package`.
@@ -357,6 +357,15 @@ local H = {}
 ---   require('mini.deps').setup({}) -- replace {} with your config table
 --- <
 MiniDeps.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.deps) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniDeps = MiniDeps
 
@@ -691,7 +700,7 @@ end
 --- - Was added with |MiniDeps.add()| (preserving order of calls).
 --- - Is a "start" plugin and present in 'runtimpath'.
 ---
----@return session table Array with specifications of all plugins registered in
+---@return table Array with specifications of all plugins registered in
 ---   current session.
 MiniDeps.get_session = function()
   -- Normalize `H.session` allowing specs for same plugin
@@ -780,30 +789,22 @@ H.cache = {
   git_version = nil,
 }
 
--- Buffer name counts
-H.buf_name_counts = {}
-
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  vim.validate({
-    job = { config.job, 'table' },
-    path = { config.path, 'table' },
-    silent = { config.silent, 'boolean' },
-  })
+  H.check_type('job', config.job, 'table')
+  H.check_type('job.n_threads', config.job.n_threads, 'number', true)
+  H.check_type('job.timeout', config.job.timeout, 'number')
 
-  vim.validate({
-    ['job.n_threads'] = { config.job.n_threads, 'number', true },
-    ['job.timeout'] = { config.job.timeout, 'number' },
-    ['path.package'] = { config.path.package, 'string' },
-    ['path.snapshot'] = { config.path.snapshot, 'string' },
-    ['path.log'] = { config.path.log, 'string' },
-  })
+  H.check_type('path', config.path, 'table')
+  H.check_type('path.package', config.path.package, 'string')
+  H.check_type('path.snapshot', config.path.snapshot, 'string')
+  H.check_type('path.log', config.path.log, 'string')
+
+  H.check_type('silent', config.silent, 'boolean')
 
   return config
 end
@@ -877,7 +878,7 @@ H.create_user_commands = function()
   make_update_cmd('DepsUpdateOffline', true, 'Update plugins without downloading from source')
 
   local show_log = function()
-    vim.cmd('edit ' .. vim.fn.fnameescape(H.get_config().path.log))
+    H.edit(H.get_config().path.log)
     H.update_add_syntax()
     vim.cmd([[syntax match MiniDepsTitle "^\(==========\).*\1$"]])
   end
@@ -984,7 +985,7 @@ H.expand_spec = function(target, spec)
   spec = vim.deepcopy(spec)
 
   if spec.source and type(spec.source) ~= 'string' then H.error('`source` in plugin spec should be string.') end
-  local is_user_repo = type(spec.source) == 'string' and spec.source:find('^[^/]+/[^/]+$') ~= nil
+  local is_user_repo = type(spec.source) == 'string' and spec.source:find('^[%w-]+/[%w-_.]+$') ~= nil
   if is_user_repo then spec.source = 'https://github.com/' .. spec.source end
 
   spec.name = spec.name or vim.fn.fnamemodify(spec.source, ':t')
@@ -1259,7 +1260,7 @@ H.clean_confirm = function(paths)
     if #paths_to_delete == 0 then return H.notify('Nothing to delete') end
     H.clean_delete(paths_to_delete)
   end
-  H.show_confirm_buf(lines, { name = 'mini-deps://confirm-clean', exec_on_write = finish_clean })
+  H.show_confirm_buf(lines, { name = 'confirm-clean', exec_on_write = finish_clean })
 
   -- Define basic highlighting
   vim.cmd('syntax region MiniDepsHint start="^\\%1l" end="\\%' .. n_header .. 'l$"')
@@ -1382,7 +1383,7 @@ H.update_feedback_confirm = function(lines)
     MiniDeps.update(names, { force = true, offline = true })
   end
 
-  H.show_confirm_buf(report, { name = 'mini-deps://confirm-update', exec_on_write = finish_update, setup_folds = true })
+  H.show_confirm_buf(report, { name = 'confirm-update', exec_on_write = finish_update, setup_folds = true })
 
   -- Define basic highlighting
   vim.cmd('syntax region MiniDepsHint start="^\\%1l" end="\\%' .. n_header .. 'l$"')
@@ -1419,7 +1420,7 @@ end
 H.show_confirm_buf = function(lines, opts)
   -- Show buffer
   local buf_id = vim.api.nvim_create_buf(true, true)
-  H.buf_set_name(buf_id, opts.name)
+  H.set_buf_name(buf_id, opts.name)
   vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)
   vim.cmd('tab sbuffer ' .. buf_id)
   local tab_num, win_id = vim.api.nvim_tabpage_get_number(0), vim.api.nvim_get_current_win()
@@ -1588,7 +1589,14 @@ H.report_errors = function()
 end
 
 -- Utilities ------------------------------------------------------------------
-H.error = function(msg) error(string.format('(mini.deps) %s', msg), 0) end
+H.error = function(msg) error('(mini.deps) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
+
+H.set_buf_name = function(buf_id, name) vim.api.nvim_buf_set_name(buf_id, 'minideps://' .. buf_id .. '/' .. name) end
 
 H.notify = vim.schedule_wrap(function(msg, level)
   level = level or 'INFO'
@@ -1597,6 +1605,19 @@ H.notify = vim.schedule_wrap(function(msg, level)
   vim.notify(string.format('(mini.deps) %s', msg), vim.log.levels[level])
   vim.cmd('redraw')
 end)
+
+H.edit = function(path, win_id)
+  if type(path) ~= 'string' then return end
+  local b = vim.api.nvim_win_get_buf(win_id or 0)
+  local try_mimic_buf_reuse = (vim.fn.bufname(b) == '' and vim.bo[b].buftype ~= 'quickfix' and not vim.bo[b].modified)
+    and (#vim.fn.win_findbuf(b) == 1 and vim.deep_equal(vim.fn.getbufline(b, 1, '$'), { '' }))
+  local buf_id = vim.fn.bufadd(vim.fn.fnamemodify(path, ':.'))
+  -- Showing in window also loads. Use `pcall` to not error with swap messages.
+  pcall(vim.api.nvim_win_set_buf, win_id or 0, buf_id)
+  vim.bo[buf_id].buflisted = true
+  if try_mimic_buf_reuse then pcall(vim.api.nvim_buf_delete, b, { unload = false }) end
+  return buf_id
+end
 
 H.get_timestamp = function() return vim.fn.strftime('%Y-%m-%d %H:%M:%S') end
 
@@ -1611,13 +1632,6 @@ end
 
 H.source = function(path)
   pcall(function() vim.cmd('source ' .. vim.fn.fnameescape(path)) end)
-end
-
-H.buf_set_name = function(buf_id, name)
-  local n = (H.buf_name_counts[name] or 0) + 1
-  H.buf_name_counts[name] = n
-  local suffix = n == 1 and '' or ('_' .. n)
-  vim.api.nvim_buf_set_name(buf_id, name .. suffix)
 end
 
 -- TODO: Remove after compatibility with Neovim=0.9 is dropped

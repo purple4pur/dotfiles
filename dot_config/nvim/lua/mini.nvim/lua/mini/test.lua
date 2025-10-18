@@ -151,6 +151,15 @@ local H = {}
 ---   require('mini.test').setup({}) -- replace {} with your config table
 --- <
 MiniTest.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.test) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniTest = MiniTest
 
@@ -272,6 +281,8 @@ MiniTest.current = { all_cases = nil, case = nil }
 ---     `parametrize` option at all.
 ---   - <data> - user data to be forwarded to cases. Can be used for a more
 ---     granular filtering.
+---   - <n_retry> - number of times to retry each case until success.
+---     Default: 1.
 ---@param tbl table|nil Initial test items (possibly nested). Will be executed
 ---   without any guarantees on order.
 ---
@@ -283,15 +294,14 @@ MiniTest.current = { all_cases = nil, case = nil }
 ---   T['works'] = function() MiniTest.expect.equality(1, 1) end
 ---
 ---   -- Use with custom options. This will result into two actual cases: first
----   -- will pass, second - fail.
+---   -- will pass, second - fail after two attempts.
 ---   T['nested'] = MiniTest.new_set({
 ---     hooks = { pre_case = function() _G.x = 1 end },
----     parametrize = { { 1 }, { 2 } }
+---     parametrize = { { 1 }, { 2 } },
+---     n_retry = 2,
 ---   })
 ---
----   T['nested']['works'] = function(x)
----     MiniTest.expect.equality(_G.x, x)
----   end
+---   T['nested']['works'] = function(x) MiniTest.expect.equality(_G.x, x) end
 --- <
 MiniTest.new_set = function(opts, tbl)
   opts = opts or {}
@@ -318,7 +328,9 @@ end
 --- Execution of test case goes by the following rules:
 --- - Call functions in order:
 ---     - All elements of `hooks.pre` from first to last without arguments.
----     - Field `test` with arguments unpacked from `args`.
+---     - Field `test` with arguments unpacked from `args`. If execution fails,
+---       retry it (along with hooks that come from `pre_case` and `post_case`)
+---       at most `n_retry` times until first success (if any).
 ---     - All elements of `hooks.post` from first to last without arguments.
 --- - Error in any call gets appended to `exec.fails`, meaning error in any
 ---   hook will lead to test fail.
@@ -339,21 +351,28 @@ end
 ---         - 'Pass with notes' (no fails, some notes).
 ---         - 'Fail' (some fails, no notes).
 ---         - 'Fail with notes' (some fails, some notes).
----@field hooks table Hooks to be executed as part of test case. Has fields
----   <pre> and <post> with arrays to be consecutively executed before and
----   after execution of `test`.
+---@field hooks table Hooks to be executed as part of test case. Has fields:
+---   - <pre> and <post> - arrays of functions to be consecutively executed
+---     before and after every execution of `test`.
+---   - <pre_source> and <post_source> - arrays of strings with sources of
+---     corresponding elements in <pre> and <post> arrays. Source is one of
+---     `"once"` (for `pre_once` and `post_once` hooks) and
+---     `"case"` (for `pre_case` and `post_case` hooks).
 ---@field test function|table Main callable object representing test action.
 ---@tag MiniTest-test-case
 
---- Skip rest of current callable execution
+--- Skip the rest of current case
 ---
---- Can be used inside hooks and main test callable of test case. Note: at the
---- moment implemented as a specially handled type of error.
+--- Notes:
+--- - When called inside test case, stops execution while adding message to notes.
+--- - When called inside `pre_case` hook, registers skip at the start of its
+---   test case. Calling in other hooks has no effect.
+--- - Currently implemented as a specially handled type of error.
 ---
 ---@param msg string|nil Message to be added to current case notes.
 MiniTest.skip = function(msg)
-  H.cache.error_is_from_skip = true
-  error(msg or 'Skip test', 0)
+  H.cache.skip_message = msg or 'Skip test'
+  error(H.cache.skip_message, 0)
 end
 
 --- Add note to currently executed test case
@@ -370,11 +389,11 @@ end
 
 --- Register callable execution after current callable
 ---
---- Can be used inside hooks and main test callable of test case.
+--- Can be used several times inside hooks and main test callable of test case.
 ---
 ---@param f function|table Callable to be executed after current callable is
 ---   finished executing (regardless of whether it ended with error or not).
-MiniTest.finally = function(f) H.cache.finally = f end
+MiniTest.finally = function(f) table.insert(H.cache.finally, f) end
 
 --- Run tests
 ---
@@ -558,8 +577,8 @@ end
 --- - Execute each case in natural array order (aligned with their integer
 ---   keys). Set `MiniTest.current.case` to currently executed case. Detailed
 ---   test case execution is described in |MiniTest-test-case|. After any state
----   change, call `reporter.update(case_num)` (if present), where `case_num` is an
----   integer key of current test case.
+---   change (including case retry attempts), call `reporter.update(case_num)`
+---   (if present), where `case_num` is an integer key of current test case.
 --- - Call `reporter.finish()` (if present).
 ---
 --- Notes:
@@ -577,7 +596,7 @@ end
 ---   - <stop_on_error> - whether to stop execution (see |MiniTest.stop()|)
 ---     after first error. Default: `false`.
 MiniTest.execute = function(cases, opts)
-  vim.validate({ cases = { cases, 'table' } })
+  H.check_type('cases', cases, 'table')
 
   MiniTest.current.all_cases = cases
 
@@ -601,24 +620,7 @@ MiniTest.execute = function(cases, opts)
   vim.schedule(function() H.exec_callable(reporter.start, cases) end)
 
   for case_num, cur_case in ipairs(cases) do
-    -- Schedule execution in async fashion. This allows doing other things
-    -- while tests are executed.
-    local schedule_step = H.make_step_scheduler(cur_case, case_num, opts)
-
-    vim.schedule(function() MiniTest.current.case = cur_case end)
-
-    for i, hook_pre in ipairs(cur_case.hooks.pre) do
-      schedule_step(hook_pre, 'hook_pre', [[Executing 'pre' hook #]] .. i)
-    end
-
-    schedule_step(function() cur_case.test(unpack(cur_case.args)) end, 'case', 'Executing test')
-
-    for i, hook_post in ipairs(cur_case.hooks.post) do
-      schedule_step(hook_post, 'hook_post', [[Executing 'post' hook #]] .. i)
-    end
-
-    -- Finalize state
-    schedule_step(nil, 'finalize', function() return H.case_final_state(cur_case) end)
+    H.schedule_case(cur_case, case_num, opts)
   end
 
   vim.schedule(function() H.exec_callable(reporter.finish) end)
@@ -700,7 +702,7 @@ end
 ---   Use `nil` or empty string to not test for pattern matching.
 ---@param ... any Extra arguments with which `f` will be called.
 MiniTest.expect.error = function(f, pattern, ...)
-  vim.validate({ pattern = { pattern, 'string', true } })
+  H.check_type('pattern', pattern, 'string', true)
 
   local ok, err = pcall(f, ...)
   err = err or ''
@@ -732,7 +734,7 @@ end
 ---   of `child.get_screenshot()` (see |MiniTest-child-neovim.get_screenshot()|).
 ---   If `nil`, expectation passed.
 ---@param path string|nil Path to reference screenshot. If `nil`, constructed
----   automatically in directory 'tests/screenshots' from current case info and
+---   automatically in directory `opts.directory` from current case info and
 ---   total number of times it was called inside current case. If there is no
 ---   file at `path`, it is created with content of `screenshot`.
 ---@param opts table|nil Options:
@@ -740,10 +742,12 @@ end
 ---     Temporary useful during test writing. Default: `false`.
 ---   - <ignore_lines> `(table)` - array of line numbers to ignore during compare.
 ---     Default: `nil` to check all lines.
+---   - <directory> `(string)` - directory where automatically constructed `path`
+---     is located. Default: "tests/screenshots".
 MiniTest.expect.reference_screenshot = function(screenshot, path, opts)
   if screenshot == nil then return true end
 
-  opts = vim.tbl_deep_extend('force', { force = false }, opts or {})
+  opts = vim.tbl_extend('force', { force = false, ignore_lines = {}, directory = 'tests/screenshots' }, opts or {})
 
   H.cache.n_screenshots = H.cache.n_screenshots + 1
 
@@ -759,7 +763,8 @@ MiniTest.expect.reference_screenshot = function(screenshot, path, opts)
     -- Don't end with whitespace or dot (forbidden on Windows)
     name = name:gsub('[%s%.]$', '-')
 
-    path = 'tests/screenshots/' .. name
+    -- TODO: remove `:gsub()` after compatibility with Neovim=0.8 is dropped
+    path = vim.fs.normalize(opts.directory):gsub('/$', '') .. '/' .. name
 
     -- Deal with multiple screenshots
     if H.cache.n_screenshots > 1 then path = path .. string.format('-%03d', H.cache.n_screenshots) end
@@ -1229,7 +1234,7 @@ MiniTest.new_child_neovim = function()
   --stylua: ignore start
   local supported_vim_tables = {
     -- Collections
-    'diagnostic', 'fn', 'highlight', 'json', 'loop', 'lsp', 'mpack', 'spell', 'treesitter', 'ui',
+    'diagnostic', 'fn', 'highlight', 'hl', 'json', 'loop', 'lsp', 'mpack', 'spell', 'treesitter', 'ui',
     -- Variables
     'g', 'b', 'w', 't', 'v', 'env',
     -- Options (no 'opt' because not really useful due to use of metatables)
@@ -1439,6 +1444,7 @@ end
 ---@field diagnostic table Redirection table for |vim.diagnostic|.
 ---@field fn table Redirection table for |vim.fn|.
 ---@field highlight table Redirection table for `vim.highlight` (|lua-highlight)|.
+---@field hl table Redirection table for |vim.hl|.
 ---@field json table Redirection table for `vim.json`.
 ---@field loop table Redirection table for |vim.loop|.
 ---@field lsp table Redirection table for `vim.lsp` (|lsp-core)|.
@@ -1564,10 +1570,10 @@ H.is_headless = #vim.api.nvim_list_uis() == 0
 
 -- Cache for various data
 H.cache = {
-  -- Whether error is initiated from `MiniTest.skip()`
-  error_is_from_skip = false,
-  -- Callable to be executed after step (hook or test function)
-  finally = nil,
+  -- Message with which case is meant to be skipped
+  skip_message = nil,
+  -- Queue of callables to be executed after step (hook or test function)
+  finally = {},
   -- Whether to stop async execution
   should_stop_execution = false,
   -- Number of screenshots made in current case
@@ -1606,26 +1612,20 @@ H.reporter_symbols = setmetatable({
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  vim.validate({
-    collect = { config.collect, 'table' },
-    execute = { config.execute, 'table' },
-    script_path = { config.script_path, 'string' },
-    silent = { config.silent, 'boolean' },
-  })
+  H.check_type('collect', config.collect, 'table')
+  H.check_type('collect.emulate_busted', config.collect.emulate_busted, 'boolean')
+  H.check_type('collect.find_files', config.collect.find_files, 'function')
+  H.check_type('collect.filter_cases', config.collect.filter_cases, 'function')
 
-  vim.validate({
-    ['collect.emulate_busted'] = { config.collect.emulate_busted, 'boolean' },
-    ['collect.find_files'] = { config.collect.find_files, 'function' },
-    ['collect.filter_cases'] = { config.collect.filter_cases, 'function' },
+  H.check_type('execute', config.execute, 'table')
+  H.check_type('execute.reporter', config.execute.reporter, 'table', true)
+  H.check_type('execute.stop_on_error', config.execute.stop_on_error, 'boolean')
 
-    ['execute.reporter'] = { config.execute.reporter, 'table', true },
-    ['execute.stop_on_error'] = { config.execute.stop_on_error, 'boolean' },
-  })
+  H.check_type('script_path', config.script_path, 'string')
+  H.check_type('silent', config.silent, 'boolean')
 
   return config
 end
@@ -1715,15 +1715,21 @@ H.execute_project_script = function(...)
   return success
 end
 
-H.make_step_scheduler = function(case, case_num, opts)
-  local report_update_case = function() H.exec_callable(opts.reporter.update, case_num) end
+H.schedule_case = function(case, case_num, opts)
+  local update_state = function(state)
+    case.exec.state = state
+    H.exec_callable(opts.reporter.update, case_num)
+  end
 
+  local is_case_executed = false
   local on_err = function(e)
-    if H.cache.error_is_from_skip then
-      -- Add error message to 'notes' rather than 'fails'
-      table.insert(case.exec.notes, tostring(e))
-      H.cache.error_is_from_skip = false
-      return
+    if H.cache.skip_message ~= nil then
+      -- Add skip message to notes (not fails) only during main case execution
+      if is_case_executed then
+        table.insert(case.exec.notes, H.cache.skip_message)
+        H.cache.skip_message = nil
+      end
+      return true
     end
 
     -- Append traceback to error message and indent lines for pretty print
@@ -1731,34 +1737,72 @@ H.make_step_scheduler = function(case, case_num, opts)
     local error_msg = table.concat(error_lines, '\n'):gsub('\n', '\n  ')
     table.insert(case.exec.fails, error_msg)
 
-    if opts.stop_on_error then
-      MiniTest.stop()
-      case.exec.state = H.case_final_state(case)
-      report_update_case()
+    return false
+  end
+
+  local exec_step = function(f, state)
+    update_state(state)
+
+    H.cache.finally, H.cache.n_screenshots = {}, 0
+    local ok_f, ok_err = xpcall(f, on_err)
+
+    for _, fin in ipairs(H.cache.finally) do
+      H.exec_callable(fin)
+    end
+
+    return ok_f or ok_err
+  end
+
+  local exec_hooks = function(name, source)
+    local source_arr = case.hooks[name .. '_source']
+    local state_prefix = "Executing '" .. name .. "' hook #"
+    for i, h in ipairs(case.hooks[name]) do
+      if source_arr[i] == source then exec_step(h, state_prefix .. i) end
     end
   end
 
-  return function(f, f_type, state)
-    f = f or function() end
+  vim.schedule(function()
+    if H.cache.should_stop_execution then return end
 
-    vim.schedule(function()
-      if H.cache.should_stop_execution then return end
+    case.exec = { fails = {}, notes = {} }
+    MiniTest.current.case = case
 
-      local n_fails = case.exec == nil and 0 or #case.exec.fails
-      if f_type == 'case' and n_fails > 0 then
-        f = function() table.insert(case.exec.notes, 'Skip case due to error(s) in hooks.') end
+    exec_hooks('pre', 'once')
+    local exec_data = case.exec
+
+    local ok_case
+    for cur_try = 1, case.n_retry do
+      -- Ensure that fails and notes are not accumulated during retries
+      case.exec = vim.deepcopy(exec_data)
+
+      -- Ensure that `skip()` affects only `pre_case` hooks and case
+      H.cache.skip_message = nil
+
+      -- Executing `*_case` hooks on every retry should ensure same case setup
+      -- (like cleanly restarted child process)
+      exec_hooks('pre', 'case')
+
+      local case_f = function() case.test(unpack(case.args)) end
+      if #case.exec.fails > 0 then
+        case_f = function() table.insert(case.exec.notes, 'Skip case due to error(s) in hooks.') end
       end
+      if H.cache.skip_message ~= nil then case_f = function() MiniTest.skip(H.cache.skip_message) end end
 
-      H.cache.n_screenshots = 0
-      case.exec = case.exec or { fails = {}, notes = {} }
-      case.exec.state = vim.is_callable(state) and state() or state
-      report_update_case()
-      xpcall(f, on_err)
+      is_case_executed = true
+      ok_case = exec_step(case_f, 'Executing test')
+      is_case_executed = false
 
-      H.exec_callable(H.cache.finally)
-      H.cache.finally = nil
-    end)
-  end
+      exec_hooks('post', 'case')
+
+      if ok_case then break end
+    end
+
+    exec_hooks('post', 'once')
+
+    update_state(H.case_final_state(case))
+
+    if not ok_case and opts.stop_on_error then MiniTest.stop() end
+  end)
 end
 
 -- Work with test cases -------------------------------------------------------
@@ -1768,12 +1812,12 @@ end
 ---   be executed only once before corresponding item.
 ---@private
 H.set_to_testcases = function(set, template, hooks_once)
-  template = template or { args = {}, desc = {}, hooks = { pre = {}, post = {} }, data = {} }
+  template = template or { args = {}, desc = {}, hooks = { pre = {}, post = {} }, data = {}, n_retry = 1 }
   hooks_once = hooks_once or { pre = {}, post = {} }
 
   local metatbl = getmetatable(set)
   local opts, key_order = metatbl.opts, metatbl.key_order
-  local hooks, parametrize, data = opts.hooks or {}, opts.parametrize or { {} }, opts.data or {}
+  local hooks, parametrize, data, n_retry = opts.hooks or {}, opts.parametrize or { {} }, opts.data or {}, opts.n_retry
 
   -- Convert to steps only callable or test set nodes
   -- Ensure that all elements of `set` are being considered (might not be the
@@ -1806,6 +1850,7 @@ H.set_to_testcases = function(set, template, hooks_once)
         desc = type(key) == 'string' and key:gsub('\n', '\\n') or key,
         hooks = { pre = hooks.pre_case, post = hooks.post_case },
         data = data,
+        n_retry = n_retry,
       })
 
       if vim.is_callable(node) then
@@ -1841,17 +1886,18 @@ end
 H.inject_hooks_once = function(cases, hooks_once)
   -- NOTE: this heavily relies on the equivalence of "have same object id" and
   -- "are same hooks"
-  local already_injected = {}
-  local n = #cases
+  local already_injected, n = {}, #cases
 
   -- Inject 'pre' hooks moving forwards
   for i = 1, n do
     local case, hooks = cases[i], hooks_once[i].pre
+    case.hooks.pre_source = vim.tbl_map(function() return 'case' end, case.hooks.pre)
     local target_tbl_id = 1
     for j = 1, #hooks do
       local h = hooks[j]
       if not already_injected[h] then
         table.insert(case.hooks.pre, target_tbl_id, h)
+        table.insert(case.hooks.pre_source, target_tbl_id, 'once')
         target_tbl_id, already_injected[h] = target_tbl_id + 1, true
       end
     end
@@ -1860,11 +1906,13 @@ H.inject_hooks_once = function(cases, hooks_once)
   -- Inject 'post' hooks moving backwards
   for i = n, 1, -1 do
     local case, hooks = cases[i], hooks_once[i].post
-    local target_table_id = #case.hooks.post + 1
+    case.hooks.post_source = vim.tbl_map(function() return 'case' end, case.hooks.post)
+    local target_tbl_id = #case.hooks.post + 1
     for j = #hooks, 1, -1 do
       local h = hooks[j]
       if not already_injected[h] then
-        table.insert(case.hooks.post, target_table_id, h)
+        table.insert(case.hooks.post, target_tbl_id, h)
+        table.insert(case.hooks.post_source, target_tbl_id, 'once')
         already_injected[h] = true
       end
     end
@@ -1885,6 +1933,7 @@ H.extend_template = function(template, layer)
   table.insert(res.desc, layer.desc)
   res.hooks = H.extend_hooks(res.hooks, layer.hooks, false)
   res.data = vim.tbl_deep_extend('force', res.data, layer.data)
+  res.n_retry = layer.n_retry or res.n_retry or 1
 
   return res
 end
@@ -1979,11 +2028,18 @@ H.buffer_reporter = { ns_id = vim.api.nvim_create_namespace('MiniTestBuffer'), n
 
 H.buffer_reporter.setup_buf_and_win = function(window_opts)
   local buf_id = vim.api.nvim_create_buf(true, true)
+  H.set_buf_name(buf_id, 'buffer-reporter')
 
   local win_id
   if vim.is_callable(window_opts) then
     win_id = window_opts()
   elseif type(window_opts) == 'table' then
+    -- Ensure proper title
+    if type(window_opts.title) == 'string' then
+      window_opts.title = H.fit_to_width(window_opts.title, window_opts.width)
+    end
+    if vim.fn.has('nvim-0.9') == 0 then window_opts.title = nil end
+
     win_id = vim.api.nvim_open_win(buf_id, true, window_opts)
   end
   win_id = win_id or vim.api.nvim_get_current_win()
@@ -2002,6 +2058,8 @@ H.buffer_reporter.default_window_opts = function()
     height = math.floor(0.618 * vim.o.lines),
     row = math.floor(0.191 * vim.o.lines),
     col = math.floor(0.191 * vim.o.columns),
+    border = (vim.fn.exists('+winborder') == 1 and vim.o.winborder ~= '') and vim.o.winborder or 'single',
+    title = ' Test results ',
   }
 end
 
@@ -2009,7 +2067,6 @@ H.buffer_reporter.set_options = function(buf_id, win_id)
   -- Set unique name
   local n_buffer = H.buffer_reporter.n_buffer + 1
   local suffix = n_buffer == 1 and '' or (' ' .. n_buffer)
-  vim.api.nvim_buf_set_name(buf_id, 'MiniTest' .. suffix)
   H.buffer_reporter.n_buffer = n_buffer
 
   vim.cmd('silent! set filetype=minitest')
@@ -2076,7 +2133,7 @@ H.buffer_reporter.set_lines = function(buf_id, lines, start, finish)
 
   -- Add highlight
   for _, hl_data in ipairs(hl_ranges) do
-    vim.highlight.range(buf_id, ns_id, hl_data.hl, { hl_data.line, hl_data.left }, { hl_data.line, hl_data.right })
+    H.highlight_range(buf_id, ns_id, hl_data.hl, { hl_data.line, hl_data.left }, { hl_data.line, hl_data.right })
   end
 end
 
@@ -2222,7 +2279,7 @@ H.screenshot_compare = function(screen_ref, screen_obs, opts)
   ok, cause = compare(#screen_ref.attr, #screen_obs.attr, 'number of `attr` lines')
   if not ok then return ok, cause end
 
-  local lines_to_check, ignore_lines = {}, opts.ignore_lines or {}
+  local lines_to_check, ignore_lines = {}, opts.ignore_lines
   for i = 1, #screen_ref.text do
     if not vim.tbl_contains(ignore_lines, i) then table.insert(lines_to_check, i) end
   end
@@ -2263,6 +2320,15 @@ H.screenshot_read = function(path)
 end
 
 -- Utilities ------------------------------------------------------------------
+H.error = function(msg) error('(mini.test) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
+
+H.set_buf_name = function(buf_id, name) vim.api.nvim_buf_set_name(buf_id, 'minitest://' .. buf_id .. '/' .. name) end
+
 H.echo = function(msg, is_important)
   if H.get_config().silent then return end
 
@@ -2276,8 +2342,6 @@ H.echo = function(msg, is_important)
 end
 
 H.message = function(msg) H.echo(msg, true) end
-
-H.error = function(msg) error(string.format('(mini.test) %s', msg)) end
 
 H.wrap_callable = function(f)
   if not vim.is_callable(f) then return end
@@ -2300,6 +2364,11 @@ end
 
 H.add_style = function(x, ansi_code) return string.format('%s%s%s', H.ansi_codes[ansi_code], x, H.ansi_codes.reset) end
 
+H.fit_to_width = function(text, width)
+  local t_width = vim.fn.strchars(text)
+  return t_width <= width and text or ('…' .. vim.fn.strcharpart(text, t_width - width + 1, width - 1))
+end
+
 H.string_to_chars = function(s)
   -- Can't use `vim.split(s, '')` because of multibyte characters
   local res = {}
@@ -2312,5 +2381,9 @@ end
 -- TODO: Remove after compatibility with Neovim=0.9 is dropped
 H.tbl_flatten = vim.fn.has('nvim-0.10') == 1 and function(x) return vim.iter(x):flatten(math.huge):totable() end
   or vim.tbl_flatten
+
+-- TODO: Remove after compatibility with Neovim=0.10 is dropped
+H.highlight_range = function(...) vim.hl.range(...) end
+if vim.fn.has('nvim-0.11') == 0 then H.highlight_range = function(...) vim.highlight.range(...) end end
 
 return MiniTest

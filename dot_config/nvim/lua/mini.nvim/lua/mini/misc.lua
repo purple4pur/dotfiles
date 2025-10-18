@@ -57,6 +57,15 @@ local H = {}
 ---   require('mini.misc').setup({}) -- replace {} with your config table
 --- <
 MiniMisc.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.misc) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniMisc = MiniMisc
 
@@ -204,16 +213,15 @@ MiniMisc.setup_auto_root = function(names, fallback)
   vim.o.autochdir = false
 
   -- Create autocommand
-  local set_root = function(data)
+  local set_root = vim.schedule_wrap(function(data)
+    if data.buf ~= vim.api.nvim_get_current_buf() then return end
     local root = MiniMisc.find_root(data.buf, names, fallback)
     if root == nil then return end
     vim.fn.chdir(root)
-  end
+  end)
   local augroup = vim.api.nvim_create_augroup('MiniMiscAutoRoot', {})
-  vim.api.nvim_create_autocmd(
-    'BufEnter',
-    { group = augroup, callback = set_root, desc = 'Find root and change current directory' }
-  )
+  local opts = { group = augroup, nested = true, callback = set_root, desc = 'Find root and change current directory' }
+  vim.api.nvim_create_autocmd('BufEnter', opts)
 end
 
 --- Find root directory
@@ -243,7 +251,7 @@ MiniMisc.find_root = function(buf_id, names, fallback)
   names = names or { '.git', 'Makefile' }
   fallback = fallback or function() return nil end
 
-  if type(buf_id) ~= 'number' then H.error('Argument `buf_id` of `find_root()` should be number.') end
+  if not H.is_valid_buf(buf_id) then H.error('Argument `buf_id` of `find_root()` should be valid buffer id.') end
   if not (H.is_array_of(names, H.is_string) or vim.is_callable(names)) then
     H.error('Argument `names` of `find_root()` should be array of string file names or a callable.')
   end
@@ -301,11 +309,8 @@ H.root_cache = {}
 ---
 --- Works only on Neovim>=0.10.
 MiniMisc.setup_termbg_sync = function()
-  if vim.fn.has('nvim-0.10') == 0 then
-    -- Handling `'\027]11;?\007'` response was added in Neovim 0.10
-    H.notify('`setup_termbg_sync()` requires Neovim>=0.10', 'WARN')
-    return
-  end
+  -- Handling `'\027]11;?\007'` response was added in Neovim 0.10
+  if vim.fn.has('nvim-0.10') == 0 then return H.notify('`setup_termbg_sync()` requires Neovim>=0.10', 'WARN') end
 
   -- Proceed only if there is a valid stdout to use
   local has_stdout_tty = false
@@ -315,12 +320,18 @@ MiniMisc.setup_termbg_sync = function()
   if not has_stdout_tty then return end
 
   local augroup = vim.api.nvim_create_augroup('MiniMiscTermbgSync', { clear = true })
+  local track_au_id, bad_responses, had_proper_response = nil, {}, false
   local f = function(args)
-    local ok, bg_init = pcall(H.parse_osc11, args.data)
-    if not (ok and type(bg_init) == 'string') then
-      H.notify('`setup_termbg_sync()` could not parse terminal emulator response ' .. vim.inspect(args.data), 'WARN')
-      return
-    end
+    -- Process proper response only once
+    if had_proper_response then return end
+
+    -- Neovim=0.10 uses string sequence as response, while Neovim>=0.11 sets it
+    -- in `sequence` table field
+    local seq = type(args.data) == 'table' and args.data.sequence or args.data
+    local ok, bg_init = pcall(H.parse_osc11, seq)
+    if not (ok and type(bg_init) == 'string') then return table.insert(bad_responses, seq) end
+    had_proper_response = true
+    pcall(vim.api.nvim_del_autocmd, track_au_id)
 
     -- Set up sync
     local sync = function()
@@ -341,12 +352,17 @@ MiniMisc.setup_termbg_sync = function()
     sync()
   end
 
-  -- Ask about current background color and process the response
-  local id = vim.api.nvim_create_autocmd('TermResponse', { group = augroup, callback = f, once = true, nested = true })
+  -- Ask about current background color and process the proper response.
+  -- NOTE: do not use `once = true` as Neovim itself triggers `TermResponse`
+  -- events during startup, so this should wait until the proper one.
+  track_au_id = vim.api.nvim_create_autocmd('TermResponse', { group = augroup, callback = f, nested = true })
   io.stdout:write('\027]11;?\007')
   vim.defer_fn(function()
-    local ok = pcall(vim.api.nvim_del_autocmd, id)
-    if ok then H.notify('`setup_termbg_sync()` did not get response from terminal emulator', 'WARN') end
+    if had_proper_response then return end
+    pcall(vim.api.nvim_del_augroup_by_id, augroup)
+    local bad_suffix = #bad_responses == 0 and '' or (', only these: ' .. vim.inspect(bad_responses))
+    local msg = '`setup_termbg_sync()` did not get proper response from terminal emulator' .. bad_suffix
+    H.notify(msg, 'WARN')
   end, 1000)
 end
 
@@ -583,18 +599,53 @@ end
 ---   Default: 0 for current.
 ---@param config table|nil Optional config for window (as for |nvim_open_win()|).
 MiniMisc.zoom = function(buf_id, config)
+  -- Hide
   if H.zoom_winid and vim.api.nvim_win_is_valid(H.zoom_winid) then
+    pcall(vim.api.nvim_del_augroup_by_name, 'MiniMiscZoom')
     vim.api.nvim_win_close(H.zoom_winid, true)
     H.zoom_winid = nil
-  else
-    buf_id = buf_id or 0
-    -- Currently very big `width` and `height` get truncated to maximum allowed
-    local default_config = { relative = 'editor', row = 0, col = 0, width = 1000, height = 1000 }
-    config = vim.tbl_deep_extend('force', default_config, config or {})
-    H.zoom_winid = vim.api.nvim_open_win(buf_id, true, config)
-    vim.wo.winblend = 0
-    vim.cmd('normal! zz')
+    return
   end
+
+  -- Show
+  local compute_config = function()
+    -- Use precise dimensions for no Command line interactions (better scroll)
+    local max_width, max_height = vim.o.columns, vim.o.lines - vim.o.cmdheight
+    local default_border = (vim.fn.exists('+winborder') == 1 and vim.o.winborder ~= '') and vim.o.winborder or 'none'
+    --stylua: ignore
+    local default_config = {
+      relative = 'editor', row = 0, col = 0,
+      width = max_width, height = max_height,
+      title = ' Zoom ', border = default_border,
+    }
+    local res = vim.tbl_deep_extend('force', default_config, config or {})
+
+    -- Adjust dimensions to fit border
+    local border_offset = (res.border or 'none') == 'none' and 0 or 2
+    res.height = math.min(res.height, max_height - border_offset)
+    res.width = math.min(res.width, max_width - border_offset)
+
+    -- Ensure proper title
+    if type(res.title) == 'string' then res.title = H.fit_to_width(res.title, res.width) end
+    if vim.fn.has('nvim-0.9') == 0 then res.title = nil end
+
+    return res
+  end
+  H.zoom_winid = vim.api.nvim_open_win(buf_id or 0, true, compute_config())
+  vim.wo[H.zoom_winid].winblend = 0
+  vim.cmd('normal! zz')
+
+  -- - Make sure zoom window is adjusting to changes in its hyperparameters
+  local gr = vim.api.nvim_create_augroup('MiniMiscZoom', { clear = true })
+  local adjust_config = function()
+    if not (type(H.zoom_winid) == 'number' and vim.api.nvim_win_is_valid(H.zoom_winid)) then
+      pcall(vim.api.nvim_del_augroup_by_name, 'MiniMiscZoom')
+      return
+    end
+    vim.api.nvim_win_set_config(H.zoom_winid, compute_config())
+  end
+  vim.api.nvim_create_autocmd('VimResized', { group = gr, callback = adjust_config })
+  vim.api.nvim_create_autocmd('OptionSet', { group = gr, pattern = 'cmdheight', callback = adjust_config })
 end
 
 -- Helper data ================================================================
@@ -607,27 +658,15 @@ H.zoom_winid = nil
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   -- NOTE: Don't use `tbl_deep_extend` to prefer full input `make_global` array
   -- Needs adjusting if there is a new setting with nested tables
   config = vim.tbl_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  vim.validate({
-    make_global = {
-      config.make_global,
-      function(x)
-        if type(x) ~= 'table' then return false end
-        local present_fields = vim.tbl_keys(MiniMisc)
-        for _, v in pairs(x) do
-          if not vim.tbl_contains(present_fields, v) then return false end
-        end
-        return true
-      end,
-      '`make_global` should be a table with `MiniMisc` actual fields',
-    },
-  })
+  H.check_type('make_global', config.make_global, 'table')
+  for _, v in pairs(config.make_global) do
+    if MiniMisc[v] == nil then H.error("`make_global` should be a table with exported 'mini.misc' methods") end
+  end
 
   return config
 end
@@ -643,7 +682,14 @@ end
 -- Utilities ------------------------------------------------------------------
 H.error = function(msg) error('(mini.misc) ' .. msg) end
 
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
+
 H.notify = function(msg, level) vim.notify('(mini.misc) ' .. msg, vim.log.levels[level]) end
+
+H.is_valid_buf = function(buf_id) return type(buf_id) == 'number' and vim.api.nvim_buf_is_valid(buf_id) end
 
 H.is_array_of = function(x, predicate)
   if not H.islist(x) then return false end
@@ -656,6 +702,11 @@ end
 H.is_number = function(x) return type(x) == 'number' end
 
 H.is_string = function(x) return type(x) == 'string' end
+
+H.fit_to_width = function(text, width)
+  local t_width = vim.fn.strchars(text)
+  return t_width <= width and text or ('…' .. vim.fn.strcharpart(text, t_width - width + 1, width - 1))
+end
 
 H.fs_normalize = vim.fs.normalize
 if vim.fn.has('nvim-0.9') == 0 then

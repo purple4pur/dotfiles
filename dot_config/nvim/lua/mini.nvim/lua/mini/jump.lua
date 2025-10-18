@@ -74,6 +74,15 @@ local H = {}
 ---   require('mini.jump').setup({}) -- replace {} with your config table
 --- <
 MiniJump.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.jump) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniJump = MiniJump
 
@@ -115,6 +124,8 @@ MiniJump.config = {
   },
 
   -- Whether to disable showing non-error feedback
+  -- This also affects (purely informational) helper messages shown after
+  -- idle time if user input is required.
   silent = false,
 }
 --minidoc_afterlines_end
@@ -126,6 +137,17 @@ MiniJump.config = {
 --- `jumping`, is about the latest jump. They are used as default values for
 --- similar arguments.
 ---
+---@usage This can be used to define mappings which depend on state; either as
+--- a standalone mapping or part of |MiniKeymap.map_multistep()|. For example: >lua
+---
+---   -- Stop jumping after pressing `<Esc>`
+---   local jump_stop = function()
+---     if not MiniJump.state.jumping then return '<Esc>' end
+---     MiniJump.stop_jumping()
+---   end
+---   local opts = { expr = true, desc = 'Stop jumping' }
+---   vim.keymap.set({ 'n', 'x', 'o' }, '<Esc>', jump_stop, opts)
+--- <
 ---@class JumpingState
 ---
 ---@field target __jump_target
@@ -286,28 +308,21 @@ H.window_matches = {}
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  -- Validate per nesting level to produce correct error message
-  vim.validate({
-    mappings = { config.mappings, 'table' },
-    delay = { config.delay, 'table' },
-    silent = { config.silent, 'boolean' },
-  })
+  H.check_type('delay', config.delay, 'table')
+  H.check_type('delay.highlight', config.delay.highlight, 'number')
+  H.check_type('delay.idle_stop', config.delay.idle_stop, 'number')
 
-  vim.validate({
-    ['delay.highlight'] = { config.delay.highlight, 'number' },
-    ['delay.idle_stop'] = { config.delay.idle_stop, 'number' },
+  H.check_type('mappings', config.mappings, 'table')
+  H.check_type('mappings.forward', config.mappings.forward, 'string')
+  H.check_type('mappings.backward', config.mappings.backward, 'string')
+  H.check_type('mappings.forward_till', config.mappings.forward_till, 'string')
+  H.check_type('mappings.backward_till', config.mappings.backward_till, 'string')
+  H.check_type('mappings.repeat_jump', config.mappings.repeat_jump, 'string')
 
-    ['mappings.forward'] = { config.mappings.forward, 'string' },
-    ['mappings.backward'] = { config.mappings.backward, 'string' },
-    ['mappings.forward_till'] = { config.mappings.forward_till, 'string' },
-    ['mappings.backward_till'] = { config.mappings.backward_till, 'string' },
-    ['mappings.repeat_jump'] = { config.mappings.repeat_jump, 'string' },
-  })
+  H.check_type('silent', config.silent, 'boolean')
 
   return config
 end
@@ -473,6 +488,13 @@ H.is_highlighting = function(pattern)
 end
 
 -- Utilities ------------------------------------------------------------------
+H.error = function(msg) error('(mini.jump) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
+
 H.echo = function(msg, is_important)
   if H.get_config().silent then return end
 

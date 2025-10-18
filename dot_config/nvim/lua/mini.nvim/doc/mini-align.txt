@@ -343,6 +343,18 @@ Special configurations for common splits ~
     aa,  bb
     aaa, bbb
 <
+<|> Split by "|" character, trim whitespace, merge with single space.
+
+    Before: >
+    |a|b|
+    |aa|bb|
+    |aaa    |    bbb   |
+<
+    After typing `|`: >
+    | a   | b   |
+    | aa  | bb  |
+    | aaa | bbb |
+<
 < > (Space bar) Squash consecutive whitespace into single single space (accept
     possible indentation) and split by `%s+` pattern (keeps indentation).
 
@@ -453,6 +465,7 @@ Default values:
       -- Special configurations for common splits
       ['='] = --<function: enhanced setup for '='>,
       [','] = --<function: enhanced setup for ','>,
+      ['|'] = --<function: enhanced setup for '|'>,
       [' '] = --<function: enhanced setup for ' '>,
     },
 
@@ -474,6 +487,8 @@ Default values:
     },
 
     -- Whether to disable showing non-error feedback
+    -- This also affects (purely informational) helper messages shown after
+    -- idle time if user input is required.
     silent = false,
   }
 <
@@ -795,7 +810,8 @@ between them.
 Outline of how parts are converted to array of strings:
 - Convert `merge_delimiter` option to array of strings (single string is
   converted as one-element array). Recycle this array to have length equal
-  to number of columns in parts minus 1.
+  to number of columns in parts minus 1. Also possibly trim leading whitespace
+  in first merge character to not affect indentation.
 - Exclude empty strings from parts. They add nothing to output except extra
   usage of merge delimiter.
 - Concatenate each row interleaving with array of merge delimiters.
@@ -820,7 +836,7 @@ Outline of how filtering is done:
   evaluated in manually created context (some specific variables being set).
 - Compute boolean mask for parts by applying predicate to each element of
   2d array with special variables set to specific values (see next section).
-- Group parts with compted mask. See `group()` method of parts in
+- Group parts with computed mask. See `group()` method of parts in
   |MiniAlign.as_parts()|.
 
 Special variables which can be used in expression:

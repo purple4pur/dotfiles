@@ -76,6 +76,15 @@ local H = {}
 ---   require('mini.basics').setup({}) -- replace {} with your config table
 --- <
 MiniBasics.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.basics) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniBasics = MiniBasics
 
@@ -219,6 +228,9 @@ end
 --- - See |[count]| for its meaning.
 --- - On Neovim>=0.10 mappings for `#` and `*` are not created as their
 ---   enhanced variants are made built-in. See |v_star-default| and |v_#-default|.
+--- - On Neovim>=0.11 there are |[<Space>| / |]<Space>| for adding empty lines.
+---   The `gO` and `go` mappings are still created as they are more aligned with
+---   similarly purposed |O| and |o| keys (although sometimes conflict with |gO|).
 ---
 --- ## mappings.option_toggle_prefix ~
 ---
@@ -273,7 +285,7 @@ end
 ---     - `<C-up>`    - increase window height.
 ---     - `<C-right>` - increase window width.
 ---
---- ## mappings.move_with_alt
+--- ## mappings.move_with_alt ~
 ---
 --- The `config.mappings.move_with_alt` creates mappings for a more consistent
 --- cursor move in Insert, Command, and Terminal modes. For example, it proves
@@ -305,8 +317,8 @@ end
 --- The `config.autocommands.basic` creates some common autocommands:
 ---
 --- - Starts insert mode when opening terminal (see |startinsert| and |TermOpen|).
---- - Highlights yanked text for a brief period of time (see
----   |vim.highlight.on_yank()| and |TextYankPost|).
+--- - Highlights yanked text for a brief period of time (see |vim.hl.on_yank()|;
+---   on Neovim<0.11 - |vim.highlight.on_yank|) and |TextYankPost|).
 ---
 --- ## autocommands.relnum_in_visual_mode ~
 ---
@@ -319,7 +331,7 @@ MiniBasics.config = {
     -- Basic options ('number', 'ignorecase', and many more)
     basic = true,
 
-    -- Extra UI features ('winblend', 'cmdheight=0', ...)
+    -- Extra UI features ('winblend', 'listchars', 'pumheight', ...)
     extra_ui = false,
 
     -- Presets for window borders ('single', 'double', ...)
@@ -389,32 +401,26 @@ H.buffer_diagnostic_state = {}
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  vim.validate({
-    options = { config.options, 'table' },
-    mappings = { config.mappings, 'table' },
-    autocommands = { config.autocommands, 'table' },
-  })
+  H.check_type('options', config.options, 'table')
 
-  vim.validate({
-    ['options.basic'] = { config.options.basic, 'boolean' },
-    ['options.extra_ui'] = { config.options.extra_ui, 'boolean' },
-    ['options.win_borders'] = { config.options.win_borders, 'string' },
+  H.check_type('options.basic', config.options.basic, 'boolean')
+  H.check_type('options.extra_ui', config.options.extra_ui, 'boolean')
+  H.check_type('options.win_borders', config.options.win_borders, 'string')
 
-    ['mappings.basic'] = { config.mappings.basic, 'boolean' },
-    ['mappings.option_toggle_prefix'] = { config.mappings.option_toggle_prefix, 'string' },
-    ['mappings.windows'] = { config.mappings.windows, 'boolean' },
-    ['mappings.move_with_alt'] = { config.mappings.move_with_alt, 'boolean' },
+  H.check_type('mappings', config.mappings, 'table')
+  H.check_type('mappings.basic', config.mappings.basic, 'boolean')
+  H.check_type('mappings.option_toggle_prefix', config.mappings.option_toggle_prefix, 'string')
+  H.check_type('mappings.windows', config.mappings.windows, 'boolean')
+  H.check_type('mappings.move_with_alt', config.mappings.move_with_alt, 'boolean')
 
-    ['autocommands.basic'] = { config.autocommands.basic, 'boolean' },
-    ['autocommands.relnum_in_visual_mode'] = { config.autocommands.relnum_in_visual_mode, 'boolean' },
+  H.check_type('autocommands', config.autocommands, 'table')
+  H.check_type('autocommands.basic', config.autocommands.basic, 'boolean')
+  H.check_type('autocommands.relnum_in_visual_mode', config.autocommands.relnum_in_visual_mode, 'boolean')
 
-    ['silent'] = { config.silent, 'boolean' },
-  })
+  H.check_type('silent', config.silent, 'boolean')
 
   return config
 end
@@ -473,9 +479,9 @@ H.apply_options = function(config)
     o.smartcase   = true -- Don't ignore case when searching if pattern has upper case
     o.smartindent = true -- Make indenting smart
 
-    o.completeopt   = 'menuone,noinsert,noselect' -- Customize completions
-    o.virtualedit   = 'block'                     -- Allow going past the end of line in visual block mode
-    o.formatoptions = 'qjl1'                      -- Don't autoformat comments
+    o.completeopt   = 'menuone,noselect' -- Customize completions
+    o.virtualedit   = 'block'            -- Allow going past the end of line in visual block mode
+    o.formatoptions = 'qjl1'             -- Don't autoformat comments
 
     -- Neovim version dependent
     if vim.fn.has('nvim-0.9') == 1 then
@@ -694,6 +700,7 @@ H.is_default_keymap = function(mode, lhs, map_info)
 
   -- Some mappings are set by default in Neovim
   if mode == 'n' and lhs == '<C-L>' then return rhs:find('nohl') ~= nil end
+  if mode == 'n' and lhs == 'gO' and vim.fn.has('nvim-0.11') == 1 then return desc:find('vim%.lsp') ~= nil end
   if mode == 'i' and lhs == '<C-S>' then return desc:find('signature') ~= nil end
   if mode == 'x' and lhs == '*' then return rhs == [[y/\V<C-R>"<CR>]] end
   if mode == 'x' and lhs == '#' then return rhs == [[y?\V<C-R>"<CR>]] end
@@ -715,7 +722,9 @@ H.apply_autocommands = function(config)
   end
 
   if config.autocommands.basic then
-    au('TextYankPost', '*', function() vim.highlight.on_yank() end, 'Highlight yanked text')
+    local f = function() vim.hl.on_yank() end
+    if vim.fn.has('nvim-0.11') == 0 then f = function() vim.highlight.on_yank() end end
+    au('TextYankPost', '*', f, 'Highlight yanked text')
 
     local start_terminal_insert = vim.schedule_wrap(function(data)
       -- Try to start terminal mode only if target terminal is current
@@ -745,6 +754,13 @@ H.apply_autocommands = function(config)
 end
 
 -- Utilities ------------------------------------------------------------------
+H.error = function(msg) error('(mini.basics) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
+
 H.map = function(mode, lhs, rhs, opts)
   if lhs == '' then return end
   opts = vim.tbl_deep_extend('force', { silent = true }, opts or {})

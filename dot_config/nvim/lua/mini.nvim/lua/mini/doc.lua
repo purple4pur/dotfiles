@@ -150,6 +150,15 @@ local H = {}
 ---   require('mini.doc').setup({}) -- replace {} with your config table
 --- <
 MiniDoc.setup = function(config)
+  -- TODO: Remove after Neovim=0.8 support is dropped
+  if vim.fn.has('nvim-0.9') == 0 then
+    vim.notify(
+      '(mini.doc) Neovim<0.9 is soft deprecated (module works but not supported).'
+        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
+        .. ' Please update your Neovim version.'
+    )
+  end
+
   -- Export module
   _G.MiniDoc = MiniDoc
 
@@ -256,12 +265,13 @@ MiniDoc.config = {
       ['@field'] = function(s)
         H.mark_optional(s)
         H.enclose_var_name(s)
-        H.enclose_type(s, '`%(%1%)`', s[1]:find('%s'))
+        local col_past_var_name = s[1]:match('^%s*%S+%s+`%(optional%)`()') or s[1]:match('^%s*%S+()') or 1
+        H.enclose_type(s, col_past_var_name)
       end,
       --minidoc_replace_end
       --minidoc_replace_start ['@overload'] = --<function>,
       ['@overload'] = function(s)
-        H.enclose_type(s, '`%1`', 1)
+        s[1] = '`' .. s[1] .. '`'
         H.add_section_heading(s, 'Overload')
       end,
       --minidoc_replace_end
@@ -269,7 +279,8 @@ MiniDoc.config = {
       ['@param'] = function(s)
         H.mark_optional(s)
         H.enclose_var_name(s)
-        H.enclose_type(s, '`%(%1%)`', s[1]:find('%s'))
+        local col_past_var_name = s[1]:match('^%s*%S+%s+`%(optional%)`()') or s[1]:match('^%s*%S+()') or 1
+        H.enclose_type(s, col_past_var_name)
       end,
       --minidoc_replace_end
       --minidoc_replace_start ['@private'] = --<function: registers block for removal>,
@@ -278,7 +289,7 @@ MiniDoc.config = {
       --minidoc_replace_start ['@return'] = --<function>,
       ['@return'] = function(s)
         H.mark_optional(s)
-        H.enclose_type(s, '`%(%1%)`', 1)
+        H.enclose_type(s, 1)
         H.add_section_heading(s, 'Return')
       end,
       --minidoc_replace_end
@@ -318,7 +329,7 @@ MiniDoc.config = {
       --minidoc_replace_end
       --minidoc_replace_start ['@type'] = --<function>,
       ['@type'] = function(s)
-        H.enclose_type(s, '`%(%1%)`', 1)
+        H.enclose_type(s, 1)
         H.add_section_heading(s, 'Type')
       end,
       --minidoc_replace_end
@@ -713,10 +724,14 @@ H.pattern_sets = {
   -- Patterns to work with type descriptions
   -- (see https://github.com/sumneko/lua-language-server/wiki/EmmyLua-Annotations#types-and-type)
   types = {
+    '%b()', -- Allow union type
+    '%b[]',
+    '%b{}',
     'table%b<>',
-    'fun%b(): %S+', 'fun%b()',
+    'fun%b():%s*%b()', 'fun%b():%s*%b[]', 'fun%b():%s*%b{}', 'fun%b():%s*table%b<>', 'fun%b():%s*%S+', 'fun%b()',
     'nil', 'any', 'boolean', 'string', 'number', 'integer', 'function', 'table', 'thread', 'userdata', 'lightuserdata',
-    '%.%.%.'
+    '%.%.%.',
+    '[%a][%w_%.]*', -- Allow any class as a type
   },
 }
 --stylua: ignore end
@@ -724,51 +739,44 @@ H.pattern_sets = {
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 H.setup_config = function(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
-  vim.validate({ config = { config, 'table', true } })
+  H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  -- Validate per nesting level to produce correct error message
-  vim.validate({
-    annotation_extractor = { config.annotation_extractor, 'function' },
-    default_section_id = { config.default_section_id, 'string' },
-    hooks = { config.hooks, 'table' },
-    script_path = { config.script_path, 'string' },
-    silent = { config.silent, 'boolean' },
-  })
+  H.check_type('annotation_extractor', config.annotation_extractor, 'function')
+  H.check_type('default_section_id', config.default_section_id, 'string')
+  H.check_type('hooks', config.hooks, 'table')
 
-  vim.validate({
-    ['hooks.block_pre'] = { config.hooks.block_pre, 'function' },
-    ['hooks.section_pre'] = { config.hooks.section_pre, 'function' },
-    ['hooks.sections'] = { config.hooks.sections, 'table' },
-    ['hooks.section_post'] = { config.hooks.section_post, 'function' },
-    ['hooks.block_post'] = { config.hooks.block_post, 'function' },
-    ['hooks.file'] = { config.hooks.file, 'function' },
-    ['hooks.doc'] = { config.hooks.doc, 'function' },
-    ['hooks.write_pre'] = { config.hooks.write_pre, 'function' },
-    ['hooks.write_post'] = { config.hooks.write_post, 'function' },
-  })
+  H.check_type('hooks.block_pre', config.hooks.block_pre, 'function')
+  H.check_type('hooks.section_pre', config.hooks.section_pre, 'function')
 
-  vim.validate({
-    ['hooks.sections.@alias'] = { config.hooks.sections['@alias'], 'function' },
-    ['hooks.sections.@class'] = { config.hooks.sections['@class'], 'function' },
-    ['hooks.sections.@diagnostic'] = { config.hooks.sections['@diagnostic'], 'function' },
-    ['hooks.sections.@eval'] = { config.hooks.sections['@eval'], 'function' },
-    ['hooks.sections.@field'] = { config.hooks.sections['@field'], 'function' },
-    ['hooks.sections.@overload'] = { config.hooks.sections['@overload'], 'function' },
-    ['hooks.sections.@param'] = { config.hooks.sections['@param'], 'function' },
-    ['hooks.sections.@private'] = { config.hooks.sections['@private'], 'function' },
-    ['hooks.sections.@return'] = { config.hooks.sections['@return'], 'function' },
-    ['hooks.sections.@seealso'] = { config.hooks.sections['@seealso'], 'function' },
-    ['hooks.sections.@signature'] = { config.hooks.sections['@signature'], 'function' },
-    ['hooks.sections.@tag'] = { config.hooks.sections['@tag'], 'function' },
-    ['hooks.sections.@text'] = { config.hooks.sections['@text'], 'function' },
-    ['hooks.sections.@toc'] = { config.hooks.sections['@toc'], 'function' },
-    ['hooks.sections.@toc_entry'] = { config.hooks.sections['@toc_entry'], 'function' },
-    ['hooks.sections.@type'] = { config.hooks.sections['@type'], 'function' },
-    ['hooks.sections.@usage'] = { config.hooks.sections['@usage'], 'function' },
-  })
+  H.check_type('hooks.sections', config.hooks.sections, 'table')
+  H.check_type('hooks.sections.@alias', config.hooks.sections['@alias'], 'function')
+  H.check_type('hooks.sections.@class', config.hooks.sections['@class'], 'function')
+  H.check_type('hooks.sections.@diagnostic', config.hooks.sections['@diagnostic'], 'function')
+  H.check_type('hooks.sections.@eval', config.hooks.sections['@eval'], 'function')
+  H.check_type('hooks.sections.@field', config.hooks.sections['@field'], 'function')
+  H.check_type('hooks.sections.@overload', config.hooks.sections['@overload'], 'function')
+  H.check_type('hooks.sections.@param', config.hooks.sections['@param'], 'function')
+  H.check_type('hooks.sections.@private', config.hooks.sections['@private'], 'function')
+  H.check_type('hooks.sections.@return', config.hooks.sections['@return'], 'function')
+  H.check_type('hooks.sections.@seealso', config.hooks.sections['@seealso'], 'function')
+  H.check_type('hooks.sections.@signature', config.hooks.sections['@signature'], 'function')
+  H.check_type('hooks.sections.@tag', config.hooks.sections['@tag'], 'function')
+  H.check_type('hooks.sections.@text', config.hooks.sections['@text'], 'function')
+  H.check_type('hooks.sections.@toc', config.hooks.sections['@toc'], 'function')
+  H.check_type('hooks.sections.@toc_entry', config.hooks.sections['@toc_entry'], 'function')
+  H.check_type('hooks.sections.@type', config.hooks.sections['@type'], 'function')
+  H.check_type('hooks.sections.@usage', config.hooks.sections['@usage'], 'function')
+
+  H.check_type('hooks.section_post', config.hooks.section_post, 'function')
+  H.check_type('hooks.block_post', config.hooks.block_post, 'function')
+  H.check_type('hooks.file', config.hooks.file, 'function')
+  H.check_type('hooks.doc', config.hooks.doc, 'function')
+  H.check_type('hooks.write_pre', config.hooks.write_pre, 'function')
+  H.check_type('hooks.write_post', config.hooks.write_post, 'function')
+
+  H.check_type('script_path', config.script_path, 'string')
+  H.check_type('silent', config.silent, 'boolean')
 
   return config
 end
@@ -931,12 +939,16 @@ H.apply_structure_hooks = function(doc, hooks)
       hooks.block_pre(block)
 
       for _, section in ipairs(block) do
-        hooks.section_pre(section)
+        -- NOTE: Section can be empty if previous hook used `clear_lines()` on
+        -- the whole block (like default `@private`).
+        if #section > 0 then
+          hooks.section_pre(section)
 
-        local hook = hooks.sections[section.info.id]
-        if hook ~= nil then hook(section) end
+          local hook = hooks.sections[section.info.id]
+          if hook ~= nil then hook(section) end
 
-        hooks.section_post(section)
+          hooks.section_post(section)
+        end
       end
 
       hooks.block_post(block)
@@ -966,15 +978,35 @@ end
 H.alias_replace = function(s)
   if MiniDoc.current.aliases == nil then return end
 
-  for i, _ in ipairs(s) do
-    for alias_name, alias_desc in pairs(MiniDoc.current.aliases) do
-      -- Escape special characters. This is done here and not while registering
-      -- alias to allow user to refer to aliases by its original name.
-      -- Store escaped words in separate variables because `vim.pesc()` returns
-      -- two values which might conflict if outputs are used as arguments.
-      local name_escaped = vim.pesc(alias_name)
-      local desc_escaped = vim.pesc(alias_desc)
-      s[i] = s[i]:gsub(name_escaped, desc_escaped)
+  local s_type = s.info.id
+  local has_special_first_word = s_type == '@param' or s_type == '@field' or s_type == '@class'
+  local has_special_type = s_type == '@tag' or s_type == '@toc_entry'
+  for alias_name, alias_desc in pairs(MiniDoc.current.aliases) do
+    -- Escape special characters. This is done here and not while registering
+    -- alias to allow user to refer to aliases by its original name.
+    local name_escaped = vim.pesc(alias_name)
+    local desc_is_union = alias_desc:find('|') ~= nil
+    for i, _ in ipairs(s) do
+      -- Try to be accurate in which matches to replace. This avoids cases like
+      -- `@alias aaa AAA` with `aaaBBB->AAABBB` replacements or replacing
+      -- inside special places (like parameter/field/tag names, etc.)
+      s[i] = s[i]:gsub('(.?)(' .. name_escaped .. ')(.?)', function(before, match, after)
+        local before_is_empty, after_is_empty = before == '', after == ''
+        local before_is_space, after_is_space = before:find('%s') == 1, after:find('%s') == 1
+        -- Allow match to be preceded/followed by special characters that can
+        -- be used inside EmmyLua/LuaCATS annotations.
+        -- Source: https://luals.github.io/wiki/annotations/#documenting-types
+        local before_is_special, after_is_special = before:find('[|,%[%(<:]') == 1, after:find('[|,%[%])>}%?]') == 1
+
+        local is_fixed_name = i == 1 and has_special_first_word and before_is_empty
+        local before_is_valid = before_is_empty or before_is_space or before_is_special
+        local after_is_valid = after_is_empty or after_is_space or after_is_special
+        local is_valid = before_is_valid and after_is_valid
+        if not is_valid or is_fixed_name or has_special_type then return before .. match .. after end
+
+        local should_enclose = desc_is_union and (before_is_special or after_is_special)
+        return before .. (should_enclose and ('(' .. alias_desc .. ')') or alias_desc) .. after
+      end)
     end
   end
 end
@@ -1000,8 +1032,12 @@ H.toc_insert = function(s)
       local left = toc_entry[i] or ''
       -- Use tag reference instead of tag enclosure
       local right = vim.trim((tag_section[i] or ''):gsub('%*', '|'))
-      -- Add visual line only at first entry (while not adding trailing space)
-      local filler = i == 1 and '.' or (right == '' and '' or ' ')
+      -- Add helper line of dots in first entry (without new trailing space)
+      local filler = right == '' and '' or ' '
+      if i == 1 then
+        -- Ensure parts are padded for proper conceal
+        filler, left, right = '.', (left:gsub('(%S)$', '%1 ')), (right:gsub('^(%S)', ' %1'))
+      end
       -- Make padding of 2 spaces at both left and right
       local n_filler = math.max(74 - H.visual_text_width(left) - H.visual_text_width(right), 3)
       table.insert(lines, ('  %s%s%s'):format(left, filler:rep(n_filler), right))
@@ -1019,8 +1055,6 @@ H.toc_insert = function(s)
 end
 
 H.add_section_heading = function(s, heading)
-  if #s == 0 or s.type ~= 'section' then return end
-
   -- Add heading
   s:insert(1, ('%s ~'):format(heading))
 end
@@ -1031,31 +1065,40 @@ H.mark_optional = function(s)
   s[1] = s[1]:gsub('^(%s-%S-)%?', '%1 `(optional)`', 1)
 end
 
-H.enclose_var_name = function(s)
-  if #s == 0 or s.type ~= 'section' then return end
-
-  s[1] = s[1]:gsub('(%S+)', '{%1}', 1)
-end
+H.enclose_var_name = function(s) s[1] = s[1]:gsub('(%S+)', '{%1}', 1) end
 
 ---@param init number Start of searching for first "type-like" string. It is
 ---   needed to not detect type early. Like in `@param a_function function`.
 ---@private
-H.enclose_type = function(s, enclosure, init)
+H.enclose_type = function(s, init)
   if #s == 0 or s.type ~= 'section' then return end
-  enclosure = enclosure or '`%(%1%)`'
   init = init or 1
 
-  local cur_type = H.match_first_pattern(s[1], H.pattern_sets['types'], init)
-  if #cur_type == 0 then return end
+  local type_pattern_set = H.pattern_sets['types']
+  local type_pattern = H.find_pattern_with_first_match(s[1], type_pattern_set, init)
+  if type_pattern == nil then return end
 
-  -- Add `%S*` to front and back of found pattern to support their combination
-  -- with `|`. Also allows using `[]` and `?` prefixes.
-  local type_pattern = ('(%%S*%s%%S*)'):format(vim.pesc(cur_type[1]))
+  -- Find range representing type. It can be a match for type pattern (plain,
+  -- array `[]`, or optional `?`), possibly in a union (`|`).
+  local from, to = s[1]:find(type_pattern, init)
+  for _ = 1, s[1]:len() do
+    if s[1]:sub(to + 1, to + 2) == '[]' then to = to + 2 end
+    if s[1]:sub(to + 1, to + 1) == '?' then to = to + 1 end
 
-  -- Avoid replacing possible match before `init`
-  local l_start = s[1]:sub(1, init - 1)
-  local l_end = s[1]:sub(init):gsub(type_pattern, enclosure, 1)
-  s[1] = ('%s%s'):format(l_start, l_end)
+    local new_to = s[1]:sub(to + 1):match('^%s*|%s*()')
+    if new_to == nil then break end
+    to = to + new_to - 1
+    local next_type_pattern = H.find_pattern_with_first_match(s[1], type_pattern_set, to + 1)
+    if next_type_pattern == nil then break end
+    to = s[1]:match(next_type_pattern .. '()', to + 1) - 1
+  end
+
+  -- Avoid replacing match before `init` and avoid unnecessary () enclosing
+  local avoid_brackets = s[1]:sub(from, to):find('^%b()$') ~= nil
+  local left = avoid_brackets and '`' or '`('
+  local right = avoid_brackets and '`' or ')`'
+
+  s[1] = s[1]:sub(1, from - 1) .. left .. s[1]:sub(from, to) .. right .. s[1]:sub(to + 1)
 end
 
 -- Infer data from afterlines -------------------------------------------------
@@ -1073,17 +1116,19 @@ H.infer_header = function(b)
   local tag, signature
 
   -- Try function definition
-  local fun_capture = H.match_first_pattern(l_all, H.pattern_sets['afterline_fundef'])
-  if #fun_capture > 0 then
-    tag = tag or ('%s()'):format(fun_capture[1])
-    signature = signature or ('%s%s'):format(fun_capture[1], fun_capture[2])
+  local fun_pattern = H.find_pattern_with_first_match(l_all, H.pattern_sets['afterline_fundef'])
+  if fun_pattern ~= nil then
+    local fun_name, fun_args = l_all:match(fun_pattern)
+    tag = tag or (fun_name .. '()')
+    signature = signature or (fun_name .. fun_args)
   end
 
   -- Try general assignment
-  local assign_capture = H.match_first_pattern(l_all, H.pattern_sets['afterline_assign'])
-  if #assign_capture > 0 then
-    tag = tag or assign_capture[1]
-    signature = signature or assign_capture[1]
+  local assign_pattern = H.find_pattern_with_first_match(l_all, H.pattern_sets['afterline_assign'])
+  if assign_pattern ~= nil then
+    local obj_name = l_all:match(assign_pattern)
+    tag = tag or obj_name
+    signature = signature or obj_name
   end
 
   if tag ~= nil then
@@ -1246,27 +1291,25 @@ H.visual_text_width = function(text)
   return vim.fn.strdisplaywidth(text) - n_concealed_chars
 end
 
---- Return earliest match among many patterns
----
---- Logic here is to test among several patterns. If several got a match,
---- return one with earliest match.
----
----@private
-H.match_first_pattern = function(text, pattern_set, init)
-  local start_tbl = vim.tbl_map(function(pattern) return text:find(pattern, init) or math.huge end, pattern_set)
-
-  local min_start, min_id = math.huge, nil
-  for id, st in ipairs(start_tbl) do
-    if st < min_start then
-      min_start, min_id = st, id
+H.find_pattern_with_first_match = function(text, pattern_set, init)
+  local min_start, first_pat = math.huge, nil
+  for _, pat in ipairs(pattern_set) do
+    local from = text:find(pat, init)
+    if from ~= nil and from < min_start then
+      min_start, first_pat = from, pat
     end
   end
-
-  if min_id == nil then return {} end
-  return { text:match(pattern_set[min_id], init) }
+  return first_pat
 end
 
 -- Utilities ------------------------------------------------------------------
+H.error = function(msg) error('(mini.doc) ' .. msg, 0) end
+
+H.check_type = function(name, val, ref, allow_nil)
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
+end
+
 H.apply_recursively = function(f, x)
   f(x)
 

@@ -91,7 +91,7 @@ Notes:
     - All triggers are disabled during macro recording due to technical
       reasons.
     - The `@` and `Q` keys are specially mapped inside |MiniClue.setup()|
-      to temporarily disable triggers.
+      (if the key is not already mapped) to temporarily disable triggers.
 
 # Setup ~
 
@@ -345,6 +345,14 @@ to generate clues for all available completion sources): >lua
     }
   })
 <
+# Triggers in special buffers ~
+
+By default triggers are automatically created in listed ('buflisted') and some
+special non-listed buffers. Use |MiniClue.ensure_buf_triggers()| to manually
+enable in when you need them. For example: >vim
+
+  au FileType special_ft lua MiniClue.ensure_buf_triggers()
+<
                                                     *MiniClue-examples-submodes*
 # Submodes ~
 
@@ -528,8 +536,8 @@ A clue table is a table with the following fields:
 - <keys> `(string)` - key combination for which clue will be shown.
   "Human-readable" key names as in |key-notation| (like "<Leader>", "<Space>",
   "<Tab>", etc.) are allowed.
-- <desc> `(string|nil)` - optional key combination description which will
-  be shown in clue window.
+- <desc> `(string|function|nil)` - optional key combination description which is
+  shown in clue window. If function, should return string description.
 - <postkeys> `(string|nil)` - optional postkeys which will be executed
   automatically after `keys`. Allows creation of submodes
   (see |MiniClue-examples-submodes|).
