@@ -2,7 +2,7 @@
 
 ##! \brief   Invoke nvim with/without gui.
 ##! \details This script is used on where cannot install/run nvim gui. When '-g' flag is
-##!          passed, nvim will open in a separate terminal window, which looks like 'gvim'.
+##!          passed, nvim will open in a separate kitty terminal window, which looks like 'gvim'.
 ##! \usage   1. copy/link this script in ~/bin, next to nvim.appimage
 ##!          2. make it executable
 ##!          3. call it as 'nvim'
@@ -12,7 +12,7 @@
 ##!          A workaround: just call 'nvim.appimage', not this script.
 
 nvim=$(which nvim.appimage)  # path to nvim.appimage
-term=$(which gnome-terminal) # path to gnome-terminal
+term=$(which kitty)          # path to kitty
 stdin_timeout=10             # timeout for reading piped input (only used in "GUI" mode)
 clean_countdown=3            # after this time, stdin temp file will be removed (only used in "GUI" mode)
 stdin_prefix="/tmp/stdin_"   # prefix of stdin temp file
@@ -46,10 +46,10 @@ if [[ $new_window -eq 1 ]]; then
     if [[ -e $stdin_file ]]; then
         args="$stdin_file -R $args"
     fi
-    unset GNOME_TERMINAL_SCREEN
-    $term --geometry=120x46 --hide-menubar \
-        --title="NVIM" \
-        -- env PATH=$PATH $nvim $args
+    $term --detach \
+        -o initial_window_width=120c \
+        -o initial_window_height=46c \
+        env PATH=$PATH $nvim $args
 else
     $nvim $args
 fi
