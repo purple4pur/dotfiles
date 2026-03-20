@@ -227,3 +227,9 @@ symbol = "terraform "
 
 [zig]
 symbol = "zig "
+
+[erlang]
+symbol = "erl "
+
+[fortran]
+symbol = "F "
