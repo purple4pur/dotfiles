@@ -23,30 +23,71 @@ fi
 # Remove file extension to get filename without extension
 file_no_ext="${file%.*}"
 
-# Check if target file already exists
-target_file="av1/${file_no_ext}.av1.mkv"
-if [ -f "$target_file" ]; then
-    echo "Error: Target file '$target_file' already exists, script will exit to avoid overwriting"
-    echo "If you want to reconvert, please delete the existing file first"
-    exit 1
+# Set output dir
+target_dir="video2av1_output"
+
+# Check if bitrate is <= 1000 kbps -> fast path
+get_bitrate_kbps() {
+    local input="$1"
+    # Try stream bitrate first
+    local bitrate
+    bitrate=$(ffprobe -v error -select_streams v:0 -show_entries stream=bit_rate -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo "0")
+
+    if [ -z "$bitrate" ] || [ "$bitrate" = "0" ]; then
+        # Fallback: calculate from file size and duration
+        local duration filesize
+        duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo "0")
+        filesize=$(stat -c%s "$input" 2>/dev/null || echo "0")
+        if [ "$duration" != "0" ] && [ "$duration" != "N/A" ] && [ "$filesize" != "0" ]; then
+            bitrate=$((filesize * 8 / ${duration%.*} / 1000))
+        else
+            bitrate=0
+        fi
+    else
+        # Convert to kbps
+        bitrate=$((bitrate / 1000))
+    fi
+    echo "$bitrate"
+}
+
+mkdir -p "$target_dir"
+
+# Check bitrate for fast path
+bitrate=$(get_bitrate_kbps "$file")
+
+if [ "$bitrate" -le 1000 ] && [ "$bitrate" -gt 0 ]; then
+    # Low bitrate: remux to MP4 with faststart
+    target_file="${target_dir}/${file_no_ext}.faststart.mp4"
+    if [ -f "$target_file" ]; then
+        echo "Error: Target file '$target_file' already exists"
+        exit 1
+    fi
+    echo "[Start] $(date --iso-8601=minutes)"
+    echo "Bitrate: ${bitrate}kbps (remux with faststart only)"
+    echo "Remuxing: $file -> $target_file"
+    ffmpeg -hide_banner -nostdin -i "$file" -c copy -movflags faststart "$target_file" -y
+else
+    # High bitrate: re-encode to AV1
+    target_file="${target_dir}/${file_no_ext}.av1.mp4"
+    if [ -f "$target_file" ]; then
+        echo "Error: Target file '$target_file' already exists"
+        exit 1
+    fi
+    echo "[Start] $(date --iso-8601=minutes)"
+    [ "$bitrate" -gt 0 ] && echo "Bitrate: ${bitrate}kbps (remux to AV1 encoding)"
+    echo "Starting conversion: $file -> $target_file"
+    echo "Conversion may take some time, please be patient..."
+
+    ffmpeg -hide_banner -nostdin \
+        -i "$file" \
+        -map 0:v:0? -map 0:a:0? \
+        -c:v libsvtav1 -preset 9 \
+        -vf "scale=min(iw\\,if(gte(a\\,1)\\,1920\\,1080))*3/4:-2,fps=min(source_fps\\,30)" \
+        -c:a aac -b:a 128k \
+        -map 0:s:0? -c:s copy \
+        -movflags faststart \
+        "$target_file" -y
 fi
-
-echo "[Start] $(date --iso-8601=minutes)"
-echo "Starting conversion: $file -> $target_file"
-echo "Conversion may take some time, please be patient..."
-
-# Execute FFmpeg conversion command
-mkdir -p "$(dirname "$target_file" | sed 's# #\ #g')"
-ffmpeg -hide_banner -nostdin \
-    -i "$file" \
-    -map 0:v:0? -map 0:a:0? \
-    -c:v libsvtav1 -preset 9 \
-    -vf "scale=min(iw\\,if(gte(a\\,1)\\,1920\\,1080))*3/4:-2,fps=min(source_fps\\,30)" \
-    -c:a aac -b:a 128k \
-    -map 0:s:0? -c:s copy \
-    -movflags faststart \
-    "$target_file" \
-    -y
 
 # Check if conversion was successful
 if [ $? -eq 0 ]; then
