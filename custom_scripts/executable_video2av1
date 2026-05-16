@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+# AV1 Video Conversion Script
+# Function: Convert video files to AV1 encoding format
+
+set -euo pipefail
+
+# Check if filename parameter is provided
+if [ $# -eq 0 ]; then
+    echo "Error: Please provide the video filename to convert"
+    echo "Usage: $0 <video_file>"
+    exit 1
+fi
+
+file="$1"
+
+# Check if file exists
+if [ ! -f "$file" ]; then
+    echo "Error: File '$file' does not exist"
+    exit 1
+fi
+
+# Remove file extension to get filename without extension
+file_no_ext="${file%.*}"
+
+# Check if target file already exists
+target_file="av1/${file_no_ext}.av1.mkv"
+if [ -f "$target_file" ]; then
+    echo "Error: Target file '$target_file' already exists, script will exit to avoid overwriting"
+    echo "If you want to reconvert, please delete the existing file first"
+    exit 1
+fi
+
+echo "[Start] $(date --iso-8601=minutes)"
+echo "Starting conversion: $file -> $target_file"
+echo "Conversion may take some time, please be patient..."
+
+# Execute FFmpeg conversion command
+mkdir -p "$(dirname "$target_file" | sed 's# #\ #g')"
+ffmpeg -hide_banner -nostdin \
+    -i "$file" \
+    -map 0:v:0? -map 0:a:0? \
+    -c:v libsvtav1 -preset 9 \
+    -vf "scale=min(iw\\,if(gte(a\\,1)\\,1920\\,1080))*3/4:-2,fps=min(source_fps\\,30)" \
+    -c:a aac -b:a 128k \
+    -map 0:s:0? -c:s copy \
+    -movflags faststart \
+    "$target_file" \
+    -y
+
+# Check if conversion was successful
+if [ $? -eq 0 ]; then
+    echo "Conversion completed! Output file: $target_file"
+    echo "[Finish] $(date --iso-8601=minutes)"
+else
+    echo "Conversion failed, please check if FFmpeg is installed and supports libsvtav1 encoder"
+    exit 1
+fi
