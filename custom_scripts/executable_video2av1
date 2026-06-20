@@ -7,7 +7,7 @@ set -euo pipefail
 
 # Check if filename parameter is provided
 if [ $# -eq 0 ]; then
-    echo "Error: Please provide the video filename to convert"
+    echo "Error: Please provide the video filename to convert" >&2
     echo "Usage: $0 <video_file>"
     exit 1
 fi
@@ -16,7 +16,7 @@ file="$1"
 
 # Check if file exists
 if [ ! -f "$file" ]; then
-    echo "Error: File '$file' does not exist"
+    echo "Error: File '$file' does not exist" >&2
     exit 1
 fi
 
@@ -64,7 +64,7 @@ if [ "$bitrate" -le 1600 ] && [ "$bitrate" -gt 0 ]; then
     # Low bitrate: remux to MP4 with faststart
     target_file="${target_dir}/${file_no_ext}.faststart.mp4"
     if [ -f "$target_file" ]; then
-        echo "Error: Target file '$target_file' already exists"
+        echo "Error: Target file '$target_file' already exists" >&2
         exit 1
     fi
     echo "[Start] $(date --iso-8601=minutes)"
@@ -75,7 +75,7 @@ else
     # High bitrate: re-encode to AV1
     target_file="${target_dir}/${file_no_ext}.av1.mp4"
     if [ -f "$target_file" ]; then
-        echo "Error: Target file '$target_file' already exists"
+        echo "Error: Target file '$target_file' already exists" >&2
         exit 1
     fi
     echo "[Start] $(date --iso-8601=minutes)"
@@ -89,7 +89,6 @@ else
         -c:v libsvtav1 -preset 9 \
         -vf "scale=min(iw\\,if(gte(a\\,1)\\,1920\\,1080))*3/4:-2,fps=min(source_fps\\,30)" \
         -c:a aac -b:a 128k \
-        -map 0:s:0? -c:s copy \
         -movflags faststart \
         "$target_file" -y
 fi
@@ -99,6 +98,6 @@ if [ $? -eq 0 ]; then
     echo "Conversion completed! Output file: $target_file"
     echo "[Finish] $(date --iso-8601=minutes)"
 else
-    echo "Conversion failed, please check if FFmpeg is installed and supports libsvtav1 encoder"
+    echo "Conversion failed, please check if FFmpeg is installed and supports libsvtav1 encoder" >&2
     exit 1
 fi
