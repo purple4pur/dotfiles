@@ -22,4 +22,5 @@ For vim/nvim plugin common usages, please refer to [`~/.vimrc`](dot_vimrc) and [
 * [**`dot_config/mpv/exact_scripts/modernz.lua`**](./dot_config/mpv/exact_scripts/modernz.lua) - [Samillion/ModernZ](https://github.com/Samillion/ModernZ) **(Active)**
 * [**`dot_config/mpv/exact_scripts/thumbfast.lua`**](./dot_config/mpv/exact_scripts/thumbfast.lua) - [po5/thumbfast](https://github.com/po5/thumbfast)
 * [**`dot_config/mpv/shaders`**](./dot_config/mpv/shaders) - [bloc97/Anime4K](https://github.com/bloc97/Anime4K)
-* [**`dot_skills/ponytail`**](./dot_skills/ponytail) - [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) **(Active)**
+* [**`dot_skills/ponytail*`**](./dot_skills/ponytail) - [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) **(Active)**
+* [**`dot_skills/caveman*`**](./dot_skills/caveman) - [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) **(Active)**
