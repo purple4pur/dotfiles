@@ -3,9 +3,11 @@ name: record-each-step
 description: >
   Auto-commit after every change. Creates branch `agent-working` on clone if
   missing. All work stays on `agent-working` unless user explicitly says
-  otherwise. Conventional commits, short messages. Auto-enables when a project
-  AGENTS.md or equivalent instruction marks it as enabled. Silently skips in
-  non-git workspaces (notices user once on first invocation).
+  otherwise. Conventional commits, short messages. On request, squash-
+  contributes to main with a /caveman-commit message detailing the feature
+  changes, then resets agent-working. Auto-enables when a project AGENTS.md
+  or equivalent instruction marks it as enabled. Silently skips in non-git
+  workspaces (notices user once on first invocation).
 ---
 
 # record-each-step
@@ -28,6 +30,34 @@ description: >
    Types: `feat`, `fix`, `docs`, `chore`, `refactor`, `perf`, `test`, `style`,
    `build`, `ci`. Subject ≤72 chars. Body only when the *why* isn't obvious
    from the diff.
+
+## Contribution workflow
+
+When the user asks to contribute/sync `agent-working` to `main` (or says
+"contribute", "squash to main", "merge my work"), do:
+
+1. **Squash merge** — one commit on main for the whole contribution, not the
+   step commits:
+   ```bash
+   git checkout main
+   git merge --squash agent-working
+   ```
+2. **Commit message via `/caveman-commit`** — compact Conventional Commits
+   message that **details the net feature changes**: subject
+   `<type>(<scope>): <imperative summary>` ≤50 chars, body listing what the
+   user sees/changes (what + why), not a replay of the intermediate step
+   commits. Squash swallows delete/revert pairs — describe the net diff
+   (`git diff main --stat` on the staged tree shows it).
+3. **No push** unless the user explicitly asks.
+4. **Reset agent branch after contribution**:
+   ```bash
+   git checkout agent-working
+   git reset --hard main
+   ```
+   So the next work starts from main HEAD. This discards the step-commit
+   history on `agent-working` (content is preserved in main's squash commit).
+   `git reset --hard` may trip permission guards — state that local work is
+   being discarded and get explicit approval if blocked.
 
 ## Auto-enable
 
