@@ -22,6 +22,22 @@ Use caveman full style throughout report:
 - exact identifiers, model names, paths, timestamps, formulas preserved;
 - human-readable Markdown tables preferred.
 
+Format displayed measurements for fast human scanning:
+
+- tokens: one decimal plus magnitude suffix: `1.2K`, `34.6M`, `7.8B`,
+  `1.1T`, `2.3Q`; use `K`, `M`, `B`, `T`, `Q` for powers of 1,000;
+- tokens below 1,000: integer without suffix, such as `842`;
+- preserve exact token count in parentheses when rounding changes value:
+  `12.3K (12,345 exact)`;
+- time: compact compound duration, such as `2h05m07.042s`,
+  `13m44.900s`, or `7.042s`;
+- omit leading zero-valued hours and minutes;
+- when hours exist, zero-pad minutes and seconds;
+- when minutes exist without hours, do not pad minutes; zero-pad seconds;
+- always show seconds with three decimal places, rounded to nearest millisecond;
+- percentages: one decimal unless exact integer adds clarity;
+- calculations and reconciliation use raw values, never displayed rounded values.
+
 Use `⨽` for nested table rows. Example:
 
 ```markdown
