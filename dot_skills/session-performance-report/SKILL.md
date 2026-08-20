@@ -57,14 +57,33 @@ Rules:
 - column width = max rendered cell length across all rows, including header;
   separator row never narrower than 3 dashes;
 - pad every cell to column width; right-align numeric columns (`---:`),
-  left-align text (`---`), center per template (`:---:`);
+  left-align text (`---`);
 - separator row padded with dashes to match column widths, alignment colons
-  preserved: right `-` × (w−1) + `:`, center `:` + `-` × (w−2) + `:`;
+  preserved: right `-` × (w−1) + `:`;
 - mixed cell formats (`0`, `0.000s`, `31.505s apiMs`) pad as plain cells — no
   truncation, no normalization;
 - empty cells stay empty, same width;
 - verify before finish: `cat` the report — pipe columns line up vertically in
   every row; numeric columns flush right, text columns flush left.
+
+## Scripts (optional helpers)
+
+Two small scripts under `<skill-base>/scripts/`. Helpers — judgment stays model
+work. If a script fails or the agent is unknown, fall back to manual collection
+(§2). Cross-check digest against raw logs before trusting.
+
+1. `align_tables.py <file.md> [...]` — monospace-align every Markdown table in
+   place per §Tables. Skips fenced code blocks. Idempotent. Run after writing
+   the report.
+2. `parse_session.py [--session <id>]` — evidence extractor. Auto-detects
+   agent; Qwen Code: session id from skill args path `.qwen/tmp/s-<uuid>/` or
+   `--session`, chat log `~/.qwen/projects/*/chats/<uuid>.jsonl`, tokens
+   `~/.qwen/usage/token-usage-<YYYY-MM>.jsonl`. Prints digest: user turns,
+   per-turn spans, per-turn + total token sums, tool call/result pairs,
+   per-tool aggregates, union tool wall. Excludes current report turn (records
+   at/after last user message). Codex: fall back to §2 manual.
+
+Scope selection, phase attribution, findings, optimizations: model work, §4-§5.
 
 ## 1. Set scope
 
@@ -209,6 +228,7 @@ Before finish:
 - report exists and is non-empty;
 - detected agent + session id + log paths stated in Scope;
 - scope start/end and cutoff stated;
+- script digest cross-checked against raw logs when scripts used (§Scripts);
 - all tables monospace-aligned (`cat` check, see §Tables);
 - primary skill rows reconcile with total;
 - phase API usages reconcile with model usage count;
