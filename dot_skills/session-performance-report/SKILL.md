@@ -1,6 +1,6 @@
 ---
 name: session-performance-report
-description: "Measure and report AI session performance from local rollout/session logs: end-to-end and active wall time, derived API/agent time, tool time, input/cached/output/reasoning tokens, phase and skill attribution, tool usage, and model usage. Use when users ask for session statistics, debug performance, token-cost analysis, elapsed-time analysis, tool/model breakdowns, bottlenecks, or a Markdown performance report."
+description: "Measure and report AI session performance from local session logs (auto-detects agent: Qwen Code chats/*.jsonl + usage/token-usage-*.jsonl, or Codex rollout-*.jsonl): end-to-end and active wall time, derived API/agent time, tool time, input/cached/output/reasoning tokens, phase and skill attribution, tool usage, and model usage. Use when users ask for session statistics, debug performance, token-cost analysis, elapsed-time analysis, tool/model breakdowns, bottlenecks, or a Markdown performance report."
 ---
 
 # Session Performance Report
@@ -44,8 +44,27 @@ Use `⨽` for nested table rows. Example:
 | `parent-skill` | ... |
 | ⨽ `nested-skill` | ... |
 | `exec_command` batches | ... |
-| ⨽ `fsdb2vcd` | ... |
+| ⨽ `nested-cli` | ... |
 ```
+
+## Tables
+
+Every Markdown table monospace-aligned for plain-text view (`cat`, terminal).
+Rendered Markdown ignores padding — alignment costs nothing, reads well raw.
+
+Rules:
+
+- column width = max rendered cell length across all rows, including header;
+  separator row never narrower than 3 dashes;
+- pad every cell to column width; right-align numeric columns (`---:`),
+  left-align text (`---`), center per template (`:---:`);
+- separator row padded with dashes to match column widths, alignment colons
+  preserved: right `-` × (w−1) + `:`, center `:` + `-` × (w−2) + `:`;
+- mixed cell formats (`0`, `0.000s`, `31.505s apiMs`) pad as plain cells — no
+  truncation, no normalization;
+- empty cells stay empty, same width;
+- verify before finish: `cat` the report — pipe columns line up vertically in
+  every row; numeric columns flush right, text columns flush left.
 
 ## 1. Set scope
 
@@ -60,21 +79,40 @@ multiple rollout files, include each linked file and state selection rule.
 
 ## 2. Discover evidence
 
-Prefer local session logs, typically:
+### 2.0 Detect agent (automatic)
 
-```text
-.codex/sessions/**/rollout-*.jsonl
-.codex/history.jsonl
-.codex/logs_*.sqlite
-```
+Detect current agent first — each agent has its own session log format. Probe,
+do not guess, do not ask:
 
-Use equivalent provider logs when Codex files are absent. Keep logs read-only.
+1. **Qwen Code** — skill args file lives under `.qwen/tmp/s-<uuid>/` (e.g.
+   `.qwen/tmp/s-00000000-0000-4000-8000-000000000000/qwen-skill-args-*.txt`);
+   session id = `<uuid>`.
+   Sources:
+   - chat log: `~/.qwen/projects/<project-slug>/chats/<uuid>.jsonl`
+     (project-slug derives from cwd, e.g. `-home-<user>-<project>`);
+   - per-response tokens: `~/.qwen/usage/token-usage-<YYYY-MM>.jsonl` — fields
+     `sessionId`, `model`, `inputTokens`, `outputTokens`, `cachedTokens`,
+     `thoughtsTokens`, `totalTokens`, `apiDurationMs`, `timestamp`;
+   - tool matching: assistant part `functionCall.id` ↔ `tool_result`
+     `functionResponse.id`; timestamps per event; assistant parts carry
+     `text` / `thought` / `functionCall`.
+2. **Codex** — `.codex/sessions/**/rollout-*.jsonl`, `.codex/history.jsonl`,
+   `.codex/logs_*.sqlite` (cwd or home).
+3. **Fallback** — probe both glob families; pick newest matching session; if
+   ambiguous, ask user for log path.
 
-Collect:
+Detection is positive: report detected agent, session id, and log paths in
+Scope. Never mix agent formats in one report.
+
+Keep logs read-only.
+
+### 2.1 Collect
 
 - `task_started` / `task_complete` timestamps and durations;
-- `token_count.last_token_usage` per model response;
-- `turn_context` model, provider, effort, and agent/thread identity;
+- per-response token usage — Codex: `token_count.last_token_usage`; Qwen:
+  usage-file fields above (sum per response, never cumulative snapshot);
+- model, provider, effort, agent/thread identity — Qwen: `model` + `authType`
+  in usage file; Codex: `turn_context`;
 - matched tool call/output timestamps and tool names;
 - user prompts, assistant milestones, and tool events for phase attribution;
 - nested skill names from user inputs, skill resources, and workflow actions.
@@ -169,7 +207,9 @@ Give concrete optimization and expected effect. No generic advice.
 Before finish:
 
 - report exists and is non-empty;
+- detected agent + session id + log paths stated in Scope;
 - scope start/end and cutoff stated;
+- all tables monospace-aligned (`cat` check, see §Tables);
 - primary skill rows reconcile with total;
 - phase API usages reconcile with model usage count;
 - tool counts reconcile with matched calls;
