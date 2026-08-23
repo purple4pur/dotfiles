@@ -40,6 +40,7 @@ reset verified.
 ### 1. Qualify enablement
 
 **Step**
+
 On activation, resolve enablement — explicit toggle wins over project file:
 
 - `/record-each-step off` → disabled.
@@ -49,9 +50,12 @@ On activation, resolve enablement — explicit toggle wins over project file:
   → enabled.
 - None of the above → disabled.
 
-CHECKPOINT `enable_state` — enabled or disabled, plus source.
+**Checkpoint: `enable_state`**
 
-GATE
+Enabled or disabled, plus trigger source.
+
+**Gate**
+
 - Disabled: **STOP** — no-op.
 - Enabled, not a git workspace (no `.git`): notify once
   "record-each-step: not a git repository — skipping.", then **STOP**.
@@ -60,6 +64,7 @@ GATE
 ### 2. Set up branch
 
 **Step**
+
 Inspect branch state:
 
 | State | Action |
@@ -68,10 +73,12 @@ Inspect branch state:
 | `agent-working` exists, current is different (e.g. `main`) | Stale branch. Verify `git status` clean, then rename to `agent-working-1` (increment `-2`, `-3`... until free) and create fresh `agent-working` from current HEAD |
 | No `agent-working` | Create fresh `agent-working` from current HEAD |
 
-CHECKPOINT `branch_state` — on `agent-working`, created from current HEAD,
-tree clean.
+**Checkpoint: `branch_state`**
 
-GATE
+On `agent-working`, created from current HEAD, tree clean.
+
+**Gate**
+
 - On `agent-working`, clean: **CONTINUE Step 3**.
 - Dirty tree at rename: commit or stash first, **RETURN Step 2**.
 - Rename blocked: **STOP** with exact blocker.
@@ -79,39 +86,50 @@ GATE
 ### 3. Commit loop
 
 **Step**
+
 After every change, immediately: `git add <files>` + one conventional commit.
 Unrelated changes get separate commits.
 
-CHECKPOINT `commit_evidence` — `git status` clean; `git log -1` matches the
-change.
+**Checkpoint: `commit_evidence`**
 
-GATE
+`git status` clean; `git log -1` matches the change.
+
+**Gate**
+
 - Tree clean: **CONTINUE Step 4**.
 - Unrelated changes batched in one commit: split, **RETURN Step 3**.
 
 ### 4. Report
 
 **Step**
+
 Report only when the tree is clean. If the user asks to contribute/sync
 ("contribute", "squash to main", "merge my work"): **ENTER lane-contribute**.
 
-CHECKPOINT `clean_report` — tree clean at milestone.
+**Checkpoint: `clean_report`**
 
-GATE
+Tree clean at milestone.
+
+**Gate**
+
 - Tree clean, task done: **COMPLETE**.
 - Contribute requested: **ENTER lane-contribute**.
 
 ## Lane: contribute
 
-### L1. Precondition
+### L1. Verify readiness
 
 **Step**
+
 Verify `git status` clean and `agent-working` diverged from `main`
 (`git rev-parse agent-working main` differ).
 
-CHECKPOINT `contribution_ready` — clean tree, branch diverged.
+**Checkpoint: `contribution_ready`**
 
-GATE
+Clean tree; `agent-working` diverged from `main`.
+
+**Gate**
+
 - Dirty: commit or ask first, **RETURN L1**.
 - Not diverged (nothing to contribute): **STOP** — tell user.
 - Ready: **CONTINUE L2**.
@@ -119,16 +137,19 @@ GATE
 ### L2. Squash
 
 **Step**
+
 ```bash
 git checkout main
 git merge --squash agent-working
 ```
 On conflict: resolve, then `git add` resolved files.
 
-CHECKPOINT `staged_net_diff` — staged tree shows the net change
-(`git diff --cached --stat`).
+**Checkpoint: `staged_net_diff`**
 
-GATE
+Staged tree shows the net change (`git diff --cached --stat`).
+
+**Gate**
+
 - Conflict resolved, staged tree coherent: **CONTINUE L3**.
 - Conflict unresolvable: **STOP** with exact conflict files.
 - Squash clean: **CONTINUE L3**.
@@ -136,18 +157,23 @@ GATE
 ### L3. Message and commit
 
 **Step**
+
 Run `/caveman-commit`. Write the message from `git diff --cached --stat` —
 what the user sees, why — not a replay of step commits. Commit on `main`.
 
-CHECKPOINT `squash_commit` — `git log main -1` shows the squash commit.
+**Checkpoint: `squash_commit`**
 
-GATE
+`git log main -1` shows the squash commit.
+
+**Gate**
+
 - Squash landed: **CONTINUE L4**.
 - Commit failed: fix, **RETURN L3**.
 
 ### L4. Reset agent-working
 
 **Step**
+
 ```bash
 git checkout agent-working
 git reset --hard main
@@ -156,18 +182,23 @@ If a permission guard blocks: state that the step-commit history is being
 discarded (content is preserved in main's squash commit) and get explicit
 approval.
 
-CHECKPOINT `reset_evidence` — on `agent-working`, HEAD = main, tree clean.
+**Checkpoint: `reset_evidence`**
 
-GATE
+On `agent-working`, HEAD = main, tree clean.
+
+**Gate**
+
 - Reset verified: **CONTINUE L5**.
 - Blocked: **STOP** — report; content is safe in main's squash commit.
 
 ### L5. Report
 
 **Step**
+
 Report squash commit hash, net changes. No push unless explicitly asked.
 
-GATE
+**Gate**
+
 - Reported: **COMPLETE**.
 
 ## Exception lanes
