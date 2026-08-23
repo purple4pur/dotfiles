@@ -4,9 +4,10 @@
 Qwen Code (primary):
   chat log            ~/.qwen/projects/*/chats/<uuid>.jsonl
   per-response tokens ~/.qwen/usage/token-usage-*.jsonl
-Session id from --session, else skill args path .qwen/tmp/s-<uuid>/, else
-newest chat log. Default excludes current report turn (records at/after last
-user message). Read-only — never writes logs.
+Session id from --session, else skill args path .qwen/tmp/s-<uuid>/; errors
+when neither present. Excludes the current report turn (records at/after last
+user message) only when measuring the session running the script; a foreign
+session via --session is measured fully. Read-only — never writes logs.
 
 Prints a digest: turn boundaries, active spans, per-turn + total token sums,
 tool call/result pairs with durations, per-tool aggregates, union tool wall.
@@ -27,18 +28,26 @@ def ts(s):
     return datetime.fromisoformat(s.replace('Z', '+00:00'))
 
 
-def find_session_id(explicit):
-    if explicit:
-        return explicit
+def current_session_id():
+    """Session running this script: skill args path in cwd. None when absent."""
     hits = glob.glob(os.path.join(os.getcwd(), '.qwen', 'tmp', 's-*', 'qwen-skill-args-*.txt'))
     if hits:
         m = re.search(r'/s-([0-9a-f-]{36})/', max(hits, key=os.path.getmtime))
         if m:
             return m.group(1)
-    chats = glob.glob(os.path.expanduser('~/.qwen/projects/*/chats/*.jsonl'))
-    if chats:
-        return os.path.basename(max(chats, key=os.path.getmtime))[:-6]
     return None
+
+
+def find_session_id(explicit):
+    if explicit:
+        return explicit
+    cur = current_session_id()
+    if cur:
+        return cur
+    print('no session id: run from the session workspace (has .qwen/tmp/s-<uuid>/qwen-skill-args-*.txt) '
+          'or pass --session <id> (ids appear in chat filenames under ~/.qwen/projects/*/chats/)',
+          file=sys.stderr)
+    sys.exit(1)
 
 
 def load_chat(path):
@@ -97,7 +106,11 @@ def main():
     first = ts(events[0]['timestamp'])
     user_times = [u['t'] for u in users]
     last_event = max(model_times + user_times)
-    boundary = None if len(users) < 2 else user_times[-1]
+    # Exclude the current report turn (records at/after the last user message)
+    # only when measuring the session running this script; a foreign session
+    # passed via --session is measured fully.
+    exclude_last_turn = current_session_id() == sid
+    boundary = user_times[-1] if exclude_last_turn and users else None
 
     def before(t):
         return True if boundary is None else t < boundary

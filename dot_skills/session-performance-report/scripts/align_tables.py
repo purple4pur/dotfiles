@@ -4,7 +4,8 @@
 Column width = max rendered cell length (min 3); numeric columns right-aligned
 (`---:`), text left (`---`); separator row padded with dashes to match column
 widths, alignment colons preserved.
-Skips fenced code blocks. Idempotent.
+Skips fenced code blocks. Idempotent. Cells containing a literal `|` break
+row parsing — escape or avoid them.
 """
 import sys
 

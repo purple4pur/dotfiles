@@ -11,8 +11,16 @@ facts carry labels. Fluff die.
 ## Output
 
 Write requested path. Default: `session_performance_report.md` under current workspace.
+If target file exists, ask user or pick a new name — never silently overwrite.
 Use [report template](assets/session_performance_report.md). Keep section order
 unless user requests otherwise.
+
+## Non-goals
+
+- no gateway-only latency claims;
+- no remote/cloud usage data;
+- no code changes or fixes;
+- no cross-agent format mixing in one report.
 
 Use caveman full style throughout report:
 
@@ -63,6 +71,8 @@ Rules:
 - mixed cell formats (`0`, `0.000s`, `31.505s apiMs`) pad as plain cells — no
   truncation, no normalization;
 - empty cells stay empty, same width;
+- cell containing a literal `|` breaks row parsing — escape it or keep such
+  rows out of tables;
 - verify before finish: `cat` the report — pipe columns line up vertically in
   every row; numeric columns flush right, text columns flush left.
 
@@ -77,31 +87,51 @@ work. If a script fails or the agent is unknown, fall back to manual collection
    the report.
 2. `parse_session.py [--session <id>]` — evidence extractor. Auto-detects
    agent; Qwen Code: session id from skill args path `.qwen/tmp/s-<uuid>/` or
-   `--session`, chat log `~/.qwen/projects/*/chats/<uuid>.jsonl`, tokens
+   `--session`; errors when neither present (no guessing). Chat log
+   `~/.qwen/projects/*/chats/<uuid>.jsonl`, tokens
    `~/.qwen/usage/token-usage-<YYYY-MM>.jsonl`. Prints digest: user turns,
    per-turn spans, per-turn + total token sums, tool call/result pairs,
-   per-tool aggregates, union tool wall. Excludes current report turn (records
-   at/after last user message). Codex: fall back to §2 manual.
+   per-tool aggregates, union tool wall. Excludes the current report turn
+   (records at/after last user message) only when measuring the session
+   running the script; a foreign session passed via `--session` is measured
+   fully. Codex: fall back to §2 manual.
+
+Before shipping script changes, forward-test: multi-turn session, one-shot
+session (expect empty digest when measuring current session), and broken log
+path (expect clean error).
 
 Scope selection, phase attribution, findings, optimizations: model work, §4-§5.
 
 ## 1. Set scope
 
-1. Find first user request belonging to measured task/session.
-2. Find last completed turn belonging to it.
-3. Exclude current performance-report turn to avoid recursive metrics.
-4. Record UTC timestamps and local timezone when useful.
-5. State whether wall span includes user/overnight idle gaps.
+**Step**
 
-Never silently mix unrelated sessions or tasks. When sessions continue across
-multiple rollout files, include each linked file and state selection rule.
+Find first user request and last completed turn of measured task/session.
+Exclude current performance-report turn — recursive metrics banned. Record UTC
+timestamps and local timezone. State whether wall span includes user/overnight
+idle gaps. Never silently mix sessions or tasks. When sessions continue across
+rollout files, include each linked file and state selection rule.
+
+**Checkpoint: `scope`**
+
+Session id, start/end timestamps, exclusions, idle-gap policy stated.
+
+**Gate**
+
+- scope unambiguous: **CONTINUE Step 2**.
+- mixed sessions or ambiguous boundaries: **ENTER ask-lane** (state selection
+  rule or ask user).
 
 ## 2. Discover evidence
 
-### 2.0 Detect agent (automatic)
+**Step**
 
-Detect current agent first — each agent has its own session log format. Probe,
-do not guess, do not ask:
+Detect agent first — each agent has its own session log format. Probe, do not
+guess, do not ask. Report detected agent, session id, and log paths in Scope.
+Never mix agent formats. Keep logs read-only. Collect raw evidence per 2.1.
+Cross-check script digest against raw logs before trusting.
+
+### 2.0 Detect agent (automatic)
 
 1. **Qwen Code** — skill args file lives under `.qwen/tmp/s-<uuid>/` (e.g.
    `.qwen/tmp/s-00000000-0000-4000-8000-000000000000/qwen-skill-args-*.txt`);
@@ -120,11 +150,6 @@ do not guess, do not ask:
 3. **Fallback** — probe both glob families; pick newest matching session; if
    ambiguous, ask user for log path.
 
-Detection is positive: report detected agent, session id, and log paths in
-Scope. Never mix agent formats in one report.
-
-Keep logs read-only.
-
 ### 2.1 Collect
 
 - `task_started` / `task_complete` timestamps and durations;
@@ -136,7 +161,23 @@ Keep logs read-only.
 - user prompts, assistant milestones, and tool events for phase attribution;
 - nested skill names from user inputs, skill resources, and workflow actions.
 
+**Checkpoint: `evidence`**
+
+Agent, session id, log paths recorded. Digest cross-checked against raw logs
+when scripts used.
+
+**Gate**
+
+- evidence complete: **CONTINUE Step 3**.
+- script failed or agent unknown: **ENTER manual-lane** (manual collection,
+  §2.1).
+- undetectable: **STOP** ask user for log path.
+
 ## 3. Calculate totals
+
+**Step**
+
+Sum raw per-response records into totals. Never use cumulative snapshots.
 
 ### Time
 
@@ -168,7 +209,21 @@ total             = input + output
 
 State whether output includes reasoning. Calculate cache ratio.
 
+**Checkpoint: `totals`**
+
+Raw per-response sums. Reconciliation figures.
+
+**Gate**
+
+- totals reconcile: **CONTINUE Step 4**.
+- mismatch: **RETURN Step 2**.
+
 ## 4. Attribute performance
+
+**Step**
+
+Attribute measured spans and tokens by macro stage, workflow phase, skill,
+tool, and model. Rows must reconcile with totals.
 
 ### Macro stages
 
@@ -207,23 +262,38 @@ poll tools; do not present launch-call duration as complete process lifetime.
 Report model, provider, reasoning effort, agent count, API usage count, wall
 time, and tokens. State whether subagents ran.
 
+**Checkpoint: `attribution`**
+
+Rows reconcile with totals. Overlaps and derived labels marked.
+
+**Gate**
+
+- attribution reconciles: **CONTINUE Step 5**.
+- cost cannot be isolated: label derived, **CONTINUE Step 5**.
+
 ## 5. Explain performance
 
-Rank biggest time and token costs. Name avoidable waste, such as:
+**Step**
 
-- broad scans;
-- failed tool routes;
-- repeated polling;
-- oversized context;
-- rework after wrong inference;
-- duplicate conversions;
-- idle gaps confused with active work.
+Rank biggest time and token costs. Name avoidable waste: broad scans, failed
+tool routes, repeated polling, oversized context, rework after wrong
+inference, duplicate conversions, idle gaps confused with active work. Give
+concrete optimization and expected effect. No generic advice.
 
-Give concrete optimization and expected effect. No generic advice.
+**Checkpoint: `findings`**
+
+Ranked costs with concrete, measurable fixes.
+
+**Gate**
+
+- findings concrete: **CONTINUE Step 6**.
+- generic or unsupported: **RETURN Step 5**.
 
 ## 6. Validate
 
-Before finish:
+**Step**
+
+Check every item below before finish:
 
 - report exists and is non-empty;
 - detected agent + session id + log paths stated in Scope;
@@ -242,3 +312,13 @@ Before finish:
 
 Report limitations. Never claim unavailable gateway-only latency or exact
 nested-skill cost.
+
+**Checkpoint: `report`**
+
+File exists, non-empty. Tables aligned. No secrets. Current report turn
+excluded.
+
+**Gate**
+
+- all checks pass: **COMPLETE**.
+- any check fails: **RETURN** owning step (2-6 by failure kind).
