@@ -244,12 +244,15 @@ For every step define:
 ### N. Verb-led step
 
 **Step**
+
 <bounded action>
 
-CHECKPOINT `proof_object`
+**Checkpoint: `proof_object`**
+
 <facts or artifact that must exist>
 
-GATE
+**Gate**
+
 - <condition>: **CONTINUE Step N+1**.
 - <repairable gap>: **RETURN Step N**.
 - <special case>: **ENTER lane-name**.
