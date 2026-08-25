@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Extract performance-evidence digest from agent session logs.
+"""Extract performance-evidence digest from Qwen Code session logs.
 
-Qwen Code (primary):
+Qwen Code:
   chat log            ~/.qwen/projects/*/chats/<uuid>.jsonl
   per-response tokens ~/.qwen/usage/token-usage-*.jsonl
 Session id from --session, else skill args path .qwen/tmp/s-<uuid>/; errors
@@ -85,7 +85,7 @@ def usage_records(sid):
 
 
 def main():
-    ap = argparse.ArgumentParser(description='session performance evidence digest')
+    ap = argparse.ArgumentParser(description='Qwen Code session performance evidence digest')
     ap.add_argument('--session', help='session id (auto-detect if omitted)')
     a = ap.parse_args()
 

@@ -78,23 +78,32 @@ Rules:
 
 ## Scripts (optional helpers)
 
-Two small scripts under `<skill-base>/scripts/`. Helpers — judgment stays model
-work. If a script fails or the agent is unknown, fall back to manual collection
-(§2). Cross-check digest against raw logs before trusting.
+Three helper scripts under `<skill-base>/scripts/`. Judgment stays model work.
+If a script fails or the agent is unknown, fall back to manual
+collection (§2). Cross-check digest against raw logs before trusting.
 
 1. `align_tables.py <file.md> [...]` — monospace-align every Markdown table in
    place per §Tables. Skips fenced code blocks. Idempotent. Run after writing
    the report.
-2. `parse_session.py [--session <id>]` — evidence extractor. Auto-detects
-   agent; Qwen Code: session id from skill args path `.qwen/tmp/s-<uuid>/` or
-   `--session`; errors when neither present (no guessing). Chat log
+2. `parse_qwen_session.py [--session <id>]` — Qwen Code evidence extractor.
+   Session
+   id comes from skill args path `.qwen/tmp/s-<uuid>/` or `--session`; errors
+   when neither exists. Chat log
    `~/.qwen/projects/*/chats/<uuid>.jsonl`, tokens
    `~/.qwen/usage/token-usage-<YYYY-MM>.jsonl`. Prints digest: user turns,
    per-turn spans, per-turn + total token sums, tool call/result pairs,
    per-tool aggregates, union tool wall. Excludes the current report turn
    (records at/after last user message) only when measuring the session
    running the script; a foreign session passed via `--session` is measured
-   fully. Codex: fall back to §2 manual.
+   fully.
+3. `parse_codex_session.py [--session <id> | --log <rollout.jsonl>]
+   [--no-subagents]` — Codex evidence extractor. Uses `CODEX_THREAD_ID` when no
+   selector is supplied. Measures only paired `task_started`/`task_complete`
+   spans, so current incomplete report turn stays excluded. Discovers linked
+   subagent rollouts from `sub_agent_activity.agent_thread_id`, excludes copied
+   parent-prefix events, drops unchanged cumulative token repeats, reconciles
+   each span, unions concurrent tool wall, and reports per-turn, per-agent,
+   tool, nested-wrapper, and CLI evidence. Default includes subagents.
 
 Before shipping script changes, forward-test: multi-turn session, one-shot
 session (expect empty digest when measuring current session), and broken log
@@ -145,16 +154,21 @@ Cross-check script digest against raw logs before trusting.
    - tool matching: assistant part `functionCall.id` ↔ `tool_result`
      `functionResponse.id`; timestamps per event; assistant parts carry
      `text` / `thought` / `functionCall`.
-2. **Codex** — `.codex/sessions/**/rollout-*.jsonl`, `.codex/history.jsonl`,
-   `.codex/logs_*.sqlite` (cwd or home).
+2. **Codex** — use `scripts/parse_codex_session.py`. Resolve current root from
+   `CODEX_THREAD_ID`; otherwise pass `--session` or `--log`. Search
+   `.codex/sessions/**/rollout-*.jsonl` in cwd, then home. Include only
+   subagents linked by `sub_agent_activity.agent_thread_id`; never select
+   neighboring rollouts by timestamp alone.
 3. **Fallback** — probe both glob families; pick newest matching session; if
    ambiguous, ask user for log path.
 
 ### 2.1 Collect
 
 - `task_started` / `task_complete` timestamps and durations;
-- per-response token usage — Codex: `token_count.last_token_usage`; Qwen:
-  usage-file fields above (sum per response, never cumulative snapshot);
+- per-response token usage — Codex: `token_count.last_token_usage`, restricted
+  to completed task spans, with copied fork prefixes and unchanged cumulative
+  repeats excluded; Qwen: usage-file fields above (sum per response, never
+  cumulative snapshot);
 - model, provider, effort, agent/thread identity — Qwen: `model` + `authType`
   in usage file; Codex: `turn_context`;
 - matched tool call/output timestamps and tool names;
