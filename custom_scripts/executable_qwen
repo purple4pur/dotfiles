@@ -11,13 +11,25 @@ CMD=
 if [[ "$1" != "" ]]; then
     CMD="qwen $@"
 fi
+
+TMPFS_MOUNT="--tmpfs $HOME:uid=$(id -u),gid=$(id -g),exec"
+QWEN_MOUNT="-v $HOME/.qwen:$HOME/.qwen"
+SKILLS_MOUNT="-v $HOME/.skills:$HOME/.skills"
+if [[ "$(pwd)" -ef "$HOME" ]]; then
+    TMPFS_MOUNT= # pwd bind already covers HOME
+elif [[ "$(pwd)" -ef "$HOME/.qwen" ]]; then
+    QWEN_MOUNT= # pwd bind already covers .qwen
+elif [[ "$(pwd)" -ef "$HOME/.skills" ]]; then
+    SKILLS_MOUNT= # pwd bind already covers .skills
+fi
+
 docker run \
     --rm -it \
     --user $(id -u):$(id -g) \
     -e HOME=$HOME \
-    --tmpfs "$HOME:uid=$(id -u),gid=$(id -g),exec" \
-    -v "$HOME/.qwen:$HOME/.qwen" \
-    -v "$HOME/.skills:$HOME/.skills" \
+    $TMPFS_MOUNT \
+    $QWEN_MOUNT \
+    $SKILLS_MOUNT \
     -v .:$(pwd) \
     -w $(pwd) \
     -v /var/cache/apt/archives \
