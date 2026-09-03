@@ -1,10 +1,9 @@
 *mini.clue* Show next key clues
-*MiniClue*
 
 MIT License Copyright (c) 2023 Evgeni Chasnovski
 
-==============================================================================
-
+------------------------------------------------------------------------------
+                                                                      *MiniClue*
 Features:
 - Implement custom key query process to reach target key combination:
     - Starts after customizable opt-in triggers (mode + keys).
@@ -12,7 +11,7 @@ Features:
     - Each key press narrows down set of possible targets.
       Pressing `<BS>` removes previous user entry.
       Pressing `<Esc>` or `<C-c>` leads to an early stop.
-      Doesn't depend on 'timeoutlen' and has basic support for 'langmap'.
+      Doesn't depend on |'timeoutlen'| and has basic support for |'langmap'|.
 
     - Ends when there is at most one target left or user pressed `<CR>`.
       Results into emulating pressing all query keys plus possible postkeys.
@@ -41,8 +40,6 @@ For more details see:
 - |MiniClue.gen_clues|.
 
 Notes:
-- Works on all supported versions but using Neovim>=0.9 is recommended.
-
 - There is no functionality to create mappings while defining clues.
   This is done to clearly separate these two different actions.
   The best suggested practice is to manually create mappings with
@@ -99,7 +96,7 @@ This module needs a setup with `require('mini.clue').setup({})` (replace
 `{}` with your `config` table). It will create global Lua table `MiniClue`
 which you can use for scripting or manually (with `:lua MiniClue.*`).
 
-Config table **needs to have triggers configured**, none is set up by default.
+Config table NEEDS TO HAVE TRIGGERS CONFIGURED, none is set up by default.
 
 See |MiniClue.config| for available config settings.
 
@@ -110,7 +107,7 @@ more details.
 
 # Comparisons ~
 
-- 'folke/which-key.nvim':
+- [folke/which-key.nvim](https://github.com/folke/which-key.nvim):
     - Both have the same main goal: show available next keys along with
       their customizable descriptions.
     - Has different UI and content layout.
@@ -118,23 +115,24 @@ more details.
       doesn't have this by design (to clearly separate two different tasks).
     - Doesn't allow creating submodes, while this module does (via `postkeys`).
 
-- 'anuvyklack/hydra.nvim':
+- [anuvyklack/hydra.nvim](https://github.com/anuvyklack/hydra.nvim):
     - Both allow creating submodes: state which starts at certain key
       combination; treats some keys differently; ends after `<Esc>`.
     - Doesn't show information about available next keys (outside of
       submodes), while that is this module's main goal.
 
 # Highlight groups ~
+*MiniClue-hl-groups*
 
-* `MiniClueBorder` - window border.
-* `MiniClueDescGroup` - group description in clue window.
-* `MiniClueDescSingle` - single target description in clue window.
-* `MiniClueNextKey` - next key label in clue window.
-* `MiniClueNextKeyWithPostkeys` - next key label with postkeys in clue window.
-* `MiniClueSeparator` - separator in clue window.
-* `MiniClueTitle` - window title.
+- `MiniClueBorder` - window border.
+- `MiniClueDescGroup` - group description in clue window.
+- `MiniClueDescSingle` - single target description in clue window.
+- `MiniClueNextKey` - next key label in clue window.
+- `MiniClueNextKeyWithPostkeys` - next key label with postkeys in clue window.
+- `MiniClueSeparator` - separator in clue window.
+- `MiniClueTitle` - window title.
 
-To change any highlight group, modify it directly with |:highlight|.
+To change any highlight group, set it directly with |nvim_set_hl()|.
 
 # Disabling ~
 
@@ -146,9 +144,7 @@ for disabling module's functionality is left to user. See
 
 ------------------------------------------------------------------------------
                                                     *MiniClue-key-query-process*
-# Key query process ~
-
-## General info ~
+# General info ~
 
 This module implements custom key query process imitating a usual built-in
 mechanism of user pressing keys in order to execute a mapping. General idea
@@ -156,11 +152,11 @@ is the same: narrow down key combinations until the target is reached.
 
 Main goals of its existence are:
 
-- Allow reaching certain mappings be independent of 'timeoutlen'. That is,
+- Allow reaching certain mappings be independent of |'timeoutlen'|. That is,
   there is no fixed timeout after which currently typed keys are executed.
 
 - Enable automated showing of next key clues after user-supplied delay
-  (also independent of 'timeoutlen').
+  (also independent of |'timeoutlen'|).
 
 - Allow emulating configurable key presses after certain key combination is
   reached. This granular control allows creating so called "submodes".
@@ -170,14 +166,14 @@ This process is primarily designed for nested `<Leader>` mappings in Normal
 mode but works in all other main modes: Visual, Insert, Operator-pending
 (with caveats; no foolproof guarantees), Command-line, Terminal.
 
-## Lifecycle ~
+# Lifecycle ~
 
 - Key query process starts when user types a trigger: certain keys in certain
   mode. Those keys are put into key query as a single user input. All possible
   mode key combinations are filtered to ones starting with the trigger keys.
 
   Note: trigger is implemented as a regular mapping, so if it has at least
-  two keys, they should be pressed within 'timeoutlen' milliseconds.
+  two keys, they should be pressed within |'timeoutlen'| milliseconds.
 
 - Wait (indefinitely) for user to press a key. Advance depending on the key:
 
@@ -212,7 +208,7 @@ mode but works in all other main modes: Visual, Insert, Operator-pending
 
         - Otherwise wait for the new user key press.
 
-## Clue window ~
+# Clue window ~
 
 After initiating key query process and after each key press, a timer is
 started to show a clue window: floating window with information about
@@ -242,38 +238,36 @@ this module plus all |<Leader>| mappings in Normal and Visual modes: >lua
   miniclue.setup({
     triggers = {
       -- Leader triggers
-      { mode = 'n', keys = '<Leader>' },
-      { mode = 'x', keys = '<Leader>' },
+      { mode = { 'n', 'x' }, keys = '<Leader>' },
+
+      -- `[` and `]` keys
+      { mode = 'n', keys = '[' },
+      { mode = 'n', keys = ']' },
 
       -- Built-in completion
       { mode = 'i', keys = '<C-x>' },
 
       -- `g` key
-      { mode = 'n', keys = 'g' },
-      { mode = 'x', keys = 'g' },
+      { mode = { 'n', 'x' }, keys = 'g' },
 
       -- Marks
-      { mode = 'n', keys = "'" },
-      { mode = 'n', keys = '`' },
-      { mode = 'x', keys = "'" },
-      { mode = 'x', keys = '`' },
+      { mode = { 'n', 'x' }, keys = "'" },
+      { mode = { 'n', 'x' }, keys = '`' },
 
       -- Registers
-      { mode = 'n', keys = '"' },
-      { mode = 'x', keys = '"' },
-      { mode = 'i', keys = '<C-r>' },
-      { mode = 'c', keys = '<C-r>' },
+      { mode = { 'n', 'x' }, keys = '"' },
+      { mode = { 'i', 'c' }, keys = '<C-r>' },
 
       -- Window commands
       { mode = 'n', keys = '<C-w>' },
 
       -- `z` key
-      { mode = 'n', keys = 'z' },
-      { mode = 'x', keys = 'z' },
+      { mode = { 'n', 'x' }, keys = 'z' },
     },
 
     clues = {
       -- Enhance this by adding descriptions for <Leader> mapping groups
+      miniclue.gen_clues.square_brackets(),
       miniclue.gen_clues.builtin_completion(),
       miniclue.gen_clues.g(),
       miniclue.gen_clues.marks(),
@@ -311,8 +305,7 @@ modes and add descriptions to mapping groups: >lua
   require('mini.clue').setup({
     -- Register `<Leader>` as trigger
     triggers = {
-      { mode = 'n', keys = '<Leader>' },
-      { mode = 'x', keys = '<Leader>' },
+      { mode = { 'n', 'x' }, keys = '<Leader>' },
     },
 
     -- Add descriptions for mapping groups
@@ -347,14 +340,14 @@ to generate clues for all available completion sources): >lua
 <
 # Triggers in special buffers ~
 
-By default triggers are automatically created in listed ('buflisted') and some
+By default triggers are automatically created in listed (|'buflisted'|) and some
 special non-listed buffers. Use |MiniClue.ensure_buf_triggers()| to manually
 enable in when you need them. For example: >vim
 
   au FileType special_ft lua MiniClue.ensure_buf_triggers()
 <
-                                                    *MiniClue-examples-submodes*
 # Submodes ~
+*MiniClue-examples-submodes*
 
 Submode is a state initiated after pressing certain key combination ("prefix")
 during which some keys are interpreted differently.
@@ -369,7 +362,8 @@ In this module submode can be implemented following these steps:
   this submode, pressing its prefix will be automatically emulated (leading
   back to being inside submode).
 
-- Register submode prefix (or some of its starting part) as trigger.
+- Register submode prefix (or some of its starting part) as trigger. Do not
+  register "overlapping" triggers, like `<Leader>` and `<Leader>m`.
 
 ## Submode examples ~
 
@@ -395,18 +389,17 @@ In this module submode can be implemented following these steps:
 
   require('mini.clue').setup({
     triggers = {
-      { mode = 'n', keys = '<Leader>m' },
-      { mode = 'x', keys = '<Leader>m' },
+      -- This can also set up directly `<Leader>m` as a trigger, but make
+      -- sure to not also use `<Leader>`, as they would "overlap"
+      { mode = { 'n', 'x' }, keys = '<Leader>' },
     },
     clues = {
-      { mode = 'n', keys = '<Leader>mh', postkeys = '<Leader>m' },
-      { mode = 'n', keys = '<Leader>mj', postkeys = '<Leader>m' },
-      { mode = 'n', keys = '<Leader>mk', postkeys = '<Leader>m' },
-      { mode = 'n', keys = '<Leader>ml', postkeys = '<Leader>m' },
-      { mode = 'x', keys = '<Leader>mh', postkeys = '<Leader>m' },
-      { mode = 'x', keys = '<Leader>mj', postkeys = '<Leader>m' },
-      { mode = 'x', keys = '<Leader>mk', postkeys = '<Leader>m' },
-      { mode = 'x', keys = '<Leader>ml', postkeys = '<Leader>m' },
+      { mode = 'n', keys = '<Leader>m', desc = '+Move' },
+
+      { mode = { 'n', 'x' }, keys = '<Leader>mh', postkeys = '<Leader>m' },
+      { mode = { 'n', 'x' }, keys = '<Leader>mj', postkeys = '<Leader>m' },
+      { mode = { 'n', 'x' }, keys = '<Leader>mk', postkeys = '<Leader>m' },
+      { mode = { 'n', 'x' }, keys = '<Leader>ml', postkeys = '<Leader>m' },
     },
   })
 <
@@ -489,9 +482,7 @@ Usage ~
 ------------------------------------------------------------------------------
                                                                *MiniClue.config*
                                `MiniClue.config`
-Module config
-
-Default values:
+Defaults ~
 >lua
   MiniClue.config = {
     -- Array of extra clues to show
@@ -531,8 +522,9 @@ Each element can be one of:
 - Callable (function) returning either of the previous two.
 
 A clue table is a table with the following fields:
-- <mode> `(string)` - single character describing **single** mode short-name of
-  key combination as in `nvim_set_keymap()` ('n', 'x', 'i', 'o', 'c', etc.).
+- <mode> `(string|table)` - single character describing mode short-name of
+  key combination as in `nvim_set_keymap()` (`'n'`, `'x'`, `'i'`, `'o'`, `'c'`, etc.),
+  or a array thereof.
 - <keys> `(string)` - key combination for which clue will be shown.
   "Human-readable" key names as in |key-notation| (like "<Leader>", "<Space>",
   "<Tab>", etc.) are allowed.
@@ -592,7 +584,7 @@ either of them.
 ------------------------------------------------------------------------------
                                                 *MiniClue.enable_all_triggers()*
                         `MiniClue.enable_all_triggers`()
-Enable triggers in all listed buffers
+Enable triggers in loaded listed and some special buffers
 
 ------------------------------------------------------------------------------
                                                 *MiniClue.enable_buf_triggers()*
@@ -605,7 +597,7 @@ Parameters ~
 ------------------------------------------------------------------------------
                                                *MiniClue.disable_all_triggers()*
                        `MiniClue.disable_all_triggers`()
-Disable triggers in all buffers
+Disable triggers in loaded buffers
 
 ------------------------------------------------------------------------------
                                                *MiniClue.disable_buf_triggers()*
@@ -668,8 +660,20 @@ Generate clues for `g` key
 
 Contains clues for the following triggers: >lua
 
-  { mode = 'n', keys = 'g' }
-  { mode = 'x', keys = 'g' }
+  { mode = { 'n', 'x' }, keys = 'g' }
+<
+Return ~
+`(table)` Array of clues.
+
+------------------------------------------------------------------------------
+                                          *MiniClue.gen_clues.square_brackets()*
+                     `MiniClue.gen_clues.square_brackets`()
+Generate clues for `[` and `]` keys
+
+Contains clues for the following triggers: >lua
+
+  { mode = 'n', keys = '[' }
+  { mode = 'n', keys = ']' }
 <
 Return ~
 `(table)` Array of clues.
@@ -681,17 +685,13 @@ Generate clues for marks
 
 Contains clues for the following triggers: >lua
 
-  { mode = 'n', keys = "'" }
-  { mode = 'n', keys = "g'" }
-  { mode = 'n', keys = '`' }
-  { mode = 'n', keys = 'g`' }
-  { mode = 'x', keys = "'" }
-  { mode = 'x', keys = "g'" }
-  { mode = 'x', keys = '`' }
-  { mode = 'x', keys = 'g`' }
+  { mode = { 'n', 'x' }, keys = "'" }
+  { mode = { 'n', 'x' }, keys = "g'" }
+  { mode = { 'n', 'x' }, keys = '`' }
+  { mode = { 'n', 'x' }, keys = 'g`' }
 <
-Note: if you use "g" as trigger (like to enable |MiniClue.gen_clues.g()|),
-don't add "g'" and "g`" as triggers: they already will be taken into account.
+Note: if you use `g` as trigger (like to enable |MiniClue.gen_clues.g()|),
+don't add |g'| and |g`| as triggers: they already will be taken into account.
 
 Return ~
 `(table)` Array of clues.
@@ -706,10 +706,8 @@ Generate clues for registers
 
 Contains clues for the following triggers: >lua
 
-  { mode = 'n', keys = '"' }
-  { mode = 'x', keys = '"' }
-  { mode = 'i', keys = '<C-r>' }
-  { mode = 'c', keys = '<C-r>' }
+  { mode = { 'n', 'x' }, keys = '"' }
+  { mode = { 'i', 'c' }, keys = '<C-r>' }
 <
 Parameters ~
 {opts} `(table|nil)` Options. Possible keys:
@@ -753,8 +751,7 @@ Generate clues for `z` key
 
 Contains clues for the following triggers: >lua
 
-  { mode = 'n', keys = 'z' }
-  { mode = 'x', keys = 'z' }
+  { mode = { 'n', 'x' }, keys = 'z' }
 <
 Return ~
 `(table)` Array of clues.

@@ -1,12 +1,12 @@
 *mini.surround* Surround actions
-*MiniSurround*
 
 MIT License Copyright (c) 2021 Evgeni Chasnovski
 
-==============================================================================
-
+------------------------------------------------------------------------------
+                                                                  *MiniSurround*
 Fast and feature-rich surrounding. Can be configured to have experience
-similar to 'tpope/vim-surround' (see |MiniSurround-vim-surround-config|).
+similar to [tpope/vim-surround](https://github.com/tpope/vim-surround)
+(see |MiniSurround-vim-surround-config|).
 
 Features:
 - Actions (text editing actions are dot-repeatable out of the box and
@@ -16,20 +16,19 @@ Features:
     - Replace surrounding with `sr`.
     - Find surrounding with `sf` or `sF` (move cursor right or left).
     - Highlight surrounding with `sh`.
-    - Change number of neighbor lines with `sn` (see |MiniSurround-algorithm|).
 
 - Surrounding is identified by a single character as both "input" (in
   `delete` and `replace` start, `find`, and `highlight`) and "output" (in
   `add` and `replace` end):
-    - 'f' - function call (string of alphanumeric symbols or '_' or '.'
-      followed by balanced '()'). In "input" finds function call, in
+    - `f` - function call (string of alphanumeric symbols or `_` or `.`
+      followed by balanced `()`). In "input" finds function call, in
       "output" prompts user to enter function name.
-    - 't' - tag. In "input" finds tag with same identifier, in "output"
+    - `t` - tag. In "input" finds tag with same identifier, in "output"
       prompts user to enter tag name with possible attributes.
-    - All symbols in brackets '()', '[]', '{}', '<>". In "input' represents
+    - All symbols in brackets `()`, `[]`, `{}`, `<>`. In "input" represents
       balanced brackets (open - with whitespace pad, close - without), in
       "output" - left and right parts of brackets.
-    - '?' - interactive. Prompts user to enter left and right parts.
+    - `?` - interactive. Prompts user to enter left and right parts.
     - All other single character identifiers (supported by |getcharstr()|)
       represent surrounding with identical left and right parts.
 
@@ -46,11 +45,11 @@ Known issues which won't be resolved:
 
 - When searching for "input" surrounding, there is no distinction if it is
   inside string or comment. So in this case there will be not proper match
-  for a function call: 'f(a = ")", b = 1)'.
+  for a function call: `f(a = ")", b = 1)`.
 
 - Tags are searched using regex-like methods, so issues are inevitable.
   Overall it is pretty good, but certain cases won't work. Like self-nested
-  tags won't match correctly on both ends: '<a><a></a></a>'.
+  tags won't match correctly on both ends: `<a><a></a></a>`.
 
 # Setup ~
 
@@ -75,7 +74,7 @@ Regular mappings:
   surrounding (`?`): `[[` for left and `]]` for right.
 - `2sdf` - delete (`sd`) second (`2`) surrounding function call (`f`).
 - `sr)tdiv<CR>` - replace (`sr`) surrounding parenthesis (`)`) with tag
-  (`t`) with identifier 'div' (`div<CR>` in command line prompt).
+  (`t`) with identifier `div` (`div<CR>` in command line prompt).
 - `sff` - find right (`sf`) part of surrounding function call (`f`).
 - `sh}` - highlight (`sh`) for a brief period of time surrounding curly
   brackets (`}`).
@@ -89,45 +88,47 @@ Extended mappings (temporary force "prev"/"next" search methods):
 
 # Comparisons ~
 
-- 'tpope/vim-surround':
-    - 'vim-surround' has completely different, with other focus set of
-      default mappings, while 'mini.surround' has a more coherent set.
-    - 'mini.surround' supports dot-repeat, customized search path (see
+- [tpope/vim-surround](https://github.com/tpope/vim-surround):
+    - `vim-surround` has completely different, with other focus set of
+      default mappings, while |mini.surround| has a more coherent set.
+    - |mini.surround| supports dot-repeat, customized search path (see
       |MiniSurround.config|), customized specifications (see
-      |MiniSurround-surround-specification|) allowing usage of tree-sitter
+      |MiniSurround-surrounding-specification|) allowing usage of tree-sitter
       queries (see |MiniSurround.gen_spec.input.treesitter()|),
       highlighting and finding surrounding, "last"/"next" extended
-      mappings. While 'vim-surround' does not.
-- 'machakann/vim-sandwich':
+      mappings. While `vim-surround` does not.
+- [machakann/vim-sandwich](https://github.com/machakann/vim-sandwich):
     - Both have same keybindings for common actions (add, delete, replace).
-    - Otherwise same differences as with 'tpop/vim-surround' (except
-      dot-repeat because 'vim-sandwich' supports it).
-- 'kylechui/nvim-surround':
-    - 'nvim-surround' is designed after 'tpope/vim-surround' with same
-      default mappings and logic, while 'mini.surround' has mappings
-      similar to 'machakann/vim-sandwich'.
-    - 'mini.surround' has more flexible customization of input surrounding
+    - Otherwise same differences as with `tpope/vim-surround` (except
+      dot-repeat because `vim-sandwich` supports it).
+- [kylechui/nvim-surround](https://github.com/kylechui/nvim-surround):
+    - `nvim-surround` is designed after `tpope/vim-surround` with same
+      default mappings and logic, while |mini.surround| has mappings
+      similar to `machakann/vim-sandwich`.
+    - |mini.surround| has more flexible customization of input surrounding
       (with composed patterns, region pair(s), search methods).
-    - 'mini.surround' supports |[count]| in both input and output
-      surrounding (see |MiniSurround-count|) while 'nvim-surround' doesn't.
-    - 'mini.surround' supports "last"/"next" extended mappings.
+    - |mini.surround| supports |[count]| in both input and output
+      surrounding (see |MiniSurround-count-with-actions|) while
+      `nvim-surround` doesn't.
+    - |mini.surround| supports "last"/"next" extended mappings.
 - |mini.ai|:
-    - Both use similar logic for finding target: textobject in 'mini.ai'
-      and surrounding pair in 'mini.surround'. While 'mini.ai' uses
+    - Both use similar logic for finding target: textobject in |mini.ai|
+      and surrounding pair in |mini.surround|. While |mini.ai| uses
       extraction pattern for separate `a` and `i` textobjects,
-      'mini.surround' uses it to select left and right surroundings
+      |mini.surround| uses it to select left and right surroundings
       (basically a difference between `a` and `i` textobjects).
     - Some builtin specifications are slightly different:
-        - Quotes in 'mini.ai' are balanced, in 'mini.surround' they are not.
-        - The 'mini.surround' doesn't have argument surrounding.
-        - Default behavior in 'mini.ai' selects one of the edges into `a`
-          textobject, while 'mini.surround' - both.
+        - Quotes in |mini.ai| are balanced, in |mini.surround| they are not.
+        - The |mini.surround| doesn't have argument surrounding.
+        - Default behavior in |mini.ai| selects one of the edges into `a`
+          textobject, while |mini.surround| - both.
 
 # Highlight groups ~
+*MiniSurround-hl-groups*
 
-* `MiniSurround` - highlighting of requested surrounding.
+- `MiniSurround` - highlighting of requested surrounding.
 
-To change any highlight group, modify it directly with |:highlight|.
+To change any highlight group, set it directly with |nvim_set_hl()|.
 
 # Disabling ~
 
@@ -138,13 +139,11 @@ rules for disabling module's functionality is left to user. See
 |mini.nvim-disabling-recipes| for common recipes.
 
 ------------------------------------------------------------------------------
-                                                 *MiniSurround-surround-builtin*
-Builtin surroundings ~
-
+                                             *MiniSurround-builtin-surroundings*
 This table describes all builtin surroundings along with what they
 represent. Explanation:
 - `Key` represents the surrounding identifier: single character which should
-  be typed after action mappings (see |MiniSurround.config.mappings|).
+  be typed after action mappings (see "Mappings" in |MiniSurround.config|).
 - `Name` is a description of surrounding.
 - `Example line` contains a string for which examples are constructed. The
   `*` denotes the cursor position over `a` character.
@@ -161,35 +160,37 @@ Example: typing `sd)` with cursor on `*` (covers `a` character) changes line
 `!( *a (bb) )!` into `! aa (bb) !`. Typing `sr!)` changes same initial line
 into `(( aa (bb) ))`.
 >
- |Key|     Name      |  Example line |    Delete   |     Replace     |
- |---|---------------|---------------|-------------|-----------------|
- | ( |  Balanced ()  | !( *a (bb) )! |  !aa (bb)!  | ( ( aa (bb) ) ) |
- | [ |  Balanced []  | ![ *a [bb] ]! |  !aa [bb]!  | [ [ aa [bb] ] ] |
- | { |  Balanced {}  | !{ *a {bb} }! |  !aa {bb}!  | { { aa {bb} } } |
- | < |  Balanced <>  | !< *a <bb> >! |  !aa <bb>!  | < < aa <bb> > > |
- |---|---------------|---------------|-------------|-----------------|
- | ) |  Balanced ()  | !( *a (bb) )! | ! aa (bb) ! | (( aa (bb) ))   |
- | ] |  Balanced []  | ![ *a [bb] ]! | ! aa [bb] ! | [[ aa [bb] ]]   |
- | } |  Balanced {}  | !{ *a {bb} }! | ! aa {bb} ! | {{ aa {bb} }}   |
- | > |  Balanced <>  | !< *a <bb> >! | ! aa <bb> ! | << aa <bb> >>   |
- | b |  Alias for    | !( *a {bb} )! | ! aa {bb} ! | (( aa {bb} ))   |
- |   |  ), ], or }   |               |             |                 |
- |---|---------------|---------------|-------------|-----------------|
- | q |  Alias for    | !'aa'*a'aa'!  | !'aaaaaa'!  | "'aa'aa'aa'"    |
- |   |  ", ', or `   |               |             |                 |
- |---|---------------|---------------|-------------|-----------------|
- | ? |  User prompt  | !e * o!       | ! a !       | ee a oo         |
- |   |(typed e and o)|               |             |                 |
- |---|---------------|---------------|-------------|-----------------|
- | t |      Tag      | !<x>*</x>!    | !a!         | <y><x>a</x></y> |
- |   |               |               |             | (typed y)       |
- |---|---------------|---------------|-------------|-----------------|
- | f | Function call | !f(*a, bb)!   | !aa, bb!    | g(f(*a, bb))    |
- |   |               |               |             | (typed g)       |
- |---|---------------|---------------|-------------|-----------------|
- |   |    Default    | !_a*a_!       | !aaa!       | __aaa__         |
- |   |   (typed _)   |               |             |                 |
- |---|---------------|---------------|-------------|-----------------|
+ ┌───┬───────────────┬───────────────┬─────────────┬─────────────────┐
+ │Key│     Name      │  Example line │    Delete   │     Replace     │
+ ├───┴───────────────┴───────────────┴─────────────┴─────────────────┤
+ ├┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┤
+ │ ( │  Balanced ()  │ !( *a (bb) )! │  !aa (bb)!  │ ( ( aa (bb) ) ) │
+ │ [ │  Balanced []  │ ![ *a [bb] ]! │  !aa [bb]!  │ [ [ aa [bb] ] ] │
+ │ { │  Balanced {}  │ !{ *a {bb} }! │  !aa {bb}!  │ { { aa {bb} } } │
+ │ < │  Balanced <>  │ !< *a <bb> >! │  !aa <bb>!  │ < < aa <bb> > > │
+ ├┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┤
+ │ ) │  Balanced ()  │ !( *a (bb) )! │ ! aa (bb) ! │ (( aa (bb) ))   │
+ │ ] │  Balanced []  │ ![ *a [bb] ]! │ ! aa [bb] ! │ [[ aa [bb] ]]   │
+ │ } │  Balanced {}  │ !{ *a {bb} }! │ ! aa {bb} ! │ {{ aa {bb} }}   │
+ │ > │  Balanced <>  │ !< *a <bb> >! │ ! aa <bb> ! │ << aa <bb> >>   │
+ │ b │  Alias for    │ !( *a {bb} )! │ ! aa {bb} ! │ (( aa {bb} ))   │
+ │   │  ), ], or }   │               │             │                 │
+ ├┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┤
+ │ q │  Alias for    │ !'aa'*a'aa'!  │ !'aaaaaa'!  │ "'aa'aa'aa'"    │
+ │   │  ", ', or `   │               │             │                 │
+ ├┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┤
+ │ ? │  User prompt  │ !e * o!       │ ! a !       │ ee a oo         │
+ │   │(typed e and o)│               │             │                 │
+ ├┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┤
+ │ t │      Tag      │ !<x>*</x>!    │ !a!         │ <y><x>a</x></y> │
+ │   │               │               │             │ (typed y)       │
+ ├┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┤
+ │ f │ Function call │ !f(*a, bb)!   │ !aa, bb!    │ g(f(*a, bb))    │
+ │   │               │               │             │ (typed g)       │
+ ├┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┤
+ │   │    Default    │ !_a*a_!       │ !aaa!       │ __aaa__         │
+ │   │   (typed _)   │               │             │                 │
+ └┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┘
 <
 Notes:
 - All examples assume default `config.search_method`.
@@ -209,73 +210,84 @@ Notes:
                                                          *MiniSurround-glossary*
 Note: this is similar to |MiniAi-glossary|.
 
-- REGION - table representing region in a buffer. Fields: <from> and
-  <to> for inclusive start and end positions (<to> might be `nil` to
-  describe empty region). Each position is also a table with line <line>
-  and column <col> (both start at 1). Examples: >lua
+REGION ~
+Table representing region in a buffer. Fields: <from> and <to> for
+inclusive start and end positions (<to> might be `nil` to describe empty
+region). Each position is also a table with line <line> and column <col>
+(both start at 1). Examples: >lua
 
-    { from = { line = 1, col = 1 }, to = { line = 2, col = 1 } }
+  { from = { line = 1, col = 1 }, to = { line = 2, col = 1 } }
 
-    -- Empty region
-    { from = { line = 10, col = 10 } }
+  -- Empty region
+  { from = { line = 10, col = 10 } }
 <
-- REGION PAIR - table representing regions for left and right surroundings.
-  Fields: <left> and <right> with regions. Examples: >lua
+REGION PAIR ~
+Table representing regions for left and right surroundings. Fields: <left>
+and <right> with regions. Example: >lua
 
-    {
-      left  = { from = { line = 1, col = 1 }, to = { line = 1, col = 1 } },
-      right = { from = { line = 1, col = 3 } },
-    }
+  {
+    left  = { from = { line = 1, col = 1 }, to = { line = 1, col = 1 } },
+    right = { from = { line = 1, col = 3 } },
+  }
 <
-- PATTERN - string describing Lua pattern.
-- SPAN - interval inside a string (end-exclusive). Like [1, 5). Equal
-  `from` and `to` edges describe empty span at that point.
-- SPAN `A = [a1, a2)` COVERS `B = [b1, b2)` if every element of
-  `B` is within `A` (`a1 <= b < a2`).
-  It also is described as B IS NESTED INSIDE A.
-- NESTED PATTERN - array of patterns aimed to describe nested spans.
-- SPAN MATCHES NESTED PATTERN if there is a sequence of consecutively
-  nested spans each matching corresponding pattern within substring of
-  previous span (or input string for first span). Example: >lua
+PATTERN ~
+String describing Lua pattern.
 
-    -- Nested patterns for balanced `()` with inner space
-    { '%b()', '^. .* .$' }
+SPAN ~
+Interval inside a string (end-exclusive). Like [1, 5). Equal `from` and `to` edges
+describe empty span at that point.
 
-    -- Example input string (with columns underneath for easier reading):
-       "( ( () ( ) ) )"
-    --  12345678901234
+Span `A = [a1, a2)` covers `B = [b1, b2)` if every element of `B` is within
+`A` (`a1 <= b < a2`). It also is described as "B is nested inside A".
+
+NESTED PATTERN ~
+Array of patterns aimed to describe nested spans.
+
+SPAN MATCHES NESTED PATTERN ~
+If there is a sequence of consecutively nested spans each matching
+corresponding pattern within substring of previous span (or input string
+for first span). Example: >lua
+
+  -- Nested patterns for balanced `()` with inner space
+  { '%b()', '^. .* .$' }
+
+  -- Example input string (with columns underneath for easier reading):
+     "( ( () ( ) ) )"
+  --  12345678901234
 <
-  Here are all matching spans [1, 15) and [3, 13). Both [5, 7) and [8, 10)
-  match first pattern but not second. All other combinations of `(` and `)`
-  don't match first pattern (not balanced).
-- COMPOSED PATTERN: array with each element describing possible pattern
-  (or array of them) at that place. Composed pattern basically defines all
-  possible combinations of nested pattern (their cartesian product).
-  Examples:
-    1. Either balanced `()` or balanced `[]` but both with inner edge space: >lua
+Here are all matching spans [1, 15) and [3, 13). Both [5, 7) and [8, 10)
+match first pattern but not second. All other combinations of `(` and `)`
+don't match first pattern (not balanced).
 
-         -- Composed pattern
-         { { '%b()', '%b[]' }, '^. .* .$' }
+COMPOSED PATTERN ~
+Array with each element describing possible pattern (or array of them) at
+that place. Composed pattern basically defines all possible combinations of
+nested pattern (their cartesian product). Examples:
 
-         -- Composed pattern expanded into equivalent array of nested patterns
-         { '%b()', '^. .* .$' } -- and
-         { '%b[]', '^. .* .$' }
+1. Either balanced `()` or balanced `[]` but both with inner edge space: >lua
+
+    -- Composed pattern
+    { { '%b()', '%b[]' }, '^. .* .$' }
+
+    -- Composed pattern expanded into equivalent array of nested patterns
+    { '%b()', '^. .* .$' } -- and
+    { '%b[]', '^. .* .$' }
 <
-    2. Either "balanced `()` with inner edge space" or "balanced `[]` with
-       no inner edge space", both with 5 or more characters: >lua
+2. Either "balanced `()` with inner edge space" or "balanced `[]` with no
+   inner edge space", both with 5 or more characters: >lua
 
-         -- Composed pattern
-         { { { '%b()', '^. .* .$' }, { '%b[]', '^.[^ ].*[^ ].$' } }, '.....' }
+    -- Composed pattern
+    { { { '%b()', '^. .* .$' }, { '%b[]', '^.[^ ].*[^ ].$' } }, '.....' }
 
-         -- Composed pattern expanded into equivalent array of nested patterns
-         { '%b()', '^. .* .$', '.....' } -- and
-         { '%b[]', '^.[^ ].*[^ ].$', '.....' }
+    -- Composed pattern expanded into equivalent array of nested patterns
+    { '%b()', '^. .* .$', '.....' } -- and
+    { '%b[]', '^.[^ ].*[^ ].$', '.....' }
 <
-- SPAN MATCHES COMPOSED PATTERN if it matches at least one nested pattern
-  from expanded composed pattern.
+SPAN MATCHES COMPOSED PATTERN ~
+If it matches at least one nested pattern from expanded composed pattern.
 
 ------------------------------------------------------------------------------
-                                           *MiniSurround-surround-specification*
+                                        *MiniSurround-surrounding-specification*
 Surround specification is a table with keys:
 - <input> - defines how to find and extract surrounding for "input"
   operations (like `delete`). See more in "Input surrounding" section.
@@ -297,10 +309,10 @@ Specification for input surrounding has a structure of composed pattern
   how the last string should be processed to extract surrounding parts:
     - Two captures represent left part from start of string to first
       capture and right part - from second capture to end of string.
-      Example: `a()b()c` defines left surrounding as 'a', right - 'c'.
+      Example: `a()b()c` defines left surrounding as `a`, right - `c`.
     - Four captures define left part inside captures 1 and 2, right part -
       inside captures 3 and 4. Example: `a()()b()c()` defines left part as
-      empty, right part as 'c'.
+      empty, right part as `c`.
 - Allows callable objects (see |vim.is_callable()|) in certain places
   (enables more complex surroundings in exchange of increase in configuration
   complexity and computations):
@@ -334,7 +346,7 @@ Specification for input surrounding has a structure of composed pattern
             end
 <
         - Array of region pairs. Useful for incorporating other instruments,
-          like treesitter (see |MiniSurround.gen_spec.treesitter()|). The
+          like treesitter (see |MiniSurround.gen_spec.input.treesitter()|). The
           best region pair will be picked in the same manner as with composed
           pattern (respecting options `n_lines`, `search_method`, etc.) using
           output region (from start of left region to end of right region).
@@ -409,9 +421,7 @@ Examples: >lua
   end
 <
 ------------------------------------------------------------------------------
-                                                            *MiniSurround-count*
-Count with actions
-
+                                               *MiniSurround-count-with-actions*
 |[count]| is supported by all actions in the following ways:
 
 - In add, two types of `[count]` is supported in Normal mode:
@@ -429,11 +439,9 @@ Count with actions
 
 ------------------------------------------------------------------------------
                                                  *MiniSurround-search-algorithm*
-Search algorithm design
-
 Search for the input surrounding relies on these principles:
 - Input surrounding specification is constructed based on surrounding
-  identifier (see |MiniSurround-surround-specification|).
+  identifier (see |MiniSurround-surrounding-specification|).
 - General search is done by converting some 2d buffer region (neighborhood
   of reference region) into 1d string (each line is appended with `\n`).
   Then search for a best span matching specification is done inside string
@@ -485,14 +493,12 @@ Usage ~
 ------------------------------------------------------------------------------
                                                            *MiniSurround.config*
                              `MiniSurround.config`
-Module config
-
-Default values:
+Defaults ~
 >lua
   MiniSurround.config = {
-    -- Add custom surroundings to be used on top of builtin ones. For more
-    -- information with examples, see `:h MiniSurround.config`.
-    custom_surroundings = nil,
+    -- Custom surroundings to be used on top of builtin ones.
+    -- For more information with examples, see `:h MiniSurround.config`.
+    custom_surroundings = {},
 
     -- Duration (in ms) of highlight when calling `MiniSurround.highlight()`
     highlight_duration = 500,
@@ -505,7 +511,6 @@ Default values:
       find_left = 'sF', -- Find surrounding (to the left)
       highlight = 'sh', -- Highlight surrounding
       replace = 'sr', -- Replace surrounding
-      update_n_lines = 'sn', -- Update `n_lines`
 
       suffix_last = 'l', -- Suffix to search with "prev" method
       suffix_next = 'n', -- Suffix to search with "next" method
@@ -531,63 +536,30 @@ Default values:
     silent = false,
   }
 <
-                                              *MiniSurround-vim-surround-config*
-# Setup similar to 'tpope/vim-surround' ~
-
-This module is primarily designed after 'machakann/vim-sandwich'. To get
-behavior closest to 'tpope/vim-surround' (but not identical), use this setup: >lua
-
-  require('mini.surround').setup({
-    mappings = {
-      add = 'ys',
-      delete = 'ds',
-      find = '',
-      find_left = '',
-      highlight = '',
-      replace = 'cs',
-      update_n_lines = '',
-
-      -- Add this only if you don't want to use extended mappings
-      suffix_last = '',
-      suffix_next = '',
-    },
-    search_method = 'cover_or_next',
-  })
-
-  -- Remap adding surrounding to Visual mode selection
-  vim.keymap.del('x', 'ys')
-  vim.keymap.set('x', 'S', [[:<C-u>lua MiniSurround.add('visual')<CR>]], { silent = true })
-
-  -- Make special mapping for "add surrounding for line"
-  vim.keymap.set('n', 'yss', 'ys_', { remap = true })
-<
-# Options ~
-
-## Mappings ~
+# Mappings ~
 
 `config.mappings` defines what mappings are set up for particular actions.
 By default it uses "prefix style" left hand side starting with "s" (for
 "surround"): `sa` - "surround add", `sd` - "surround delete", etc.
 
-Note: if 'timeoutlen' is low enough to cause occasional usage of |s| key
-(that deletes character under cursor), disable it with the following call: >lua
+Note: if any of the mappings start with "s" (as is by default), it is mapped
+to |<Nop>| to prevent accidental trigger of built-in |s| (can happen if there
+is a long enough delay between pressing "s" and the next key). Use `cl` instead.
 
-  vim.keymap.set({ 'n', 'x' }, 's', '<Nop>')
-<
-## Custom surroundings ~
+# Custom surroundings ~
 
 User can define own surroundings by supplying `config.custom_surroundings`.
-It should be a **table** with keys being single character surrounding
+It should be a table with keys being single character surrounding
 identifier (supported by |getcharstr()|) and values - surround specification
-(see |MiniSurround-surround-specification|).
+(see |MiniSurround-surrounding-specification|).
 
 General recommendations:
 - In `config.custom_surroundings` only some data can be defined (like only
   `output`). Other fields will be taken from builtin surroundings.
 - Function returning surround info at <input> or <output> fields of
   specification is helpful when user input is needed (like asking for
-  function name). Use |input()| or |MiniSurround.user_input()|. Return
-  `nil` to stop any current surround operation.
+  function name). Use |MiniSurround.user_input()| or |MiniInput.get()|.
+  Return `nil` to stop any current surround operation.
 - Keys should use character representation which can be |getcharstr()| output.
   For example, `'\r'` and not `'<CR>'`.
 
@@ -627,7 +599,7 @@ Examples of using `config.custom_surroundings` (see more examples at
     },
   }
 <
-## Respect selection type ~
+# Respect selection type ~
 
 Boolean option `config.respect_selection_type` controls whether to respect
 selection type when adding and deleting surrounding. When enabled:
@@ -641,7 +613,7 @@ selection type when adding and deleting surrounding. When enabled:
   presence of multibyte characters; and probably won't due to
   implementation difficulties.
 
-## Search method ~
+# Search method ~
 
 Value of `config.search_method` defines how best match search is done.
 Based on its value, one of the following matches will be selected:
@@ -682,9 +654,9 @@ on a value of `'config.search_method'` when cursor is inside `bbb` word:
 - `'prev'`:          `(a) bbb (c)` -> `[a] bbb (c)`. Same outcome for `(bbb)`.
 - `'nearest'`: depends on cursor position (same as in `'cover_or_nearest'`).
 
-## Search suffixes ~
+# Search suffixes ~
 
-To provide more searching possibilities, 'mini.surround' creates extended
+To provide more searching possibilities, |mini.surround| creates extended
 mappings force "prev" and "next" methods for particular search. It does so
 by appending mapping with certain suffix: `config.mappings.suffix_last` for
 mappings which will use "prev" search method, `config.mappings.suffix_next`
@@ -703,12 +675,41 @@ and initial line `(aa) (bb) (cc)`.
 - Typing `sdl)` with cursor inside `(cc)` results into `(aa) bb (cc)`.
 - Typing `2srn)]` with cursor inside `(aa)` results into `(aa) (bb) [cc]`.
 
+# Setup similar to `tpope/vim-surround` ~
+*MiniSurround-vim-surround-config*
+
+This module is primarily designed after `machakann/vim-sandwich`. To get
+behavior closest to `tpope/vim-surround` (but not identical), use this setup: >lua
+
+  require('mini.surround').setup({
+    mappings = {
+      add = 'ys',
+      delete = 'ds',
+      find = '',
+      find_left = '',
+      highlight = '',
+      replace = 'cs',
+
+      -- Add this only if you don't want to use extended mappings
+      suffix_last = '',
+      suffix_next = '',
+    },
+    search_method = 'cover_or_next',
+  })
+
+  -- Remap adding surrounding to Visual mode selection
+  vim.keymap.del('x', 'ys')
+  vim.keymap.set('x', 'S', [[:<C-u>lua MiniSurround.add('visual')<CR>]], { silent = true })
+
+  -- Make special mapping for "add surrounding for line"
+  vim.keymap.set('n', 'yss', 'ys_', { remap = true })
+<
 ------------------------------------------------------------------------------
                                                             *MiniSurround.add()*
                            `MiniSurround.add`({mode})
 Add surrounding
 
-No need to use it directly, everything is setup in |MiniSurround.setup|.
+No need to use it directly, everything is setup in |MiniSurround.setup()|.
 
 Parameters ~
 {mode} `(string)` Mapping mode (normal by default).
@@ -718,37 +719,38 @@ Parameters ~
                             `MiniSurround.delete`()
 Delete surrounding
 
-No need to use it directly, everything is setup in |MiniSurround.setup|.
+No need to use it directly, everything is setup in |MiniSurround.setup()|.
 
 ------------------------------------------------------------------------------
                                                         *MiniSurround.replace()*
                             `MiniSurround.replace`()
 Replace surrounding
 
-No need to use it directly, everything is setup in |MiniSurround.setup|.
+No need to use it directly, everything is setup in |MiniSurround.setup()|.
 
 ------------------------------------------------------------------------------
                                                            *MiniSurround.find()*
                              `MiniSurround.find`()
 Find surrounding
 
-No need to use it directly, everything is setup in |MiniSurround.setup|.
+No need to use it directly, everything is setup in |MiniSurround.setup()|.
 
 ------------------------------------------------------------------------------
                                                       *MiniSurround.highlight()*
                            `MiniSurround.highlight`()
 Highlight surrounding
 
-No need to use it directly, everything is setup in |MiniSurround.setup|.
+No need to use it directly, everything is setup in |MiniSurround.setup()|.
 
 ------------------------------------------------------------------------------
                                                  *MiniSurround.update_n_lines()*
                         `MiniSurround.update_n_lines`()
-Update `MiniSurround.config.n_lines`
+Update `MiniSurround.config.n_lines` from user input
 
-Convenient wrapper for updating `MiniSurround.config.n_lines` in case the
-default one is not appropriate.
+Mapping example: >lua
 
+  vim.keymap.set('n', 'sn', '<Cmd>lua MiniSurround.update_n_lines()<CR>')
+<
 ------------------------------------------------------------------------------
                                                      *MiniSurround.user_input()*
                   `MiniSurround.user_input`({prompt}, {text})
@@ -783,19 +785,18 @@ with the biggest match of inner capture inside that node (if any). The result
 region pair is a difference between regions of outer and inner captures.
 
 In order for this to work, apart from working treesitter parser for desired
-language, user should have a reachable language-specific 'textobjects'
-query (see |vim.treesitter.query.get()| or |get_query()|, depending on your
-Neovim version).
-The most straightforward way for this is to have 'textobjects.scm' query
+language, user should have a reachable language-specific `'textobjects'`
+query (see |vim.treesitter.query.get()|).
+The most straightforward way for this is to have `textobjects.scm` query
 file with treesitter captures stored in some recognized path. This is
 primarily designed to be compatible with plugin
-'nvim-treesitter/nvim-treesitter-textobjects', but can be used without it.
+`nvim-treesitter/nvim-treesitter-textobjects`, but can be used without it.
 
 Two most common approaches for having a query file:
-- Install 'nvim-treesitter/nvim-treesitter-textobjects'. It has curated and
+- Install `nvim-treesitter/nvim-treesitter-textobjects`. It has curated and
   well maintained builtin query files for many languages with a standardized
   capture names, like `call.outer`, `call.inner`, etc.
-- Manually create file 'after/queries/<language name>/textobjects.scm' in
+- Manually create file `after/queries/<language-name>/textobjects.scm` in
   your |$XDG_CONFIG_HOME| directory. It should contain queries with
   captures (later used to define surrounding parts). See |lua-treesitter-query|.
 To verify that query file is reachable, run (example for "lua" language,
@@ -804,7 +805,7 @@ output should have at least an intended file): >vim
   :lua print(vim.inspect(vim.treesitter.query.get_files('lua','textobjects')))
 <
 Example configuration for function definition textobject with
-'nvim-treesitter/nvim-treesitter-textobjects' captures: >lua
+`nvim-treesitter/nvim-treesitter-textobjects` captures: >lua
 
   local ts_input = require('mini.surround').gen_spec.input.treesitter
   require('mini.surround').setup({
@@ -817,16 +818,17 @@ Example configuration for function definition textobject with
   })
 <
 Notes:
-- By default query is done using 'nvim-treesitter' plugin if it is present
-  (falls back to builtin methods otherwise). This allows for a more
-  advanced features (like multiple buffer languages, custom directives, etc.).
-  See `opts.use_nvim_treesitter` for how to disable this.
 - Be sure that query files don't contain unknown |treesitter-directives|
   (like `#make-range!`, for example). Otherwise surrounding with such captures
-  might not be found as |vim.treesitter| won't treat them as captures. Verify
-  with `:=vim.treesitter.query.get('lang', 'textobjects')` and see if the
-  target capture is recognized as one.
+  might not be found as |lua-treesitter-core| won't treat them as captures.
+  Verify with `:=vim.treesitter.query.get('lang', 'textobjects')` and see
+  if the target capture is recognized as one.
 - It uses buffer's |filetype| to determine query language.
+- It first searches the language under cursor for matches. If no matches are
+  found, it falls back to searching parent languages (up to the buffer's root
+  language). If no matches are found again, it falls back to recursively
+  searching all children languages (from the language under cursor). If no
+  matches again - report no matches.
 - On large files it is slower than pattern-based textobjects. Still very
   fast though (one search should be magnitude of milliseconds or tens of
   milliseconds on really large file).
@@ -838,22 +840,24 @@ Parameters ~
   exclusive, i.e. they won't be a part of surrounding) regions. Each value
   should be a string capture starting with `'@'`.
 {opts} `(table|nil)` Options. Possible values:
-  - <use_nvim_treesitter> - whether to try to use 'nvim-treesitter' plugin
-    (if present) to do the query. It implements more advanced behavior at
-    cost of increased execution time. Provides more coherent experience if
-    'nvim-treesitter-textobjects' queries are used. Default: `true`.
+  - <use_nvim_treesitter> - whether to try to use `nvim-treesitter` plugin
+    (if present) to do the query. It used to implement more advanced behavior
+    and more coherent experience if `nvim-treesitter-textobjects` queries are
+    used. However, as |lua-treesitter-core| methods are more capable now,
+    the option will soon be removed. Only present for backward compatibility.
+    Default: `false`.
 
 Return ~
 `(function)` Function which returns array of current buffer region pairs
   representing differences between outer and inner captures.
 
 See also ~
-|MiniSurround-surround-specification| for how this type of
+- |MiniSurround-surrounding-specification| for how this type of
   surrounding specification is processed.
-|get_query()| for how query is fetched in case of no 'nvim-treesitter'.
-|Query:iter_captures()| for how all query captures are iterated in case of
-  no 'nvim-treesitter'.
-|MiniAi.gen_spec.treesitter()| for similar 'mini.ai' generator.
+- |vim.treesitter.query.get()| for how query is fetched.
+- |Query:iter_captures()| for how all query captures are iterated in case of
+  no `nvim-treesitter`.
+- |MiniAi.gen_spec.treesitter()| for similar |mini.ai| generator.
 
 
  vim:tw=78:ts=8:noet:ft=help:norl:

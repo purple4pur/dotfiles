@@ -1,16 +1,13 @@
 --- *mini.tabline* Tabline
---- *MiniTabline*
 ---
 --- MIT License Copyright (c) 2021 Evgeni Chasnovski
----
---- ==============================================================================
----
+
 --- Key idea: show all listed buffers in readable way with minimal total width.
 ---
 --- Features:
 --- - Buffers are listed in the order of their identifier (see |bufnr()|).
 ---
---- - Different highlight groups for "states" of buffer affecting 'buffer tabs'.
+--- - Different highlight groups for "states" of buffer affecting "buffer tabs".
 ---
 --- - Buffer names are made unique by extending paths to files or appending
 ---   unique identifier to buffers without name.
@@ -19,13 +16,13 @@
 ---   while maximizing the total number of buffers shown) when there are many
 ---   buffers open.
 ---
---- - 'Buffer tabs' are clickable if Neovim allows it.
+--- - "Buffer tabs" are clickable if Neovim allows it.
 ---
 --- - Extra information section in case of multiple Neovim tabpages.
 ---
 --- - Truncation symbols which show if there are tabs to the left and/or right.
----   Exact characters are taken from 'listchars' global value (`precedes` and
----   `extends` fields) and are shown only if 'list' option is enabled.
+---   Exact characters are taken from |'listchars'| global value (`precedes` and
+---   `extends` fields) and are shown only if |'list'| option is enabled.
 ---
 --- What it doesn't do:
 --- - Custom buffer order is not supported.
@@ -34,8 +31,9 @@
 ---
 --- Suggested dependencies (provide extra functionality, will work without them):
 ---
---- - Enabled |MiniIcons| module to show icons near file names.
----   Falls back to using 'nvim-tree/nvim-web-devicons' plugin or shows nothing.
+--- - Enabled |mini.icons| module to show icons near file names.
+---   Falls back to [nvim-tree/nvim-web-devicons](https://github.com/nvim-tree/nvim-web-devicons)
+---   or shows nothing.
 ---
 --- # Setup ~
 ---
@@ -53,21 +51,22 @@
 --- # Suggested option values ~
 ---
 --- Some options are set automatically by |MiniTabline.setup()|:
---- - 'showtabline' is set to 2 to always show tabline.
+--- - |'showtabline'| is set to 2 to always show tabline.
 ---
 --- # Highlight groups ~
+--- *MiniTabline-hl-groups*
 ---
---- * `MiniTablineCurrent` - buffer is current (has cursor in it).
---- * `MiniTablineVisible` - buffer is visible (displayed in some window).
---- * `MiniTablineHidden` - buffer is hidden (not displayed).
---- * `MiniTablineModifiedCurrent` - buffer is modified and current.
---- * `MiniTablineModifiedVisible` - buffer is modified and visible.
---- * `MiniTablineModifiedHidden` - buffer is modified and hidden.
---- * `MiniTablineFill` - unused right space of tabline.
---- * `MiniTablineTabpagesection` - section with tabpage information.
---- * `MiniTablineTrunc` - truncation symbols indicating more left/right tabs.
+--- - `MiniTablineCurrent` - buffer is current (has cursor in it).
+--- - `MiniTablineVisible` - buffer is visible (displayed in some window).
+--- - `MiniTablineHidden` - buffer is hidden (not displayed).
+--- - `MiniTablineModifiedCurrent` - buffer is modified and current.
+--- - `MiniTablineModifiedVisible` - buffer is modified and visible.
+--- - `MiniTablineModifiedHidden` - buffer is modified and hidden.
+--- - `MiniTablineFill` - unused right space of tabline.
+--- - `MiniTablineTabpagesection` - section with tabpage information.
+--- - `MiniTablineTrunc` - truncation symbols indicating more left/right tabs.
 ---
---- To change any highlight group, modify it directly with |:highlight|.
+--- To change any highlight group, set it directly with |nvim_set_hl()|.
 ---
 --- # Disabling ~
 ---
@@ -76,6 +75,7 @@
 --- of different scenarios and customization intentions, writing exact rules
 --- for disabling module's functionality is left to user. See
 --- |mini.nvim-disabling-recipes| for common recipes.
+---@tag MiniTabline
 
 -- Module definition ==========================================================
 local MiniTabline = {}
@@ -91,15 +91,6 @@ local H = {}
 ---   require('mini.tabline').setup({}) -- replace {} with your config table
 --- <
 MiniTabline.setup = function(config)
-  -- TODO: Remove after Neovim=0.8 support is dropped
-  if vim.fn.has('nvim-0.9') == 0 then
-    vim.notify(
-      '(mini.tabline) Neovim<0.9 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniTabline = MiniTabline
 
@@ -124,15 +115,13 @@ MiniTabline.setup = function(config)
   )
 end
 
---- Module config
----
---- Default values:
+--- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 ---@text # Format ~
 ---
 --- `config.format` is a callable that takes buffer identifier and pre-computed
 --- label as arguments and returns a string with formatted label. Output will be
---- treated strictly as text (i.e. no 'statusline' like constructs is allowed).
+--- treated strictly as text (i.e. no |'statusline'| like constructs is allowed).
 --- This function will be called for all displayable in tabline buffers.
 --- Default: |MiniTabline.default_format()|.
 ---
@@ -158,7 +147,7 @@ MiniTabline.config = {
 --minidoc_afterlines_end
 
 -- Module functionality =======================================================
---- Make string for |tabline|
+--- Make string for |'tabline'|
 MiniTabline.make_tabline_string = function()
   if H.is_disabled() then return '' end
 

@@ -1,21 +1,19 @@
 --- *mini.test* Test Neovim plugins
---- *MiniTest*
 ---
 --- MIT License Copyright (c) 2022 Evgeni Chasnovski
----
---- ==============================================================================
----
+
 --- Features:
 --- - Test action is defined as a named callable entry of a table.
 ---
 --- - Helper for creating child Neovim process which is designed to be used in
 ---   tests (including taking and verifying screenshots). See
----   |MiniTest.new_child_neovim()| and |Minitest.expect.reference_screenshot()|.
+---   |MiniTest.new_child_neovim()| and |MiniTest.expect.reference_screenshot()|.
 ---
 --- - Hierarchical organization of tests with custom hooks, parametrization,
 ---   and user data. See |MiniTest.new_set()|.
 ---
---- - Emulation of 'Olivine-Labs/busted' interface (`describe`, `it`, etc.).
+--- - Emulation of [lunarmodules/busted](https://github.com/lunarmodules/busted)
+---   interface (`describe`, `it`, etc.).
 ---
 --- - Predefined small yet usable set of expectations (`assert`-like functions).
 ---   See |MiniTest.expect|.
@@ -46,12 +44,12 @@
 ---   complexity. Use |MiniTest.new_expectation()| to create custom ones.
 ---
 --- For more information see:
---- - 'TESTING.md' file for a hands-on introduction based on examples.
+--- - `TESTING.md` file for a hands-on introduction based on examples.
 ---
 --- - Code of this plugin's tests. Consider it to be an example of intended
----   way to use 'mini.test' for test organization and creation.
+---   way to use |mini.test| for test organization and creation.
 ---
---- # Workflow
+--- # Workflow ~
 ---
 --- - Organize tests in separate files. Each test file should return a test set
 ---   (explicitly or implicitly by using "busted" style functions).
@@ -61,10 +59,10 @@
 ---   expectations (see |MiniTest.expect|).
 ---
 --- - Run tests. This does two steps:
----     - *Collect*. This creates single hierarchical test set, flattens into
+---     - Collect. This creates single hierarchical test set, flattens into
 ---       array of test cases (see |MiniTest-test-case|) while expanding with
 ---       parametrization, and possibly filters them.
----     - *Execute*. This safely calls hooks and main test actions in specified
+---     - Execute. This safely calls hooks and main test actions in specified
 ---       order while allowing reporting progress in asynchronous fashion.
 ---       Detected errors means test case fail; otherwise - pass.
 ---
@@ -84,50 +82,52 @@
 ---
 --- # Comparisons ~
 ---
---- - Testing infrastructure from 'nvim-lua/plenary.nvim':
+--- - Testing infrastructure from
+---   [nvim-lua/plenary.nvim](https://github.com/nvim-lua/plenary.nvim):
 ---     - Executes each file in separate headless Neovim process with customizable
----       'init.vim' file. While 'mini.test' executes everything in current
+---       `init.vim` file. While |mini.test| executes everything in current
 ---       Neovim process encouraging writing tests with help of manually
 ---       managed child Neovim process (see |MiniTest.new_child_neovim()|).
 ---     - Tests are expected to be written with embedded simplified versions of
----       'Olivine-Labs/busted' and 'Olivine-Labs/luassert'. While 'mini.test'
+---       `lunarmodules/busted` and `lunarmodules/luassert`. While |mini.test|
 ---       uses concepts of test set (see |MiniTest.new_set()|) and test case
 ---       (see |MiniTest-test-case|). It also can emulate bigger part of
 ---       "busted" framework.
 ---     - Has single way of reporting progress (shows result after every case
----       without summary). While 'mini.test' can have customized reporters
+---       without summary). While |mini.test| can have customized reporters
 ---       with defaults for interactive and headless usage (provide more
 ---       compact and user-friendly summaries).
----     - Allows parallel execution, while 'mini.test' does not.
----     - Allows making mocks, stubs, and spies, while 'mini.test' does not in
+---     - Allows parallel execution, while |mini.test| does not.
+---     - Allows making mocks, stubs, and spies, while |mini.test| does not in
 ---       favor of manually overwriting functionality in child Neovim process.
 ---
---- Although 'mini.test' supports emulation of "busted style" testing, it will
+--- Although |mini.test| supports emulation of "busted style" testing, it will
 --- be more stable to use its designed approach of defining tests (with
 --- `MiniTest.new_set()` and explicit table fields). Couple of reasons:
---- - "Busted" syntax doesn't support full capabilities offered by 'mini.test'.
+--- - "Busted" syntax doesn't support full capabilities offered by |mini.test|.
 ---   Mainly it is about parametrization and supplying user data to test sets.
 --- - It is an emulation, not full support. So some subtle things might not
 ---   work the way you expect.
 ---
---- Some hints for converting from 'plenary.nvim' tests to 'mini.test':
---- - Rename files from "***_spec.lua" to "test_***.lua" and put them in
+--- Some hints for converting from `plenary.nvim` tests to |mini.test|:
+--- - Rename files from `***_spec.lua` to `test_***.lua` and put them in
 ---   "tests" directory.
---- - Replace `assert` calls with 'mini.test' expectations. See |MiniTest.expect|.
+--- - Replace `assert` calls with |mini.test| expectations. See |MiniTest.expect|.
 --- - Create main test set `T = MiniTest.new_set()` and eventually return it.
 --- - Make new sets (|MiniTest.new_set()|) from `describe` blocks. Convert
 ---   `before_each()` and `after_each` to `pre_case` and `post_case` hooks.
 --- - Make test cases from `it` blocks.
 ---
 --- # Highlight groups ~
+--- *MiniTest-hl-groups*
 ---
---- * `MiniTestEmphasis` - emphasis highlighting. By default it is a bold text.
---- * `MiniTestFail` - highlighting of failed cases. By default it is a bold
+--- - `MiniTestEmphasis` - emphasis highlighting. By default it is a bold text.
+--- - `MiniTestFail` - highlighting of failed cases. By default it is a bold
 ---   text with `vim.g.terminal_color_1` color (red).
---- * `MiniTestPass` - highlighting of passed cases. By default it is a bold
+--- - `MiniTestPass` - highlighting of passed cases. By default it is a bold
 ---   text with `vim.g.terminal_color_2` color (green).
 ---
---- To change any highlight group, modify it directly with |:highlight|.
+--- To change any highlight group, set it directly with |nvim_set_hl()|.
 ---
 --- # Disabling ~
 ---
@@ -136,6 +136,11 @@
 --- and customization intentions, writing exact rules for disabling module's
 --- functionality is left to user. See |mini.nvim-disabling-recipes| for common
 --- recipes.
+---@tag MiniTest
+
+---@alias __test_expect_fail_reason - <fail_reason> `(string|function)` - reason for failing expectation.
+---     a function is called with expectation input and should return a string.
+---     Default: `nil` for default reason like "Failed expectation for ...".
 
 -- Module definition ==========================================================
 local MiniTest = {}
@@ -151,15 +156,6 @@ local H = {}
 ---   require('mini.test').setup({}) -- replace {} with your config table
 --- <
 MiniTest.setup = function(config)
-  -- TODO: Remove after Neovim=0.8 support is dropped
-  if vim.fn.has('nvim-0.9') == 0 then
-    vim.notify(
-      '(mini.test) Neovim<0.9 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniTest = MiniTest
 
@@ -176,10 +172,8 @@ MiniTest.setup = function(config)
   H.create_default_hl()
 end
 
---stylua: ignore start
---- Module config
----
---- Default values:
+--stylua: ignore
+--- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 MiniTest.config = {
   -- Options for collection of test cases. See `:h MiniTest.collect()`.
@@ -215,7 +209,6 @@ MiniTest.config = {
   silent = false,
 }
 --minidoc_afterlines_end
---stylua: ignore end
 
 -- Module data ================================================================
 --- Table with information about current state of test execution
@@ -343,14 +336,14 @@ end
 ---@field desc table Description: array of fields from nested test sets.
 ---@field exec table|nil Information about test case execution. Value of `nil` means
 ---   that this particular case was not (yet) executed. Has following fields:
----     - <fails> - array of strings with failing information.
----     - <notes> - array of strings with non-failing information.
----     - <state> - state of test execution. One of:
----         - 'Executing <name of what is being executed>' (during execution).
----         - 'Pass' (no fails, no notes).
----         - 'Pass with notes' (no fails, some notes).
----         - 'Fail' (some fails, no notes).
----         - 'Fail with notes' (some fails, some notes).
+---   - <fails> - array of strings with failing information.
+---   - <notes> - array of strings with non-failing information.
+---   - <state> - state of test execution. One of:
+---       - `'Executing <name of what is being executed>'` (during execution).
+---       - `'Pass'` (no fails, no notes).
+---       - `'Pass with notes'` (no fails, some notes).
+---       - `'Fail'` (some fails, no notes).
+---       - `'Fail with notes'` (some fails, some notes).
 ---@field hooks table Hooks to be executed as part of test case. Has fields:
 ---   - <pre> and <post> - arrays of functions to be consecutively executed
 ---     before and after every execution of `test`.
@@ -377,7 +370,7 @@ end
 
 --- Add note to currently executed test case
 ---
---- Appends `msg` to `exec.notes` field of |MiniTest.current.case|.
+--- Appends `msg` to `exec.notes` field of `case` in |MiniTest.current|.
 ---
 ---@param msg string Note to add.
 MiniTest.add_note = function(msg)
@@ -500,7 +493,7 @@ end
 --- - Add `*_once` hooks to appropriate cases.
 ---
 ---@param opts table|nil Options controlling case collection. Possible fields:
----   - <emulate_busted> - whether to emulate 'Olivine-Labs/busted' interface.
+---   - <emulate_busted> - whether to emulate `lunarmodules/busted` interface.
 ---     It emulates these global functions: `describe`, `it`, `setup`, `teardown`,
 ---     `before_each`, `after_each`. Use |MiniTest.skip()| instead of `pending()`
 ---     and |MiniTest.finally()| instead of `finally`.
@@ -582,6 +575,7 @@ end
 --- - Call `reporter.finish()` (if present).
 ---
 --- Notes:
+--- - Execution still goes through the reporter if zero cases are supplied.
 --- - Execution is done in asynchronous fashion with scheduling. This allows
 ---   making meaningful progress report during execution.
 --- - This function doesn't return anything. Instead, it updates `cases` in
@@ -600,12 +594,6 @@ MiniTest.execute = function(cases, opts)
 
   MiniTest.current.all_cases = cases
 
-  -- Verify correct arguments
-  if #cases == 0 then
-    H.message('No cases to execute.')
-    return
-  end
-
   opts = vim.tbl_deep_extend('force', H.get_config().execute, opts or {})
   local reporter = opts.reporter or (H.is_headless and MiniTest.gen_reporter.stdout() or MiniTest.gen_reporter.buffer())
   if type(reporter) ~= 'table' then
@@ -614,18 +602,28 @@ MiniTest.execute = function(cases, opts)
   end
   opts.reporter = reporter
 
-  -- Start execution
+  -- Plan execution in order
   H.cache = { is_executing = true }
 
-  vim.schedule(function() H.exec_callable(reporter.start, cases) end)
-
+  local queue = {}
+  table.insert(queue, function() H.exec_callable(reporter.start, cases) end)
   for case_num, cur_case in ipairs(cases) do
-    H.schedule_case(cur_case, case_num, opts)
+    table.insert(queue, H.make_case(cur_case, case_num, opts))
   end
+  table.insert(queue, function() H.exec_callable(reporter.finish) end)
+  -- - Use separate call to ensure that `reporter.finish` error won't interfere
+  table.insert(queue, function() H.cache.is_executing = false end)
 
-  vim.schedule(function() H.exec_callable(reporter.finish) end)
-  -- Use separate call to ensure that `reporter.finish` error won't interfere
-  vim.schedule(function() H.cache.is_executing = false end)
+  -- Execute queue ensuring order
+  -- NOTE: Directly `vim.schedule` each step without an explicit queue handling
+  -- is possible, but it might interfere with async-adjacent yet synchronous
+  -- functions (as `vim.wait()`) callsed inside cases outside of child process.
+  local exec_queue_step, n_queue = function(_) end, #queue
+  exec_queue_step = function(n)
+    queue[n]()
+    if n < n_queue then vim.schedule(function() exec_queue_step(n + 1) end) end
+  end
+  vim.schedule(function() exec_queue_step(1) end)
 end
 
 --- Stop test execution
@@ -659,27 +657,49 @@ MiniTest.is_executing = function() return H.cache.is_executing == true end
 --- Each function has the following behavior:
 --- - Silently returns `true` if expectation is fulfilled.
 --- - Throws an informative error with information helpful for debugging.
+---   Allows customizable fail reason to provide more context.
 ---
---- Mostly designed to be used within 'mini.test' framework.
+--- Mostly designed to be used within |mini.test| framework.
 ---
 ---@usage >lua
 ---   local x = 1 + 1
 ---   MiniTest.expect.equality(x, 2) -- passes
----   MiniTest.expect.equality(x, 1) -- fails
+---   MiniTest.expect.equality(x, 1, { fail_reason = 'Not equal' }) -- fails
 --- <
 MiniTest.expect = {}
 
 --- Expect equality of two objects
 ---
---- Equality is tested via |vim.deep_equal()|.
+--- Equality is tested via |vim.deep_equal()|. It also tries to compute more
+--- detailed cause for equality (for easier spotting the difference):
+--- - If they have different types.
+--- - For strings if they have different length or if some character is different.
+--- - For tables it shows a "key branch" at which values are different along with
+---   the actual values. A single difference is shown, there might be more.
+---   For not nested tables key branch is just a key. If the difference is inside
+---   nested tables, the key branch shows a "path through nested tables" to
+---   a different value. Examples: >lua
 ---
+---     local eq = MiniTest.expect.equality
+---     eq({ 1, 2 }, { 1, 3 })         -- Key branch is `2`
+---     eq({ 1, { 2 } }, { 1, 'c' })   -- Key branch is `2` ('c' is not a table)
+---     eq({ 1, { 2 } }, { 1, { 3 } }) -- Key branch is `2->1`
+---
+---     -- Key branch is either `1->1->"a"` or `1->1->"b"`
+---     eq({ { { a = 1 } } }, { { { b = 2 } } })
+--- <
 ---@param left any First object.
 ---@param right any Second object.
-MiniTest.expect.equality = function(left, right)
+---@param opts table|nil Options. Possible fields:
+---   __test_expect_fail_reason
+MiniTest.expect.equality = function(left, right, opts)
   if vim.deep_equal(left, right) then return true end
 
-  local context = string.format('Left:  %s\nRight: %s', vim.inspect(left), vim.inspect(right))
-  H.error_expect('equality', context)
+  opts = opts or {}
+  local fail_reason = H.normalize_reason(opts.fail_reason, 'Failed expectation for equality', left, right)
+  local cause = H.compute_no_equality_cause(left, right)
+  local context = string.format('Cause: %s\nLeft:  %s\nRight: %s', cause, vim.inspect(left), vim.inspect(right))
+  H.error_with_emphasis(fail_reason, context)
 end
 
 --- Expect no equality of two objects
@@ -688,50 +708,91 @@ end
 ---
 ---@param left any First object.
 ---@param right any Second object.
-MiniTest.expect.no_equality = function(left, right)
+---@param opts table|nil Options. Possible fields:
+---   __test_expect_fail_reason
+MiniTest.expect.no_equality = function(left, right, opts)
   if not vim.deep_equal(left, right) then return true end
 
+  opts = opts or {}
+  local fail_reason = H.normalize_reason(opts.fail_reason, 'Failed expectation for *no* equality', left, right)
   local context = string.format('Object: %s', vim.inspect(left))
-  H.error_expect('*no* equality', context)
+  H.error_with_emphasis(fail_reason, context)
 end
 
 --- Expect function call to raise error
 ---
----@param f function|table Callable to be tested for raising error.
+---@param f function Function to be tested for raising error.
 ---@param pattern string|nil Pattern which error message should match.
 ---   Use `nil` or empty string to not test for pattern matching.
----@param ... any Extra arguments with which `f` will be called.
-MiniTest.expect.error = function(f, pattern, ...)
+---@param opts table|nil Options. Possible fields:
+---   __test_expect_fail_reason
+MiniTest.expect.error = function(f, pattern, opts, ...)
   H.check_type('pattern', pattern, 'string', true)
 
-  local ok, err = pcall(f, ...)
-  err = err or ''
+  -- Provide backward compatibility for `(f, pattern, ...)` signature.
+  -- TODO: Remove after releasing 'mini.nvim' 0.18.0
+  local args = { ... }
+  local is_valid_opts = type(opts) == 'table'
+    and (opts.fail_reason == nil or type(opts.fail_reason) == 'string' or vim.is_callable(opts.fail_reason))
+  if select('#', ...) > 0 or not (opts == nil or is_valid_opts) then
+    table.insert(args, 1, opts)
+    opts = {}
+    vim.notify(
+      '(mini.test) `expect.error` now does not accept extra arguments for tested function.'
+        .. " It will mostly work until the next 'mini.nvim' release, but not after that."
+        .. ' Use them explicitly inside anonymous function: `expect.error(f, "", 1, 2)` ->'
+        .. ' `expect.error(function() f(1, 2) end, "")`.'
+        .. '\nSorry for the inconvenience.',
+      vim.log.levels.WARN
+    )
+  end
+  local ok, err = pcall(f, unpack(args))
+
+  err = tostring(err)
   local has_matched_error = not ok and string.find(err, pattern or '') ~= nil
   if has_matched_error then return true end
 
-  local matching_pattern = pattern == nil and '' or (' matching pattern %s'):format(vim.inspect(pattern))
-  local subject = 'error' .. matching_pattern
+  opts = opts or {}
+  local pattern_suffix = pattern == nil and '' or (' matching pattern ' .. vim.inspect(pattern))
+  local fail_reason = H.normalize_reason(opts.fail_reason, 'Failed expectation for error' .. pattern_suffix, f, pattern)
   local context = ok and 'Observed no error' or ('Observed error: ' .. err)
-
-  H.error_expect(subject, context)
+  H.error_with_emphasis(fail_reason, context)
 end
 
 --- Expect function call to not raise error
 ---
----@param f function|table Callable to be tested for raising error.
----@param ... any Extra arguments with which `f` will be called.
-MiniTest.expect.no_error = function(f, ...)
-  local ok, err = pcall(f, ...)
-  err = err or ''
+---@param f function Function to be tested for not raising error.
+---@param opts table|nil Options. Possible fields:
+---   __test_expect_fail_reason
+MiniTest.expect.no_error = function(f, opts, ...)
+  -- Provide backward compatibility for `(f, ...)` signature.
+  -- TODO: Remove after releasing 'mini.nvim' 0.18.0
+  local args = { ... }
+  local is_valid_opts = type(opts) == 'table' and (opts.fail_prefix == nil or type(opts.fail_prefix) == 'string')
+  if select('#', ...) > 0 or not (opts == nil or is_valid_opts) then
+    table.insert(args, 1, opts)
+    opts = {}
+    vim.notify(
+      '(mini.test) `expect.no_error` now does not accept extra arguments for tested function.'
+        .. " It will mostly work until the next 'mini.nvim' release, but not after that."
+        .. ' Use them explicitly inside anonymous function: `expect.no_error(f, 1, 2)` ->'
+        .. ' `expect.no_error(function() f(1, 2) end)`.'
+        .. '\nSorry for the inconvenience.',
+      vim.log.levels.WARN
+    )
+  end
+  local ok, err = pcall(f, unpack(args))
   if ok then return true end
 
-  H.error_expect('*no* error', 'Observed error: ' .. err)
+  opts = opts or {}
+  local fail_reason = H.normalize_reason(opts.fail_reason, 'Failed expectation for *no* error', f)
+  H.error_with_emphasis(fail_reason, 'Observed error: ' .. tostring(err))
 end
 
 --- Expect equality to reference screenshot
 ---
 ---@param screenshot table|nil Array with screenshot information. Usually an output
----   of `child.get_screenshot()` (see |MiniTest-child-neovim.get_screenshot()|).
+---   of `child.get_screenshot()` (see |MiniTest-child-neovim-get_screenshot()|).
 ---   If `nil`, expectation passed.
 ---@param path string|nil Path to reference screenshot. If `nil`, constructed
 ---   automatically in directory `opts.directory` from current case info and
@@ -740,14 +801,20 @@ end
 ---@param opts table|nil Options:
 ---   - <force> `(boolean)` - whether to forcefully create reference screenshot.
 ---     Temporary useful during test writing. Default: `false`.
----   - <ignore_lines> `(table)` - array of line numbers to ignore during compare.
----     Default: `nil` to check all lines.
+---   - <ignore_text> `(boolean|table)` - whether to ignore all or some text lines.
+---     If `true` - ignore all, if number array - ignore text of those lines,
+---     if `false` - do not ignore any. Default: `false`.
+---   - <ignore_attr> `(boolean|table)` - whether to ignore all or some attr lines.
+---     If `true` - ignore all, if number array - ignore attr of those lines,
+---     if `false` - do not ignore any. Default: `false`.
 ---   - <directory> `(string)` - directory where automatically constructed `path`
 ---     is located. Default: "tests/screenshots".
+---   __test_expect_fail_reason
 MiniTest.expect.reference_screenshot = function(screenshot, path, opts)
   if screenshot == nil then return true end
 
-  opts = vim.tbl_extend('force', { force = false, ignore_lines = {}, directory = 'tests/screenshots' }, opts or {})
+  local default_opts = { force = false, ignore_text = false, ignore_attr = false, directory = 'tests/screenshots' }
+  opts = vim.tbl_extend('force', default_opts, opts or {})
 
   H.cache.n_screenshots = H.cache.n_screenshots + 1
 
@@ -762,9 +829,7 @@ MiniTest.expect.reference_screenshot = function(screenshot, path, opts)
 
     -- Don't end with whitespace or dot (forbidden on Windows)
     name = name:gsub('[%s%.]$', '-')
-
-    -- TODO: remove `:gsub()` after compatibility with Neovim=0.8 is dropped
-    path = vim.fs.normalize(opts.directory):gsub('/$', '') .. '/' .. name
+    path = vim.fs.normalize(opts.directory) .. '/' .. name
 
     -- Deal with multiple screenshots
     if H.cache.n_screenshots > 1 then path = path .. string.format('-%03d', H.cache.n_screenshots) end
@@ -783,13 +848,15 @@ MiniTest.expect.reference_screenshot = function(screenshot, path, opts)
   local reference = H.screenshot_read(path)
 
   -- Compare
-  local are_same, cause = H.screenshot_compare(reference, screenshot, opts)
+  local same_text, cause_text = H.screenshot_compare_part('text', reference, screenshot, opts)
+  local same_attr, cause_attr = H.screenshot_compare_part('attr', reference, screenshot, opts)
+  if same_text and same_attr then return true end
 
-  if are_same then return true end
-
-  local subject = 'screenshot equality to reference at ' .. vim.inspect(path)
+  local fail_reason_fallback = 'Failed expectation for screenshot equality to reference at ' .. vim.inspect(path)
+  local fail_reason = H.normalize_reason(opts.fail_reason, fail_reason_fallback, screenshot, path)
+  local cause = same_text and cause_attr or cause_text
   local context = string.format('%s\nReference:\n%s\n\nObserved:\n%s', cause, tostring(reference), tostring(screenshot))
-  H.error_expect(subject, context)
+  H.error_with_emphasis(fail_reason, context)
 end
 
 --- Create new expectation function
@@ -819,7 +886,7 @@ MiniTest.new_expectation = function(subject, predicate, fail_context)
 
     local cur_subject = vim.is_callable(subject) and subject(...) or subject
     local cur_context = vim.is_callable(fail_context) and fail_context(...) or fail_context
-    H.error_expect(cur_subject, cur_context)
+    H.error_with_emphasis('Failed expectation for ' .. cur_subject, cur_context)
   end
 end
 
@@ -880,11 +947,8 @@ MiniTest.gen_reporter.buffer = function(opts)
   --   in `stdout`, albeit easier to overcome:
   --     - Handling of scroll.
   --     - Hard wrapping of lines leading to need of using window width.
-  opts = vim.tbl_deep_extend(
-    'force',
-    { group_depth = 1, throttle_delay = 10, window = H.buffer_reporter.default_window_opts() },
-    opts or {}
-  )
+  local default_opts = { group_depth = 1, throttle_delay = 10, window = H.buffer_reporter.default_window_opts() }
+  opts = vim.tbl_deep_extend('force', default_opts, opts or {})
 
   local buf_id, win_id
   local is_valid_buf_win = function() return vim.api.nvim_buf_is_valid(buf_id) and vim.api.nvim_win_is_valid(win_id) end
@@ -952,7 +1016,7 @@ MiniTest.gen_reporter.buffer = function(opts)
 
     -- Force writing lines
     local lines = H.overview_reporter.finish_lines(all_cases)
-    replace_last(2, lines, true)
+    replace_last(#all_cases == 0 and 0 or 2, lines, true)
     set_cursor(start_line)
   end
 
@@ -1036,7 +1100,7 @@ end
 -- Exported utility functions -------------------------------------------------
 --- Create child Neovim process
 ---
---- This creates an object designed to be a fundamental piece of 'mini.test'
+--- This creates an object designed to be a fundamental piece of |mini.test|
 --- methodology. It can start/stop/restart a separate (child) Neovim process
 --- (headless, but fully functioning) together with convenience helpers to
 --- interact with it through |RPC| messages.
@@ -1114,10 +1178,9 @@ MiniTest.new_child_neovim = function()
     -- Using 'jobstart' for creating a job is crucial for getting this to work
     -- in Github Actions. Other approaches:
     -- - Using `{ pty = true }` seems crucial to make this work on GitHub CI.
-    -- - Using `vim.loop.spawn()` is doable, but has issues on Neovim>=0.9:
+    -- - Using `vim.loop.spawn()` is doable, but has some issues:
     --     - https://github.com/neovim/neovim/issues/21630
     --     - https://github.com/neovim/neovim/issues/21886
-    --     - https://github.com/neovim/neovim/issues/22018
     job.id = vim.fn.jobstart(full_args)
 
     local step = 10
@@ -1231,16 +1294,15 @@ MiniTest.new_child_neovim = function()
     })
   end
 
-  --stylua: ignore start
+  --stylua: ignore
   local supported_vim_tables = {
     -- Collections
-    'diagnostic', 'fn', 'highlight', 'hl', 'json', 'loop', 'lsp', 'mpack', 'spell', 'treesitter', 'ui',
+    'diagnostic', 'fn', 'highlight', 'hl', 'json', 'loop', 'lsp', 'mpack', 'spell', 'treesitter', 'ui', 'fs',
     -- Variables
     'g', 'b', 'w', 't', 'v', 'env',
     -- Options (no 'opt' because not really useful due to use of metatables)
     'o', 'go', 'bo', 'wo',
   }
-  --stylua: ignore end
   for _, v in ipairs(supported_vim_tables) do
     child[v] = redirect_to_child(v)
   end
@@ -1406,14 +1468,14 @@ end
 ---
 ---@class MiniTest.child
 ---
----@field start function Start child process. See |MiniTest-child-neovim.start()|.
+---@field start function Start child process. See |MiniTest-child-neovim-start()|.
 ---@field stop function Stop current child process.
 ---@field restart function Restart child process: stop if running and then
 ---   start a new one. Takes same arguments as `child.start()` but uses values
 ---   from most recent `start()` call as defaults.
 ---
 ---@field type_keys function Emulate typing keys.
----   See |MiniTest-child-neovim.type_keys()|. Doesn't check for blocked state.
+---   See |MiniTest-child-neovim-type_keys()|. Doesn't check for blocked state.
 ---
 ---@field cmd function Execute Vimscript code from a string.
 ---   A wrapper for |nvim_exec()| without capturing output.
@@ -1443,17 +1505,18 @@ end
 ---
 ---@field diagnostic table Redirection table for |vim.diagnostic|.
 ---@field fn table Redirection table for |vim.fn|.
----@field highlight table Redirection table for `vim.highlight` (|lua-highlight)|.
+---@field highlight table Redirection table for |vim.highlight|.
 ---@field hl table Redirection table for |vim.hl|.
 ---@field json table Redirection table for `vim.json`.
 ---@field loop table Redirection table for |vim.loop|.
----@field lsp table Redirection table for `vim.lsp` (|lsp-core)|.
+---@field lsp table Redirection table for `vim.lsp` (|lsp-core|).
 ---@field mpack table Redirection table for |vim.mpack|.
 ---@field spell table Redirection table for |vim.spell|.
----@field treesitter table Redirection table for |vim.treesitter|.
----@field ui table Redirection table for `vim.ui` (|lua-ui|). Currently of no
+---@field treesitter table Redirection table for `vim.treesitter` (|lua-treesitter-core|).
+---@field ui table Redirection table for |vim.ui|. Currently of no
 ---   use because it requires sending function through RPC, which is impossible
 ---   at the moment.
+---@field fs table Redirection table for |vim.fs|.
 ---
 ---@field g table Redirection table for |vim.g|.
 ---@field b table Redirection table for |vim.b|.
@@ -1468,7 +1531,7 @@ end
 ---@field wo table Redirection table for |vim.wo|.
 ---@tag MiniTest-child-neovim
 
---- child.start(args, opts) ~
+---                           `child.start`({args}, {opts})
 ---
 --- Start child process and connect to it. Won't work if child is already running.
 ---
@@ -1476,6 +1539,7 @@ end
 ---   the following default arguments (see |startup-options|): >lua
 ---   { '--clean', '-n', '--listen', <some address>,
 ---     '--headless', '--cmd', 'set lines=24 columns=80' }
+--- <
 ---@param opts table|nil Options:
 ---   - <nvim_executable> - name of Neovim executable. Default: |v:progpath|.
 ---   - <connection_timeout> - stop trying to connect after this amount of
@@ -1490,16 +1554,16 @@ end
 ---   -- Start with custom 'init.lua' file
 ---   child.start({ '-u', 'scripts/minimal_init.lua' })
 --- <
----@tag MiniTest-child-neovim.start()
+---@tag MiniTest-child-neovim-start()
 
---- child.type_keys(wait, ...) ~
+---                        `child.type_keys`({wait}, {...})
 ---
 --- Basically a wrapper for |nvim_input()| applied inside child process.
 --- Differences:
 --- - Can wait after each group of characters.
 --- - Raises error if typing keys resulted into error in child process (i.e. its
 ---   |v:errmsg| was updated).
---- - Key '<' as separate entry may not be escaped as '<LT>'.
+--- - Key `<` as a separate entry may not be escaped as `<LT>`.
 ---
 ---@param wait number|nil Number of milliseconds to wait after each entry. May be
 ---   omitted, in which case no waiting is done.
@@ -1518,13 +1582,13 @@ end
 ---   -- Special keys can also be used
 ---   child.type_keys('i', 'Hello world', '<Esc>')
 --- <
----@tag MiniTest-child-neovim.type_keys()
+---@tag MiniTest-child-neovim-type_keys()
 
---- child.get_screenshot() ~
+---                         `child.get_screenshot`({opts})
 ---
 --- Compute what is displayed on (default TUI) screen and how it is displayed.
 --- This basically calls |screenstring()| and |screenattr()| for every visible
---- cell (row from 1 to 'lines', column from 1 to 'columns').
+--- cell (row from 1 to |'lines'|, column from 1 to |'columns'|).
 ---
 --- Notes:
 --- - To make output more portable and visually useful, outputs of
@@ -1559,7 +1623,7 @@ end
 ---   -- Convert to string
 ---   tostring(screenshot)
 --- <
----@tag MiniTest-child-neovim.get_screenshot()
+---@tag MiniTest-child-neovim-get_screenshot()
 
 -- Helper data ================================================================
 -- Module default config
@@ -1715,7 +1779,7 @@ H.execute_project_script = function(...)
   return success
 end
 
-H.schedule_case = function(case, case_num, opts)
+H.make_case = function(case, case_num, opts)
   local update_state = function(state)
     case.exec.state = state
     H.exec_callable(opts.reporter.update, case_num)
@@ -1761,7 +1825,7 @@ H.schedule_case = function(case, case_num, opts)
     end
   end
 
-  vim.schedule(function()
+  return function()
     if H.cache.should_stop_execution then return end
 
     case.exec = { fails = {}, notes = {} }
@@ -1771,7 +1835,7 @@ H.schedule_case = function(case, case_num, opts)
     local exec_data = case.exec
 
     local ok_case
-    for cur_try = 1, case.n_retry do
+    for _ = 1, case.n_retry do
       -- Ensure that fails and notes are not accumulated during retries
       case.exec = vim.deepcopy(exec_data)
 
@@ -1802,7 +1866,7 @@ H.schedule_case = function(case, case_num, opts)
     update_state(H.case_final_state(case))
 
     if not ok_case and opts.stop_on_error then MiniTest.stop() end
-  end)
+  end
 end
 
 -- Work with test cases -------------------------------------------------------
@@ -1989,38 +2053,36 @@ H.overview_reporter.start_lines = function(cases, groups)
 end
 
 H.overview_reporter.finish_lines = function(cases)
-  local res = {}
-
-  -- Show all fails and notes
+  -- Gather fails and notes (colored based on case fail/pass)
+  local fails, notes = {}, {}
   local n_fails, n_notes = 0, 0
   for _, c in ipairs(cases) do
     local stringid = H.case_to_stringid(c)
     local exec = c.exec == nil and { fails = {}, notes = {} } or c.exec
 
-    local fail_prefix = string.format('%s in %s: ', H.add_style('FAIL', 'fail'), stringid)
-    local note_color = #exec.fails > 0 and 'fail' or 'pass'
-    local note_prefix = string.format('%s in %s: ', H.add_style('NOTE', note_color), stringid)
+    if #exec.fails > 0 then
+      table.insert(fails, '')
+      local fail_prefix = string.format('%s in %s: ', H.add_style('FAIL', 'fail'), stringid)
+      vim.list_extend(fails, H.add_prefix(exec.fails, fail_prefix))
+      n_fails = n_fails + #exec.fails
+    end
 
-    n_fails = n_fails + #exec.fails
-    n_notes = n_notes + #exec.notes
-
-    local cur_fails_notes = {}
-    vim.list_extend(cur_fails_notes, H.add_prefix(exec.fails, fail_prefix))
-    vim.list_extend(cur_fails_notes, H.add_prefix(exec.notes, note_prefix))
-
-    if #cur_fails_notes > 0 then
-      cur_fails_notes = vim.split(table.concat(cur_fails_notes, '\n'), '\n')
-      vim.list_extend(res, cur_fails_notes)
-
-      -- Add empty line to separate fails and notes from different cases
-      table.insert(res, '')
+    if #exec.notes > 0 then
+      table.insert(notes, '')
+      local note_color = #exec.fails > 0 and 'fail' or 'pass'
+      local note_prefix = string.format('%s in %s: ', H.add_style('NOTE', note_color), stringid)
+      vim.list_extend(notes, H.add_prefix(exec.notes, note_prefix))
+      n_notes = n_notes + #exec.notes
     end
   end
 
+  -- Show all fails first, then all notes
   local header = string.format('Fails (%s) and Notes (%s)', n_fails, n_notes)
-  table.insert(res, 1, H.add_style(header, 'emphasis'))
+  local res = { H.add_style(header, 'emphasis') }
+  vim.list_extend(res, fails)
+  vim.list_extend(res, notes)
 
-  return res
+  return vim.split(table.concat(res, '\n'), '\n')
 end
 
 -- Buffer reporter utilities --------------------------------------------------
@@ -2038,8 +2100,6 @@ H.buffer_reporter.setup_buf_and_win = function(window_opts)
     if type(window_opts.title) == 'string' then
       window_opts.title = H.fit_to_width(window_opts.title, window_opts.width)
     end
-    if vim.fn.has('nvim-0.9') == 0 then window_opts.title = nil end
-
     win_id = vim.api.nvim_open_win(buf_id, true, window_opts)
   end
   win_id = win_id or vim.api.nvim_get_current_win()
@@ -2058,7 +2118,7 @@ H.buffer_reporter.default_window_opts = function()
     height = math.floor(0.618 * vim.o.lines),
     row = math.floor(0.191 * vim.o.lines),
     col = math.floor(0.191 * vim.o.columns),
-    border = (vim.fn.exists('+winborder') == 1 and vim.o.winborder ~= '') and vim.o.winborder or 'single',
+    border = (vim.fn.exists('+winborder') == 0 or vim.o.winborder == '') and 'single' or nil,
     title = ' Test results ',
   }
 end
@@ -2071,7 +2131,7 @@ H.buffer_reporter.set_options = function(buf_id, win_id)
 
   vim.cmd('silent! set filetype=minitest')
 
-  --stylua: ignore start
+  --stylua: ignore
   -- Set options for "temporary" buffer
   local buf_options = {
     bufhidden = 'wipe', buflisted = false, buftype = 'nofile', modeline = false, swapfile = false,
@@ -2081,6 +2141,7 @@ H.buffer_reporter.set_options = function(buf_id, win_id)
   end
 
   -- Set options for "clean" window
+  --stylua: ignore
   local win_options = {
     colorcolumn = '', fillchars = 'eob: ',    foldcolumn = '0', foldlevel = 999,
     number = false,   relativenumber = false, spell = false,    signcolumn = 'no',
@@ -2089,7 +2150,6 @@ H.buffer_reporter.set_options = function(buf_id, win_id)
   for name, value in pairs(win_options) do
     vim.wo[win_id][name] = value
   end
-  --stylua: ignore end
 end
 
 H.buffer_reporter.set_mappings = function(buf_id)
@@ -2187,13 +2247,14 @@ H.has_fails = function(cases)
 end
 
 -- Expectation utilities ------------------------------------------------------
-H.error_expect = function(subject, ...)
-  local msg = string.format('Failed expectation for %s.', subject)
-  H.error_with_emphasis(msg, ...)
+H.normalize_reason = function(reason, fallback, ...)
+  if vim.is_callable(reason) then reason = reason(...) end
+  if type(reason) ~= 'string' then reason = fallback end
+  return reason
 end
 
-H.error_with_emphasis = function(msg, ...)
-  local lines = { '', H.add_style(msg, 'emphasis'), ... }
+H.error_with_emphasis = function(msg, context)
+  local lines = { '', H.add_style(msg, 'emphasis'), context }
   error(table.concat(lines, '\n'), 0)
 end
 
@@ -2213,6 +2274,55 @@ H.traceback = function()
   end
 
   return res
+end
+
+H.compute_no_equality_cause = function(left, right)
+  if type(left) ~= type(right) then return 'different types' end
+
+  if type(left) == 'string' then
+    if vim.fn.strchars(left) ~= vim.fn.strchars(right) then return 'different string length' end
+    for i = 1, vim.fn.strchars(left) do
+      local lchar, rchar = vim.fn.strcharpart(left, i - 1, 1), vim.fn.strcharpart(right, i - 1, 1)
+      if lchar ~= rchar then
+        return string.format('different character at position %s', i)
+          .. string.format(', left = %s, right = %s', vim.inspect(lchar), vim.inspect(rchar))
+      end
+    end
+  end
+
+  if type(left) ~= 'table' then return 'different values' end
+
+  -- Find key branch with different values
+  local traverse
+  traverse = function(branch, diff, a, b)
+    if not (type(a) == 'table' and type(b) == 'table') then return end
+    local keys = vim.tbl_keys(a)
+    table.sort(keys, function(x, y) return tostring(x) < tostring(y) end)
+    for _, k in ipairs(keys) do
+      if not vim.deep_equal(a[k], b[k]) then
+        table.insert(branch, k)
+        diff.left, diff.right = a[k], b[k]
+        return traverse(branch, diff, a[k], b[k])
+      end
+    end
+  end
+
+  -- - Traverse with both table orders to find the longest possible branch.
+  --   This also covers the "present in one but not the other" cases.
+  local left_branch, left_diff = {}, {}
+  traverse(left_branch, left_diff, left, right)
+  local right_branch, right_diff = {}, {}
+  traverse(right_branch, right_diff, right, left)
+
+  local branch, ldiff, rdiff = left_branch, left_diff.left, left_diff.right
+  if #left_branch < #right_branch then
+    branch, ldiff, rdiff = right_branch, right_diff.right, right_diff.left
+  end
+  ldiff = vim.inspect(ldiff, { newline = ' ', indent = '' })
+  rdiff = vim.inspect(rdiff, { newline = ' ', indent = '' })
+  local key_branch = table.concat(vim.tbl_map(vim.inspect, branch), '->')
+  return string.format('different values at key %s%s', #branch > 1 and 'branch ' or '', key_branch)
+    .. string.format(', left = %s, right = %s', ldiff, rdiff)
 end
 
 -- Screenshots ----------------------------------------------------------------
@@ -2264,40 +2374,34 @@ H.screenshot_encode_attr = function(attr)
   return res
 end
 
-H.screenshot_compare = function(screen_ref, screen_obs, opts)
+H.screenshot_compare_part = function(part, ref, obs, opts)
+  local ignore_part = opts['ignore_' .. part]
+  if ignore_part == true then return true, '' end
+
   local compare = function(x, y, desc)
-    if x ~= y then
-      return false, ('Different %s. Reference: %s. Observed: %s.'):format(desc, vim.inspect(x), vim.inspect(y))
-    end
-    return true, ''
+    if x == y then return true, '' end
+    return false, ('Cause: different %s, reference = %s, observed = %s'):format(desc, vim.inspect(x), vim.inspect(y))
   end
 
-  --stylua: ignore start
   local ok, cause
-  ok, cause = compare(#screen_ref.text, #screen_obs.text, 'number of `text` lines')
-  if not ok then return ok, cause end
-  ok, cause = compare(#screen_ref.attr, #screen_obs.attr, 'number of `attr` lines')
+  ok, cause = compare(#ref[part], #obs[part], 'number of `' .. part .. '` lines')
   if not ok then return ok, cause end
 
-  local lines_to_check, ignore_lines = {}, opts.ignore_lines
-  for i = 1, #screen_ref.text do
-    if not vim.tbl_contains(ignore_lines, i) then table.insert(lines_to_check, i) end
+  local lines_to_check = {}
+  for i = 1, #ref[part] do
+    local is_ignore_part = type(ignore_part) == 'table' and vim.tbl_contains(ignore_part, i)
+    if not is_ignore_part then table.insert(lines_to_check, i) end
   end
 
   for _, i in ipairs(lines_to_check) do
-    ok, cause = compare(#screen_ref.text[i], #screen_obs.text[i], 'number of columns in `text` line ' .. i)
-    if not ok then return ok, cause end
-    ok, cause = compare(#screen_ref.attr[i], #screen_obs.attr[i], 'number of columns in `attr` line ' .. i)
+    ok, cause = compare(#ref[part][i], #obs[part][i], 'number of columns in `' .. part .. '` line ' .. i)
     if not ok then return ok, cause end
 
-    for j = 1, #screen_ref.text[i] do
-      ok, cause = compare(screen_ref.text[i][j], screen_obs.text[i][j], string.format('`text` cell at line %s column %s', i, j))
-      if not ok then return ok, cause end
-      ok, cause = compare(screen_ref.attr[i][j], screen_obs.attr[i][j], string.format('`attr` cell at line %s column %s', i, j))
+    for j = 1, #ref[part][i] do
+      ok, cause = compare(ref[part][i][j], obs[part][i][j], '`' .. part .. '` cell at line ' .. i .. ' column ' .. j)
       if not ok then return ok, cause end
     end
   end
-  --stylua: ignore end
 
   return true, ''
 end
@@ -2315,7 +2419,7 @@ H.screenshot_read = function(path)
   local n = 0.5 * (#lines - 3)
   local text_lines, attr_lines = vim.list_slice(lines, 2, n + 1), vim.list_slice(lines, n + 4, 2 * n + 3)
 
-  local f = function(x) return H.string_to_chars(x:gsub('^%d+|', '')) end
+  local f = function(x) return H.string_to_screenchars(x:gsub('^%d+|', '')) end
   return H.screenshot_new({ text = vim.tbl_map(f, text_lines), attr = vim.tbl_map(f, attr_lines) })
 end
 
@@ -2369,18 +2473,23 @@ H.fit_to_width = function(text, width)
   return t_width <= width and text or ('…' .. vim.fn.strcharpart(text, t_width - width + 1, width - 1))
 end
 
-H.string_to_chars = function(s)
+H.string_to_screenchars = function(s)
   -- Can't use `vim.split(s, '')` because of multibyte characters
   local res = {}
   for i = 1, vim.fn.strchars(s) do
-    table.insert(res, vim.fn.strcharpart(s, i - 1, 1))
+    local ch = vim.fn.strcharpart(s, i - 1, 1)
+    table.insert(res, ch)
+    -- Not single-width characters are read as a single char, but result into
+    -- `{ ch, '', ... }` when computing observed screenshot (as this is how
+    -- `vim.fn.screenstring()` works)
+    for _ = 1, vim.fn.strdisplaywidth(ch) - 1 do
+      table.insert(res, '')
+    end
   end
   return res
 end
 
--- TODO: Remove after compatibility with Neovim=0.9 is dropped
-H.tbl_flatten = vim.fn.has('nvim-0.10') == 1 and function(x) return vim.iter(x):flatten(math.huge):totable() end
-  or vim.tbl_flatten
+H.tbl_flatten = function(x) return vim.iter(x):flatten(math.huge):totable() end
 
 -- TODO: Remove after compatibility with Neovim=0.10 is dropped
 H.highlight_range = function(...) vim.hl.range(...) end

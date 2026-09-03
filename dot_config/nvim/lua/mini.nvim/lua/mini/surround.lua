@@ -1,12 +1,10 @@
 --- *mini.surround* Surround actions
---- *MiniSurround*
 ---
 --- MIT License Copyright (c) 2021 Evgeni Chasnovski
----
---- ==============================================================================
----
+
 --- Fast and feature-rich surrounding. Can be configured to have experience
---- similar to 'tpope/vim-surround' (see |MiniSurround-vim-surround-config|).
+--- similar to [tpope/vim-surround](https://github.com/tpope/vim-surround)
+--- (see |MiniSurround-vim-surround-config|).
 ---
 --- Features:
 --- - Actions (text editing actions are dot-repeatable out of the box and
@@ -16,20 +14,19 @@
 ---     - Replace surrounding with `sr`.
 ---     - Find surrounding with `sf` or `sF` (move cursor right or left).
 ---     - Highlight surrounding with `sh`.
----     - Change number of neighbor lines with `sn` (see |MiniSurround-algorithm|).
 ---
 --- - Surrounding is identified by a single character as both "input" (in
 ---   `delete` and `replace` start, `find`, and `highlight`) and "output" (in
 ---   `add` and `replace` end):
----     - 'f' - function call (string of alphanumeric symbols or '_' or '.'
----       followed by balanced '()'). In "input" finds function call, in
+---     - `f` - function call (string of alphanumeric symbols or `_` or `.`
+---       followed by balanced `()`). In "input" finds function call, in
 ---       "output" prompts user to enter function name.
----     - 't' - tag. In "input" finds tag with same identifier, in "output"
+---     - `t` - tag. In "input" finds tag with same identifier, in "output"
 ---       prompts user to enter tag name with possible attributes.
----     - All symbols in brackets '()', '[]', '{}', '<>". In "input' represents
+---     - All symbols in brackets `()`, `[]`, `{}`, `<>`. In "input" represents
 ---       balanced brackets (open - with whitespace pad, close - without), in
 ---       "output" - left and right parts of brackets.
----     - '?' - interactive. Prompts user to enter left and right parts.
+---     - `?` - interactive. Prompts user to enter left and right parts.
 ---     - All other single character identifiers (supported by |getcharstr()|)
 ---       represent surrounding with identical left and right parts.
 ---
@@ -46,11 +43,11 @@
 ---
 --- - When searching for "input" surrounding, there is no distinction if it is
 ---   inside string or comment. So in this case there will be not proper match
----   for a function call: 'f(a = ")", b = 1)'.
+---   for a function call: `f(a = ")", b = 1)`.
 ---
 --- - Tags are searched using regex-like methods, so issues are inevitable.
 ---   Overall it is pretty good, but certain cases won't work. Like self-nested
----   tags won't match correctly on both ends: '<a><a></a></a>'.
+---   tags won't match correctly on both ends: `<a><a></a></a>`.
 ---
 --- # Setup ~
 ---
@@ -75,7 +72,7 @@
 ---   surrounding (`?`): `[[` for left and `]]` for right.
 --- - `2sdf` - delete (`sd`) second (`2`) surrounding function call (`f`).
 --- - `sr)tdiv<CR>` - replace (`sr`) surrounding parenthesis (`)`) with tag
----   (`t`) with identifier 'div' (`div<CR>` in command line prompt).
+---   (`t`) with identifier `div` (`div<CR>` in command line prompt).
 --- - `sff` - find right (`sf`) part of surrounding function call (`f`).
 --- - `sh}` - highlight (`sh`) for a brief period of time surrounding curly
 ---   brackets (`}`).
@@ -89,45 +86,47 @@
 ---
 --- # Comparisons ~
 ---
---- - 'tpope/vim-surround':
----     - 'vim-surround' has completely different, with other focus set of
----       default mappings, while 'mini.surround' has a more coherent set.
----     - 'mini.surround' supports dot-repeat, customized search path (see
+--- - [tpope/vim-surround](https://github.com/tpope/vim-surround):
+---     - `vim-surround` has completely different, with other focus set of
+---       default mappings, while |mini.surround| has a more coherent set.
+---     - |mini.surround| supports dot-repeat, customized search path (see
 ---       |MiniSurround.config|), customized specifications (see
----       |MiniSurround-surround-specification|) allowing usage of tree-sitter
+---       |MiniSurround-surrounding-specification|) allowing usage of tree-sitter
 ---       queries (see |MiniSurround.gen_spec.input.treesitter()|),
 ---       highlighting and finding surrounding, "last"/"next" extended
----       mappings. While 'vim-surround' does not.
---- - 'machakann/vim-sandwich':
+---       mappings. While `vim-surround` does not.
+--- - [machakann/vim-sandwich](https://github.com/machakann/vim-sandwich):
 ---     - Both have same keybindings for common actions (add, delete, replace).
----     - Otherwise same differences as with 'tpop/vim-surround' (except
----       dot-repeat because 'vim-sandwich' supports it).
---- - 'kylechui/nvim-surround':
----     - 'nvim-surround' is designed after 'tpope/vim-surround' with same
----       default mappings and logic, while 'mini.surround' has mappings
----       similar to 'machakann/vim-sandwich'.
----     - 'mini.surround' has more flexible customization of input surrounding
+---     - Otherwise same differences as with `tpope/vim-surround` (except
+---       dot-repeat because `vim-sandwich` supports it).
+--- - [kylechui/nvim-surround](https://github.com/kylechui/nvim-surround):
+---     - `nvim-surround` is designed after `tpope/vim-surround` with same
+---       default mappings and logic, while |mini.surround| has mappings
+---       similar to `machakann/vim-sandwich`.
+---     - |mini.surround| has more flexible customization of input surrounding
 ---       (with composed patterns, region pair(s), search methods).
----     - 'mini.surround' supports |[count]| in both input and output
----       surrounding (see |MiniSurround-count|) while 'nvim-surround' doesn't.
----     - 'mini.surround' supports "last"/"next" extended mappings.
+---     - |mini.surround| supports |[count]| in both input and output
+---       surrounding (see |MiniSurround-count-with-actions|) while
+---       `nvim-surround` doesn't.
+---     - |mini.surround| supports "last"/"next" extended mappings.
 --- - |mini.ai|:
----     - Both use similar logic for finding target: textobject in 'mini.ai'
----       and surrounding pair in 'mini.surround'. While 'mini.ai' uses
+---     - Both use similar logic for finding target: textobject in |mini.ai|
+---       and surrounding pair in |mini.surround|. While |mini.ai| uses
 ---       extraction pattern for separate `a` and `i` textobjects,
----       'mini.surround' uses it to select left and right surroundings
+---       |mini.surround| uses it to select left and right surroundings
 ---       (basically a difference between `a` and `i` textobjects).
 ---     - Some builtin specifications are slightly different:
----         - Quotes in 'mini.ai' are balanced, in 'mini.surround' they are not.
----         - The 'mini.surround' doesn't have argument surrounding.
----         - Default behavior in 'mini.ai' selects one of the edges into `a`
----           textobject, while 'mini.surround' - both.
+---         - Quotes in |mini.ai| are balanced, in |mini.surround| they are not.
+---         - The |mini.surround| doesn't have argument surrounding.
+---         - Default behavior in |mini.ai| selects one of the edges into `a`
+---           textobject, while |mini.surround| - both.
 ---
 --- # Highlight groups ~
+--- *MiniSurround-hl-groups*
 ---
---- * `MiniSurround` - highlighting of requested surrounding.
+--- - `MiniSurround` - highlighting of requested surrounding.
 ---
---- To change any highlight group, modify it directly with |:highlight|.
+--- To change any highlight group, set it directly with |nvim_set_hl()|.
 ---
 --- # Disabling ~
 ---
@@ -136,13 +135,12 @@
 --- number of different scenarios and customization intentions, writing exact
 --- rules for disabling module's functionality is left to user. See
 --- |mini.nvim-disabling-recipes| for common recipes.
+---@tag MiniSurround
 
---- Builtin surroundings ~
----
 --- This table describes all builtin surroundings along with what they
 --- represent. Explanation:
 --- - `Key` represents the surrounding identifier: single character which should
----   be typed after action mappings (see |MiniSurround.config.mappings|).
+---   be typed after action mappings (see "Mappings" in |MiniSurround.config|).
 --- - `Name` is a description of surrounding.
 --- - `Example line` contains a string for which examples are constructed. The
 ---   `*` denotes the cursor position over `a` character.
@@ -159,35 +157,37 @@
 --- `!( *a (bb) )!` into `! aa (bb) !`. Typing `sr!)` changes same initial line
 --- into `(( aa (bb) ))`.
 --- >
----  |Key|     Name      |  Example line |    Delete   |     Replace     |
----  |---|---------------|---------------|-------------|-----------------|
----  | ( |  Balanced ()  | !( *a (bb) )! |  !aa (bb)!  | ( ( aa (bb) ) ) |
----  | [ |  Balanced []  | ![ *a [bb] ]! |  !aa [bb]!  | [ [ aa [bb] ] ] |
----  | { |  Balanced {}  | !{ *a {bb} }! |  !aa {bb}!  | { { aa {bb} } } |
----  | < |  Balanced <>  | !< *a <bb> >! |  !aa <bb>!  | < < aa <bb> > > |
----  |---|---------------|---------------|-------------|-----------------|
----  | ) |  Balanced ()  | !( *a (bb) )! | ! aa (bb) ! | (( aa (bb) ))   |
----  | ] |  Balanced []  | ![ *a [bb] ]! | ! aa [bb] ! | [[ aa [bb] ]]   |
----  | } |  Balanced {}  | !{ *a {bb} }! | ! aa {bb} ! | {{ aa {bb} }}   |
----  | > |  Balanced <>  | !< *a <bb> >! | ! aa <bb> ! | << aa <bb> >>   |
----  | b |  Alias for    | !( *a {bb} )! | ! aa {bb} ! | (( aa {bb} ))   |
----  |   |  ), ], or }   |               |             |                 |
----  |---|---------------|---------------|-------------|-----------------|
----  | q |  Alias for    | !'aa'*a'aa'!  | !'aaaaaa'!  | "'aa'aa'aa'"    |
----  |   |  ", ', or `   |               |             |                 |
----  |---|---------------|---------------|-------------|-----------------|
----  | ? |  User prompt  | !e * o!       | ! a !       | ee a oo         |
----  |   |(typed e and o)|               |             |                 |
----  |---|---------------|---------------|-------------|-----------------|
----  | t |      Tag      | !<x>*</x>!    | !a!         | <y><x>a</x></y> |
----  |   |               |               |             | (typed y)       |
----  |---|---------------|---------------|-------------|-----------------|
----  | f | Function call | !f(*a, bb)!   | !aa, bb!    | g(f(*a, bb))    |
----  |   |               |               |             | (typed g)       |
----  |---|---------------|---------------|-------------|-----------------|
----  |   |    Default    | !_a*a_!       | !aaa!       | __aaa__         |
----  |   |   (typed _)   |               |             |                 |
----  |---|---------------|---------------|-------------|-----------------|
+---  ┌───┬───────────────┬───────────────┬─────────────┬─────────────────┐
+---  │Key│     Name      │  Example line │    Delete   │     Replace     │
+---  ├───┴───────────────┴───────────────┴─────────────┴─────────────────┤
+---  ├┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┤
+---  │ ( │  Balanced ()  │ !( *a (bb) )! │  !aa (bb)!  │ ( ( aa (bb) ) ) │
+---  │ [ │  Balanced []  │ ![ *a [bb] ]! │  !aa [bb]!  │ [ [ aa [bb] ] ] │
+---  │ { │  Balanced {}  │ !{ *a {bb} }! │  !aa {bb}!  │ { { aa {bb} } } │
+---  │ < │  Balanced <>  │ !< *a <bb> >! │  !aa <bb>!  │ < < aa <bb> > > │
+---  ├┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┤
+---  │ ) │  Balanced ()  │ !( *a (bb) )! │ ! aa (bb) ! │ (( aa (bb) ))   │
+---  │ ] │  Balanced []  │ ![ *a [bb] ]! │ ! aa [bb] ! │ [[ aa [bb] ]]   │
+---  │ } │  Balanced {}  │ !{ *a {bb} }! │ ! aa {bb} ! │ {{ aa {bb} }}   │
+---  │ > │  Balanced <>  │ !< *a <bb> >! │ ! aa <bb> ! │ << aa <bb> >>   │
+---  │ b │  Alias for    │ !( *a {bb} )! │ ! aa {bb} ! │ (( aa {bb} ))   │
+---  │   │  ), ], or }   │               │             │                 │
+---  ├┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┤
+---  │ q │  Alias for    │ !'aa'*a'aa'!  │ !'aaaaaa'!  │ "'aa'aa'aa'"    │
+---  │   │  ", ', or `   │               │             │                 │
+---  ├┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┤
+---  │ ? │  User prompt  │ !e * o!       │ ! a !       │ ee a oo         │
+---  │   │(typed e and o)│               │             │                 │
+---  ├┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┤
+---  │ t │      Tag      │ !<x>*</x>!    │ !a!         │ <y><x>a</x></y> │
+---  │   │               │               │             │ (typed y)       │
+---  ├┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┤
+---  │ f │ Function call │ !f(*a, bb)!   │ !aa, bb!    │ g(f(*a, bb))    │
+---  │   │               │               │             │ (typed g)       │
+---  ├┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┤
+---  │   │    Default    │ !_a*a_!       │ !aaa!       │ __aaa__         │
+---  │   │   (typed _)   │               │             │                 │
+---  └┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┘
 --- <
 --- Notes:
 --- - All examples assume default `config.search_method`.
@@ -202,74 +202,85 @@
 ---     - When cursor is exactly on the identifier character while there are
 ---       two matching candidates on both left and right, the one resulting in
 ---       region with smaller width is preferred.
----@tag MiniSurround-surround-builtin
+---@tag MiniSurround-builtin-surroundings
 
 --- Note: this is similar to |MiniAi-glossary|.
 ---
---- - REGION - table representing region in a buffer. Fields: <from> and
----   <to> for inclusive start and end positions (<to> might be `nil` to
----   describe empty region). Each position is also a table with line <line>
----   and column <col> (both start at 1). Examples: >lua
+--- REGION ~
+--- Table representing region in a buffer. Fields: <from> and <to> for
+--- inclusive start and end positions (<to> might be `nil` to describe empty
+--- region). Each position is also a table with line <line> and column <col>
+--- (both start at 1). Examples: >lua
 ---
----     { from = { line = 1, col = 1 }, to = { line = 2, col = 1 } }
+---   { from = { line = 1, col = 1 }, to = { line = 2, col = 1 } }
 ---
----     -- Empty region
----     { from = { line = 10, col = 10 } }
+---   -- Empty region
+---   { from = { line = 10, col = 10 } }
 --- <
---- - REGION PAIR - table representing regions for left and right surroundings.
----   Fields: <left> and <right> with regions. Examples: >lua
+--- REGION PAIR ~
+--- Table representing regions for left and right surroundings. Fields: <left>
+--- and <right> with regions. Example: >lua
 ---
----     {
----       left  = { from = { line = 1, col = 1 }, to = { line = 1, col = 1 } },
----       right = { from = { line = 1, col = 3 } },
----     }
+---   {
+---     left  = { from = { line = 1, col = 1 }, to = { line = 1, col = 1 } },
+---     right = { from = { line = 1, col = 3 } },
+---   }
 --- <
---- - PATTERN - string describing Lua pattern.
---- - SPAN - interval inside a string (end-exclusive). Like [1, 5). Equal
----   `from` and `to` edges describe empty span at that point.
---- - SPAN `A = [a1, a2)` COVERS `B = [b1, b2)` if every element of
----   `B` is within `A` (`a1 <= b < a2`).
----   It also is described as B IS NESTED INSIDE A.
---- - NESTED PATTERN - array of patterns aimed to describe nested spans.
---- - SPAN MATCHES NESTED PATTERN if there is a sequence of consecutively
----   nested spans each matching corresponding pattern within substring of
----   previous span (or input string for first span). Example: >lua
+--- PATTERN ~
+--- String describing Lua pattern.
 ---
----     -- Nested patterns for balanced `()` with inner space
----     { '%b()', '^. .* .$' }
+--- SPAN ~
+--- Interval inside a string (end-exclusive). Like [1, 5). Equal `from` and `to` edges
+--- describe empty span at that point.
 ---
----     -- Example input string (with columns underneath for easier reading):
----        "( ( () ( ) ) )"
----     --  12345678901234
+--- Span `A = [a1, a2)` covers `B = [b1, b2)` if every element of `B` is within
+--- `A` (`a1 <= b < a2`). It also is described as "B is nested inside A".
+---
+--- NESTED PATTERN ~
+--- Array of patterns aimed to describe nested spans.
+---
+--- SPAN MATCHES NESTED PATTERN ~
+--- If there is a sequence of consecutively nested spans each matching
+--- corresponding pattern within substring of previous span (or input string
+--- for first span). Example: >lua
+---
+---   -- Nested patterns for balanced `()` with inner space
+---   { '%b()', '^. .* .$' }
+---
+---   -- Example input string (with columns underneath for easier reading):
+---      "( ( () ( ) ) )"
+---   --  12345678901234
 --- <
----   Here are all matching spans [1, 15) and [3, 13). Both [5, 7) and [8, 10)
----   match first pattern but not second. All other combinations of `(` and `)`
----   don't match first pattern (not balanced).
---- - COMPOSED PATTERN: array with each element describing possible pattern
----   (or array of them) at that place. Composed pattern basically defines all
----   possible combinations of nested pattern (their cartesian product).
----   Examples:
----     1. Either balanced `()` or balanced `[]` but both with inner edge space: >lua
+--- Here are all matching spans [1, 15) and [3, 13). Both [5, 7) and [8, 10)
+--- match first pattern but not second. All other combinations of `(` and `)`
+--- don't match first pattern (not balanced).
 ---
----          -- Composed pattern
----          { { '%b()', '%b[]' }, '^. .* .$' }
+--- COMPOSED PATTERN ~
+--- Array with each element describing possible pattern (or array of them) at
+--- that place. Composed pattern basically defines all possible combinations of
+--- nested pattern (their cartesian product). Examples:
 ---
----          -- Composed pattern expanded into equivalent array of nested patterns
----          { '%b()', '^. .* .$' } -- and
----          { '%b[]', '^. .* .$' }
+--- 1. Either balanced `()` or balanced `[]` but both with inner edge space: >lua
+---
+---     -- Composed pattern
+---     { { '%b()', '%b[]' }, '^. .* .$' }
+---
+---     -- Composed pattern expanded into equivalent array of nested patterns
+---     { '%b()', '^. .* .$' } -- and
+---     { '%b[]', '^. .* .$' }
 --- <
----     2. Either "balanced `()` with inner edge space" or "balanced `[]` with
----        no inner edge space", both with 5 or more characters: >lua
+--- 2. Either "balanced `()` with inner edge space" or "balanced `[]` with no
+---    inner edge space", both with 5 or more characters: >lua
 ---
----          -- Composed pattern
----          { { { '%b()', '^. .* .$' }, { '%b[]', '^.[^ ].*[^ ].$' } }, '.....' }
+---     -- Composed pattern
+---     { { { '%b()', '^. .* .$' }, { '%b[]', '^.[^ ].*[^ ].$' } }, '.....' }
 ---
----          -- Composed pattern expanded into equivalent array of nested patterns
----          { '%b()', '^. .* .$', '.....' } -- and
----          { '%b[]', '^.[^ ].*[^ ].$', '.....' }
+---     -- Composed pattern expanded into equivalent array of nested patterns
+---     { '%b()', '^. .* .$', '.....' } -- and
+---     { '%b[]', '^.[^ ].*[^ ].$', '.....' }
 --- <
---- - SPAN MATCHES COMPOSED PATTERN if it matches at least one nested pattern
----   from expanded composed pattern.
+--- SPAN MATCHES COMPOSED PATTERN ~
+--- If it matches at least one nested pattern from expanded composed pattern.
 ---@tag MiniSurround-glossary
 
 --- Surround specification is a table with keys:
@@ -293,10 +304,10 @@
 ---   how the last string should be processed to extract surrounding parts:
 ---     - Two captures represent left part from start of string to first
 ---       capture and right part - from second capture to end of string.
----       Example: `a()b()c` defines left surrounding as 'a', right - 'c'.
+---       Example: `a()b()c` defines left surrounding as `a`, right - `c`.
 ---     - Four captures define left part inside captures 1 and 2, right part -
 ---       inside captures 3 and 4. Example: `a()()b()c()` defines left part as
----       empty, right part as 'c'.
+---       empty, right part as `c`.
 --- - Allows callable objects (see |vim.is_callable()|) in certain places
 ---   (enables more complex surroundings in exchange of increase in configuration
 ---   complexity and computations):
@@ -330,7 +341,7 @@
 ---             end
 --- <
 ---         - Array of region pairs. Useful for incorporating other instruments,
----           like treesitter (see |MiniSurround.gen_spec.treesitter()|). The
+---           like treesitter (see |MiniSurround.gen_spec.input.treesitter()|). The
 ---           best region pair will be picked in the same manner as with composed
 ---           pattern (respecting options `n_lines`, `search_method`, etc.) using
 ---           output region (from start of left region to end of right region).
@@ -404,10 +415,8 @@
 ---     return { left = function_name .. '(', right = ')' }
 ---   end
 --- <
----@tag MiniSurround-surround-specification
+---@tag MiniSurround-surrounding-specification
 
---- Count with actions
----
 --- |[count]| is supported by all actions in the following ways:
 ---
 --- - In add, two types of `[count]` is supported in Normal mode:
@@ -422,13 +431,11 @@
 ---   and execute operator on it".
 ---   Example: `2sd)` on line `(a(b(c)b)a)` with cursor on `c` will result into
 ---   `(ab(c)ba)` (and not in `(abcba)` if it would have meant "delete n times").
----@tag MiniSurround-count
+---@tag MiniSurround-count-with-actions
 
---- Search algorithm design
----
 --- Search for the input surrounding relies on these principles:
 --- - Input surrounding specification is constructed based on surrounding
----   identifier (see |MiniSurround-surround-specification|).
+---   identifier (see |MiniSurround-surrounding-specification|).
 --- - General search is done by converting some 2d buffer region (neighborhood
 ---   of reference region) into 1d string (each line is appended with `\n`).
 ---   Then search for a best span matching specification is done inside string
@@ -478,15 +485,6 @@ local H = {}
 ---   require('mini.surround').setup({}) -- replace {} with your config table
 --- <
 MiniSurround.setup = function(config)
-  -- TODO: Remove after Neovim=0.8 support is dropped
-  if vim.fn.has('nvim-0.9') == 0 then
-    vim.notify(
-      '(mini.surround) Neovim<0.9 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniSurround = MiniSurround
 
@@ -503,67 +501,32 @@ MiniSurround.setup = function(config)
   H.create_default_hl()
 end
 
---- Module config
----
---- Default values:
+--- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
----@text                                               *MiniSurround-vim-surround-config*
---- # Setup similar to 'tpope/vim-surround' ~
----
---- This module is primarily designed after 'machakann/vim-sandwich'. To get
---- behavior closest to 'tpope/vim-surround' (but not identical), use this setup: >lua
----
----   require('mini.surround').setup({
----     mappings = {
----       add = 'ys',
----       delete = 'ds',
----       find = '',
----       find_left = '',
----       highlight = '',
----       replace = 'cs',
----       update_n_lines = '',
----
----       -- Add this only if you don't want to use extended mappings
----       suffix_last = '',
----       suffix_next = '',
----     },
----     search_method = 'cover_or_next',
----   })
----
----   -- Remap adding surrounding to Visual mode selection
----   vim.keymap.del('x', 'ys')
----   vim.keymap.set('x', 'S', [[:<C-u>lua MiniSurround.add('visual')<CR>]], { silent = true })
----
----   -- Make special mapping for "add surrounding for line"
----   vim.keymap.set('n', 'yss', 'ys_', { remap = true })
---- <
---- # Options ~
----
---- ## Mappings ~
+---@text # Mappings ~
 ---
 --- `config.mappings` defines what mappings are set up for particular actions.
 --- By default it uses "prefix style" left hand side starting with "s" (for
 --- "surround"): `sa` - "surround add", `sd` - "surround delete", etc.
 ---
---- Note: if 'timeoutlen' is low enough to cause occasional usage of |s| key
---- (that deletes character under cursor), disable it with the following call: >lua
+--- Note: if any of the mappings start with "s" (as is by default), it is mapped
+--- to |<Nop>| to prevent accidental trigger of built-in |s| (can happen if there
+--- is a long enough delay between pressing "s" and the next key). Use `cl` instead.
 ---
----   vim.keymap.set({ 'n', 'x' }, 's', '<Nop>')
---- <
---- ## Custom surroundings ~
+--- # Custom surroundings ~
 ---
 --- User can define own surroundings by supplying `config.custom_surroundings`.
---- It should be a **table** with keys being single character surrounding
+--- It should be a table with keys being single character surrounding
 --- identifier (supported by |getcharstr()|) and values - surround specification
---- (see |MiniSurround-surround-specification|).
+--- (see |MiniSurround-surrounding-specification|).
 ---
 --- General recommendations:
 --- - In `config.custom_surroundings` only some data can be defined (like only
 ---   `output`). Other fields will be taken from builtin surroundings.
 --- - Function returning surround info at <input> or <output> fields of
 ---   specification is helpful when user input is needed (like asking for
----   function name). Use |input()| or |MiniSurround.user_input()|. Return
----   `nil` to stop any current surround operation.
+---   function name). Use |MiniSurround.user_input()| or |MiniInput.get()|.
+---   Return `nil` to stop any current surround operation.
 --- - Keys should use character representation which can be |getcharstr()| output.
 ---   For example, `'\r'` and not `'<CR>'`.
 ---
@@ -603,7 +566,7 @@ end
 ---     },
 ---   }
 --- <
---- ## Respect selection type ~
+--- # Respect selection type ~
 ---
 --- Boolean option `config.respect_selection_type` controls whether to respect
 --- selection type when adding and deleting surrounding. When enabled:
@@ -617,7 +580,7 @@ end
 ---   presence of multibyte characters; and probably won't due to
 ---   implementation difficulties.
 ---
---- ## Search method ~
+--- # Search method ~
 ---
 --- Value of `config.search_method` defines how best match search is done.
 --- Based on its value, one of the following matches will be selected:
@@ -658,9 +621,9 @@ end
 --- - `'prev'`:          `(a) bbb (c)` -> `[a] bbb (c)`. Same outcome for `(bbb)`.
 --- - `'nearest'`: depends on cursor position (same as in `'cover_or_nearest'`).
 ---
---- ## Search suffixes ~
+--- # Search suffixes ~
 ---
---- To provide more searching possibilities, 'mini.surround' creates extended
+--- To provide more searching possibilities, |mini.surround| creates extended
 --- mappings force "prev" and "next" methods for particular search. It does so
 --- by appending mapping with certain suffix: `config.mappings.suffix_last` for
 --- mappings which will use "prev" search method, `config.mappings.suffix_next`
@@ -678,10 +641,40 @@ end
 --- - Typing `sdn)` with cursor inside `(aa)` results into `(aa) bb (cc)`.
 --- - Typing `sdl)` with cursor inside `(cc)` results into `(aa) bb (cc)`.
 --- - Typing `2srn)]` with cursor inside `(aa)` results into `(aa) (bb) [cc]`.
+---
+--- # Setup similar to `tpope/vim-surround` ~
+--- *MiniSurround-vim-surround-config*
+---
+--- This module is primarily designed after `machakann/vim-sandwich`. To get
+--- behavior closest to `tpope/vim-surround` (but not identical), use this setup: >lua
+---
+---   require('mini.surround').setup({
+---     mappings = {
+---       add = 'ys',
+---       delete = 'ds',
+---       find = '',
+---       find_left = '',
+---       highlight = '',
+---       replace = 'cs',
+---
+---       -- Add this only if you don't want to use extended mappings
+---       suffix_last = '',
+---       suffix_next = '',
+---     },
+---     search_method = 'cover_or_next',
+---   })
+---
+---   -- Remap adding surrounding to Visual mode selection
+---   vim.keymap.del('x', 'ys')
+---   vim.keymap.set('x', 'S', [[:<C-u>lua MiniSurround.add('visual')<CR>]], { silent = true })
+---
+---   -- Make special mapping for "add surrounding for line"
+---   vim.keymap.set('n', 'yss', 'ys_', { remap = true })
+--- <
 MiniSurround.config = {
-  -- Add custom surroundings to be used on top of builtin ones. For more
-  -- information with examples, see `:h MiniSurround.config`.
-  custom_surroundings = nil,
+  -- Custom surroundings to be used on top of builtin ones.
+  -- For more information with examples, see `:h MiniSurround.config`.
+  custom_surroundings = {},
 
   -- Duration (in ms) of highlight when calling `MiniSurround.highlight()`
   highlight_duration = 500,
@@ -694,7 +687,6 @@ MiniSurround.config = {
     find_left = 'sF', -- Find surrounding (to the left)
     highlight = 'sh', -- Highlight surrounding
     replace = 'sr', -- Replace surrounding
-    update_n_lines = 'sn', -- Update `n_lines`
 
     suffix_last = 'l', -- Suffix to search with "prev" method
     suffix_next = 'n', -- Suffix to search with "next" method
@@ -724,7 +716,7 @@ MiniSurround.config = {
 -- Module functionality =======================================================
 --- Add surrounding
 ---
---- No need to use it directly, everything is setup in |MiniSurround.setup|.
+--- No need to use it directly, everything is setup in |MiniSurround.setup()|.
 ---
 ---@param mode string Mapping mode (normal by default).
 MiniSurround.add = function(mode)
@@ -806,7 +798,7 @@ end
 
 --- Delete surrounding
 ---
---- No need to use it directly, everything is setup in |MiniSurround.setup|.
+--- No need to use it directly, everything is setup in |MiniSurround.setup()|.
 MiniSurround.delete = function()
   -- Find input surrounding region
   local surr = H.find_surrounding(H.get_surround_spec('input', true))
@@ -842,7 +834,7 @@ end
 
 --- Replace surrounding
 ---
---- No need to use it directly, everything is setup in |MiniSurround.setup|.
+--- No need to use it directly, everything is setup in |MiniSurround.setup()|.
 MiniSurround.replace = function()
   -- Find input surrounding region
   local surr = H.find_surrounding(H.get_surround_spec('input', true))
@@ -863,7 +855,7 @@ end
 
 --- Find surrounding
 ---
---- No need to use it directly, everything is setup in |MiniSurround.setup|.
+--- No need to use it directly, everything is setup in |MiniSurround.setup()|.
 MiniSurround.find = function()
   -- Find surrounding region
   local surr = H.find_surrounding(H.get_surround_spec('input', true))
@@ -872,17 +864,15 @@ MiniSurround.find = function()
   -- Make array of unique positions to cycle through
   local pos_array = H.surr_to_pos_array(surr)
 
-  -- Cycle cursor through positions
-  local dir = H.cache.direction or 'right'
-  H.cursor_cycle(pos_array, dir)
-
-  -- Open 'enough folds' to show cursor
+  -- Cycle cursor through positions and open enough folds
+  vim.cmd("normal! m'")
+  H.cursor_cycle(pos_array, H.cache.direction or 'right')
   vim.cmd('normal! zv')
 end
 
 --- Highlight surrounding
 ---
---- No need to use it directly, everything is setup in |MiniSurround.setup|.
+--- No need to use it directly, everything is setup in |MiniSurround.setup()|.
 MiniSurround.highlight = function()
   -- Find surrounding region
   local surr = H.find_surrounding(H.get_surround_spec('input', true))
@@ -901,16 +891,15 @@ MiniSurround.highlight = function()
   end, config.highlight_duration)
 end
 
---- Update `MiniSurround.config.n_lines`
+--- Update `MiniSurround.config.n_lines` from user input
 ---
---- Convenient wrapper for updating `MiniSurround.config.n_lines` in case the
---- default one is not appropriate.
+--- Mapping example: >lua
+---
+---   vim.keymap.set('n', 'sn', '<Cmd>lua MiniSurround.update_n_lines()<CR>')
+--- <
 MiniSurround.update_n_lines = function()
-  if H.is_disabled() then return '<Esc>' end
-
   local n_lines = MiniSurround.user_input('New number of neighbor lines', MiniSurround.config.n_lines)
-  n_lines = math.floor(tonumber(n_lines) or MiniSurround.config.n_lines)
-  MiniSurround.config.n_lines = n_lines
+  MiniSurround.config.n_lines = math.floor(tonumber(n_lines) or MiniSurround.config.n_lines)
 end
 
 --- Ask user for input
@@ -919,6 +908,9 @@ end
 --- cancelling with `<Esc>` and `<C-c>`, and slightly modifies prompt. Use it
 --- to ask for input inside function custom surrounding (see |MiniSurround.config|).
 MiniSurround.user_input = function(prompt, text)
+  prompt = '(mini.surround) ' .. prompt
+  if _G.MiniInput ~= nil then return MiniInput.get({ prompt = prompt, scope = 'cursor', init_keys = { text } }) end
+
   -- Major issue with both `vim.fn.input()` is that the only way to distinguish
   -- cancelling with `<Esc>` and entering empty string with immediate `<CR>` is
   -- through `cancelreturn` option (see `:h input()`). In that case the return
@@ -926,13 +918,10 @@ MiniSurround.user_input = function(prompt, text)
   -- using that string. Although doable with very obscure string, this is not
   -- very clean.
   -- Overcome this by adding temporary keystroke listener.
-  local on_key = vim.on_key or vim.register_keystroke_callback
   local was_cancelled = false
-  on_key(function(key)
-    if key == vim.api.nvim_replace_termcodes('<Esc>', true, true, true) then was_cancelled = true end
-  end, H.ns_id.input)
+  vim.on_key(function(key) was_cancelled = was_cancelled or key == '\27' or key == '\3' end, H.ns_id.input)
 
-  -- Ask for input
+  -- Ask for input. Use `pcall` to allow `<C-c>` to cancel user input
   -- NOTE: it would be GREAT to make this work with `vim.ui.input()` but I
   -- didn't find a way to make it work without major refactor of whole module.
   -- The main issue is that `vim.ui.input()` is designed to perform action in
@@ -943,17 +932,12 @@ MiniSurround.user_input = function(prompt, text)
   -- immediately and proceed in main event loop. Couldn't find a relatively
   -- simple way to stop execution of this current function until `ui.input()`'s
   -- callback finished execution.
-  local opts = { prompt = '(mini.surround) ' .. prompt .. ': ', default = text or '' }
   vim.cmd('echohl Question')
-  -- Use `pcall` to allow `<C-c>` to cancel user input
-  local ok, res = pcall(vim.fn.input, opts)
-  vim.cmd([[echohl None | echo '' | redraw]])
+  local ok, res = pcall(vim.fn.input, { prompt = prompt .. ': ', default = text or '' })
+  vim.cmd('echohl None | echo "" | redraw')
 
-  -- Stop key listening
-  on_key(nil, H.ns_id.input)
-
-  if not ok or was_cancelled then return end
-  return res
+  vim.on_key(nil, H.ns_id.input)
+  return (ok and not was_cancelled) and res or nil
 end
 
 --- Generate common surrounding specifications
@@ -975,19 +959,18 @@ MiniSurround.gen_spec = { input = {}, output = {} }
 --- region pair is a difference between regions of outer and inner captures.
 ---
 --- In order for this to work, apart from working treesitter parser for desired
---- language, user should have a reachable language-specific 'textobjects'
---- query (see |vim.treesitter.query.get()| or |get_query()|, depending on your
---- Neovim version).
---- The most straightforward way for this is to have 'textobjects.scm' query
+--- language, user should have a reachable language-specific `'textobjects'`
+--- query (see |vim.treesitter.query.get()|).
+--- The most straightforward way for this is to have `textobjects.scm` query
 --- file with treesitter captures stored in some recognized path. This is
 --- primarily designed to be compatible with plugin
---- 'nvim-treesitter/nvim-treesitter-textobjects', but can be used without it.
+--- `nvim-treesitter/nvim-treesitter-textobjects`, but can be used without it.
 ---
 --- Two most common approaches for having a query file:
---- - Install 'nvim-treesitter/nvim-treesitter-textobjects'. It has curated and
+--- - Install `nvim-treesitter/nvim-treesitter-textobjects`. It has curated and
 ---   well maintained builtin query files for many languages with a standardized
 ---   capture names, like `call.outer`, `call.inner`, etc.
---- - Manually create file 'after/queries/<language name>/textobjects.scm' in
+--- - Manually create file `after/queries/<language-name>/textobjects.scm` in
 ---   your |$XDG_CONFIG_HOME| directory. It should contain queries with
 ---   captures (later used to define surrounding parts). See |lua-treesitter-query|.
 --- To verify that query file is reachable, run (example for "lua" language,
@@ -996,7 +979,7 @@ MiniSurround.gen_spec = { input = {}, output = {} }
 ---   :lua print(vim.inspect(vim.treesitter.query.get_files('lua','textobjects')))
 --- <
 --- Example configuration for function definition textobject with
---- 'nvim-treesitter/nvim-treesitter-textobjects' captures: >lua
+--- `nvim-treesitter/nvim-treesitter-textobjects` captures: >lua
 ---
 ---   local ts_input = require('mini.surround').gen_spec.input.treesitter
 ---   require('mini.surround').setup({
@@ -1009,16 +992,17 @@ MiniSurround.gen_spec = { input = {}, output = {} }
 ---   })
 --- <
 --- Notes:
---- - By default query is done using 'nvim-treesitter' plugin if it is present
----   (falls back to builtin methods otherwise). This allows for a more
----   advanced features (like multiple buffer languages, custom directives, etc.).
----   See `opts.use_nvim_treesitter` for how to disable this.
 --- - Be sure that query files don't contain unknown |treesitter-directives|
 ---   (like `#make-range!`, for example). Otherwise surrounding with such captures
----   might not be found as |vim.treesitter| won't treat them as captures. Verify
----   with `:=vim.treesitter.query.get('lang', 'textobjects')` and see if the
----   target capture is recognized as one.
+---   might not be found as |lua-treesitter-core| won't treat them as captures.
+---   Verify with `:=vim.treesitter.query.get('lang', 'textobjects')` and see
+---   if the target capture is recognized as one.
 --- - It uses buffer's |filetype| to determine query language.
+--- - It first searches the language under cursor for matches. If no matches are
+---   found, it falls back to searching parent languages (up to the buffer's root
+---   language). If no matches are found again, it falls back to recursively
+---   searching all children languages (from the language under cursor). If no
+---   matches again - report no matches.
 --- - On large files it is slower than pattern-based textobjects. Still very
 ---   fast though (one search should be magnitude of milliseconds or tens of
 ---   milliseconds on really large file).
@@ -1029,23 +1013,46 @@ MiniSurround.gen_spec = { input = {}, output = {} }
 ---   exclusive, i.e. they won't be a part of surrounding) regions. Each value
 ---   should be a string capture starting with `'@'`.
 ---@param opts table|nil Options. Possible values:
----   - <use_nvim_treesitter> - whether to try to use 'nvim-treesitter' plugin
----     (if present) to do the query. It implements more advanced behavior at
----     cost of increased execution time. Provides more coherent experience if
----     'nvim-treesitter-textobjects' queries are used. Default: `true`.
+---   - <use_nvim_treesitter> - whether to try to use `nvim-treesitter` plugin
+---     (if present) to do the query. It used to implement more advanced behavior
+---     and more coherent experience if `nvim-treesitter-textobjects` queries are
+---     used. However, as |lua-treesitter-core| methods are more capable now,
+---     the option will soon be removed. Only present for backward compatibility.
+---     Default: `false`.
 ---
 ---@return function Function which returns array of current buffer region pairs
 ---   representing differences between outer and inner captures.
 ---
----@seealso |MiniSurround-surround-specification| for how this type of
+---@seealso - |MiniSurround-surrounding-specification| for how this type of
 ---   surrounding specification is processed.
---- |get_query()| for how query is fetched in case of no 'nvim-treesitter'.
---- |Query:iter_captures()| for how all query captures are iterated in case of
----   no 'nvim-treesitter'.
---- |MiniAi.gen_spec.treesitter()| for similar 'mini.ai' generator.
+--- - |vim.treesitter.query.get()| for how query is fetched.
+--- - |Query:iter_captures()| for how all query captures are iterated in case of
+---   no `nvim-treesitter`.
+--- - |MiniAi.gen_spec.treesitter()| for similar |mini.ai| generator.
 MiniSurround.gen_spec.input.treesitter = function(captures, opts)
-  opts = vim.tbl_deep_extend('force', { use_nvim_treesitter = true }, opts or {})
+  -- TODO: Remove after releasing 'mini.nvim' 0.17.0
+  opts = vim.tbl_deep_extend('force', { use_nvim_treesitter = false }, opts or {})
   captures = H.prepare_captures(captures)
+
+  -- Tree-sitter ranges are 0-based, end-exclusive, and usually
+  -- `row1-col1-byte1-row2-col2-byte2` (i.e. "range six") format.
+  local ts_range_to_region = function(r)
+    -- The `master` branch of 'nvim-treesitter' can return "range four" format
+    -- if it uses custom directives, like `#make-range!`. Due to the fact that
+    -- it doesn't fully mock the `TSNode:range()` method to return "range six".
+    -- TODO: Remove after 'nvim-treesitter' `master` branch support is dropped.
+    local offset = #r == 4 and -1 or 0
+    local res = { from = { line = r[1] + 1, col = r[2] + 1 }, to = { line = r[4 + offset] + 1, col = r[5 + offset] } }
+
+    -- NOTE: Adjust "row-exclusive, col-0" range that means "all previous row
+    -- including the newline character"
+    if res.to.col == 0 then
+      res.to.line = res.to.line - 1
+      res.to.col = vim.fn.col({ res.to.line, '$' })
+    end
+
+    return res
+  end
 
   return function()
     local has_nvim_treesitter = pcall(require, 'nvim-treesitter') and pcall(require, 'nvim-treesitter.query')
@@ -1055,10 +1062,8 @@ MiniSurround.gen_spec.input.treesitter = function(captures, opts)
 
     -- Return array of region pairs
     return vim.tbl_map(function(range_pair)
-      -- Range is an array with 0-based numbers for end-exclusive region
-      local left_from_line, left_from_col, right_to_line, right_to_col = unpack(range_pair.outer)
-      local left_from = { line = left_from_line + 1, col = left_from_col + 1 }
-      local right_to = { line = right_to_line + 1, col = right_to_col }
+      local outer_region = ts_range_to_region(range_pair.outer)
+      local left_from, right_to = outer_region.from, outer_region.to
 
       local left_to, right_from
       if range_pair.inner == nil then
@@ -1066,9 +1071,8 @@ MiniSurround.gen_spec.input.treesitter = function(captures, opts)
         right_from = H.pos_to_right(right_to)
         right_to = nil
       else
-        local left_to_line, left_to_col, right_from_line, right_from_col = unpack(range_pair.inner)
-        left_to = { line = left_to_line + 1, col = left_to_col + 1 }
-        right_from = { line = right_from_line + 1, col = right_from_col }
+        local inner_region = ts_range_to_region(range_pair.inner)
+        left_to, right_from = inner_region.from, inner_region.to
         -- Take into account that inner capture should be both edges exclusive
         left_to, right_from = H.pos_to_left(left_to), H.pos_to_right(right_from)
       end
@@ -1159,7 +1163,7 @@ H.setup_config = function(config)
   H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
-  H.check_type('custom_surroundings', config.custom_surroundings, 'table', true)
+  H.check_type('custom_surroundings', config.custom_surroundings, 'table')
   H.check_type('highlight_duration', config.highlight_duration, 'number')
   H.check_type('mappings', config.mappings, 'table')
   H.check_type('n_lines', config.n_lines, 'number')
@@ -1173,7 +1177,6 @@ H.setup_config = function(config)
   H.check_type('mappings.find_left', config.mappings.find_left, 'string')
   H.check_type('mappings.highlight', config.mappings.highlight, 'string')
   H.check_type('mappings.replace', config.mappings.replace, 'string')
-  H.check_type('mappings.update_n_lines', config.mappings.update_n_lines, 'string')
 
   H.check_type('mappings.suffix_last', config.mappings.suffix_last, 'string')
   H.check_type('mappings.suffix_next', config.mappings.suffix_next, 'string')
@@ -1181,58 +1184,54 @@ H.setup_config = function(config)
   return config
 end
 
+--stylua: ignore
 H.apply_config = function(config)
   MiniSurround.config = config
 
-  local expr_map = function(lhs, rhs, desc) H.map('n', lhs, rhs, { expr = true, desc = desc }) end
-  local map = function(lhs, rhs, desc) H.map('n', lhs, rhs, { desc = desc }) end
-
-  --stylua: ignore start
-  -- Make regular mappings
-  local m = config.mappings
-
-  expr_map(m.add,     H.make_operator('add', nil, true), 'Add surrounding')
-  expr_map(m.delete,  H.make_operator('delete'),         'Delete surrounding')
-  expr_map(m.replace, H.make_operator('replace'),        'Replace surrounding')
-
-  map(m.find,      H.make_action('find', 'right'), 'Find right surrounding')
-  map(m.find_left, H.make_action('find', 'left'),  'Find left surrounding')
-  map(m.highlight, H.make_action('highlight'),     'Highlight surrounding')
-
-  H.map('n', m.update_n_lines, MiniSurround.update_n_lines, { desc = 'Update `MiniSurround.config.n_lines`' })
-  H.map('x', m.add, [[:<C-u>lua MiniSurround.add('visual')<CR>]], { desc = 'Add surrounding to selection' })
-
-  -- Make extended mappings
-  local suffix_expr_map = function(lhs, suffix, rhs, desc)
-    -- Don't create extended mapping if user chose not to create regular one
-    if lhs == '' then return end
-    expr_map(lhs .. suffix, rhs, desc)
-  end
-  local suffix_map = function(lhs, suffix, rhs, desc)
-    if lhs == '' then return end
-    map(lhs .. suffix, rhs, desc)
+  local maps, maps_l, maps_n = config.mappings, {}, {}
+  local suf_l, suf_n = maps.suffix_last, maps.suffix_next
+  for k, v in pairs(maps) do
+    -- Don't create extended mapping if user chose not to create a regular one
+    maps_l[k] = (v ~= '' and suf_l ~= '') and (v .. suf_l) or ''
+    maps_n[k] = (v ~= '' and suf_n ~= '') and (v .. suf_n) or ''
   end
 
-  if m.suffix_last ~= '' then
-    local suff = m.suffix_last
-    suffix_expr_map(m.delete,  suff, H.make_operator('delete',  'prev'), 'Delete previous surrounding')
-    suffix_expr_map(m.replace, suff, H.make_operator('replace', 'prev'), 'Replace previous surrounding')
+  local m = function(mode, lhs, rhs, desc) H.map(mode, lhs, rhs, { expr = true, desc = desc }) end
 
-    suffix_map(m.find,      suff, H.make_action('find', 'right',  'prev'), 'Find previous right surrounding')
-    suffix_map(m.find_left, suff, H.make_action('find', 'left',   'prev'), 'Find previous left surrounding')
-    suffix_map(m.highlight, suff, H.make_action('highlight', nil, 'prev'), 'Highlight previous surrounding')
-  end
+  m('n', maps.add, H.make_operator('add', nil, true), 'Add surrounding')
+  H.map('x', maps.add, ':<C-u>lua MiniSurround.add("visual")<CR>', { desc = 'Add surrounding to selection' })
 
-  if m.suffix_next ~= '' then
-    local suff = m.suffix_next
-    suffix_expr_map(m.delete,  suff, H.make_operator('delete',  'next'), 'Delete next surrounding')
-    suffix_expr_map(m.replace, suff, H.make_operator('replace', 'next'), 'Replace next surrounding')
+  m('n', maps.delete,   H.make_operator('delete', nil),    'Delete surrounding')
+  m('n', maps_l.delete, H.make_operator('delete', 'prev'), 'Delete previous surrounding')
+  m('n', maps_n.delete, H.make_operator('delete', 'next'), 'Delete next surrounding')
 
-    suffix_map(m.find,      suff, H.make_action('find', 'right',  'next'), 'Find next right surrounding')
-    suffix_map(m.find_left, suff, H.make_action('find', 'left',   'next'), 'Find next left surrounding')
-    suffix_map(m.highlight, suff, H.make_action('highlight', nil, 'next'), 'Highlight next surrounding')
-  end
-  --stylua: ignore end
+  m('n', maps.replace,   H.make_operator('replace', nil),    'Replace surrounding')
+  m('n', maps_l.replace, H.make_operator('replace', 'prev'), 'Replace previous surrounding')
+  m('n', maps_n.replace, H.make_operator('replace', 'next'), 'Replace next surrounding')
+
+  m('n', maps.find,   H.make_action('find', 'right', nil),    'Find right surrounding')
+  m('x', maps.find,   H.make_action('find', 'right', nil),    'Find right surrounding')
+  m('o', maps.find,   H.make_action('find', 'right', nil),    'Find right surrounding')
+  m('n', maps_l.find, H.make_action('find', 'right', 'prev'), 'Find previous right surrounding')
+  m('x', maps_l.find, H.make_action('find', 'right', 'prev'), 'Find previous right surrounding')
+  m('o', maps_l.find, H.make_action('find', 'right', 'prev'), 'Find previous right surrounding')
+  m('n', maps_n.find, H.make_action('find', 'right', 'next'), 'Find next right surrounding')
+  m('x', maps_n.find, H.make_action('find', 'right', 'next'), 'Find next right surrounding')
+  m('o', maps_n.find, H.make_action('find', 'right', 'next'), 'Find next right surrounding')
+
+  m('n', maps.find_left,   H.make_action('find', 'left', nil),    'Find left surrounding')
+  m('x', maps.find_left,   H.make_action('find', 'left', nil),    'Find left surrounding')
+  m('o', maps.find_left,   H.make_action('find', 'left', nil),    'Find left surrounding')
+  m('n', maps_l.find_left, H.make_action('find', 'left', 'prev'), 'Find previous left surrounding')
+  m('x', maps_l.find_left, H.make_action('find', 'left', 'prev'), 'Find previous left surrounding')
+  m('o', maps_l.find_left, H.make_action('find', 'left', 'prev'), 'Find previous left surrounding')
+  m('n', maps_n.find_left, H.make_action('find', 'left', 'next'), 'Find next left surrounding')
+  m('x', maps_n.find_left, H.make_action('find', 'left', 'next'), 'Find next left surrounding')
+  m('o', maps_n.find_left, H.make_action('find', 'left', 'next'), 'Find next left surrounding')
+
+  m('n', maps.highlight,   H.make_action('highlight', nil, nil),    'Highlight surrounding')
+  m('n', maps_l.highlight, H.make_action('highlight', nil, 'prev'), 'Highlight previous surrounding')
+  m('n', maps_n.highlight, H.make_action('highlight', nil, 'next'), 'Highlight next surrounding')
 end
 
 H.create_autocommands = function()
@@ -1275,42 +1274,40 @@ H.make_operator = function(task, search_method, ask_for_textobject)
     -- `[count1]sa[count2][textobject]`.
     -- - Concatenate `' '` to operator output to "disable" motion
     --   required by `g@`. It is used to enable dot-repeatability.
-    return '<Cmd>echon ""<CR>g@' .. (ask_for_textobject and '' or ' ')
+    return '<Cmd>redraw<CR>g@' .. (ask_for_textobject and '' or ' ')
   end
 end
 
 H.make_action = function(task, direction, search_method)
   return function()
-    if H.is_disabled() then return end
+    if H.is_disabled() then return '<Esc>' end
     H.cache = { count = vim.v.count1, direction = direction, search_method = search_method }
-    return MiniSurround[task]()
+    return '<Cmd>lua MiniSurround.' .. task .. '()<CR>'
   end
 end
 
 -- Work with surrounding info -------------------------------------------------
-H.get_surround_spec = function(sur_type, use_cache)
-  local res
-
+H.get_surround_spec = function(surr_type, use_cache)
   -- Try using cache
-  if use_cache then
-    res = H.cache[sur_type]
-    if res ~= nil then return res end
-  else
-    H.cache = {}
-  end
+  if not use_cache then H.cache = {} end
+  if use_cache and H.cache[surr_type] ~= nil then return H.cache[surr_type] end
 
   -- Prompt user to enter identifier of surrounding
-  local char = H.user_surround_id(sur_type)
+  local char = H.user_surround_id(surr_type)
   if char == nil then return nil end
 
-  -- Get surround specification
-  res = H.make_surrounding_table()[char][sur_type]
+  -- Prefer surrounding specification: custom > built-in > default
+  local res = (H.get_config().custom_surroundings[char] or {})[surr_type]
+  if res == nil then res = (H.builtin_surroundings[char] or {})[surr_type] end
+  if res == nil then res = H.get_default_surrounding(char, surr_type) end
+  -- - NOTE: Make sure that in-place modifications don't affect the source
+  res = vim.deepcopy(res)
 
   -- Allow function returning spec or surrounding region(s)
   if vim.is_callable(res) then res = res() end
 
   -- Do nothing if supplied not appropriate structure
-  if not H.is_surrounding_info(res, sur_type) then return nil end
+  if not H.is_surrounding_info(res, surr_type) then return nil end
 
   -- Wrap callable tables to be an actual functions. Otherwise they might be
   -- confused with list of patterns.
@@ -1320,38 +1317,19 @@ H.get_surround_spec = function(sur_type, use_cache)
   res = setmetatable(res, { __index = { id = char } })
 
   -- Cache result
-  if use_cache then H.cache[sur_type] = res end
+  if use_cache then H.cache[surr_type] = res end
 
   return res
 end
 
-H.make_surrounding_table = function()
-  -- Extend builtins with data from `config`
-  local surroundings = vim.deepcopy(H.builtin_surroundings)
-  for char, spec in pairs(H.get_config().custom_surroundings or {}) do
-    local cur_spec = surroundings[char] or {}
-    local default = H.get_default_surrounding_info(char)
-    -- NOTE: Don't use `tbl_deep_extend` to prefer full `input` arrays
-    cur_spec.input = spec.input or cur_spec.input or default.input
-    cur_spec.output = spec.output or cur_spec.output or default.output
-    surroundings[char] = cur_spec
-  end
-
-  -- Use default surrounding info for not supplied single character identifier
-  return setmetatable(surroundings, {
-    __index = function(_, key) return H.get_default_surrounding_info(key) end,
-  })
+H.get_default_surrounding = function(char, surr_type)
+  return surr_type == 'output' and { left = char, right = char } or { vim.pesc(char) .. '().-()' .. vim.pesc(char) }
 end
 
-H.get_default_surrounding_info = function(char)
-  local char_esc = vim.pesc(char)
-  return { input = { char_esc .. '().-()' .. char_esc }, output = { left = char, right = char } }
-end
-
-H.is_surrounding_info = function(x, sur_type)
-  if sur_type == 'input' then
+H.is_surrounding_info = function(x, surr_type)
+  if surr_type == 'input' then
     return H.is_composed_pattern(x) or H.is_region_pair(x) or H.is_region_pair_array(x)
-  elseif sur_type == 'output' then
+  elseif surr_type == 'output' then
     return (type(x) == 'table' and type(x.left) == 'string' and type(x.right) == 'string')
   end
 end
@@ -1373,7 +1351,7 @@ H.is_region_pair = function(x)
 end
 
 H.is_region_pair_array = function(x)
-  if not H.islist(x) then return false end
+  if not vim.islist(x) then return false end
   for _, v in ipairs(x) do
     if not H.is_region_pair(v) then return false end
   end
@@ -1381,7 +1359,7 @@ H.is_region_pair_array = function(x)
 end
 
 H.is_composed_pattern = function(x)
-  if not (H.islist(x) and #x > 0) then return false end
+  if not (vim.islist(x) and #x > 0) then return false end
   for _, val in ipairs(x) do
     local val_type = type(val)
     if not (val_type == 'table' or val_type == 'string' or vim.is_callable(val)) then return false end
@@ -1511,7 +1489,8 @@ end
 
 H.get_matched_range_pairs_plugin = function(captures)
   local ts_queries = require('nvim-treesitter.query')
-  local outer_matches = ts_queries.get_capture_matches_recursively(0, captures.outer, 'textobjects')
+  local buf_id = vim.api.nvim_get_current_buf()
+  local outer_matches = ts_queries.get_capture_matches_recursively(buf_id, captures.outer, 'textobjects')
 
   -- Make sure that found matches contain `node` field that is actually a node,
   -- otherwise later `get_capture_matches` will error as it requires an actual
@@ -1521,68 +1500,130 @@ H.get_matched_range_pairs_plugin = function(captures)
   outer_matches = vim.tbl_filter(function(x) return x.node.tree ~= nil end, outer_matches)
 
   -- Pick inner range as the biggest range for node matching inner query. This
-  -- is needed because query output is not quaranteed to come in order, so just
+  -- is needed because query output is not guaranteed to come in order, so just
   -- picking first one is not enough.
-  return vim.tbl_map(function(m)
-    local inner_matches = ts_queries.get_capture_matches(0, captures.inner, 'textobjects', m.node, nil)
-    return { outer = H.get_match_range(m.node, m.metadata), inner = H.get_biggest_range(inner_matches) }
+  return vim.tbl_map(function(m_outer)
+    local outer_range = vim.treesitter.get_range(m_outer.node, buf_id, m_outer.metadata)
+    local inner = ts_queries.get_capture_matches(0, captures.inner, 'textobjects', m_outer.node, nil)
+    local inner_ranges = vim.tbl_map(function(m) return vim.treesitter.get_range(m.node, buf_id, m.metadata) end, inner)
+    return { outer = outer_range, inner = H.get_biggest_nested_range(inner_ranges, outer_range) }
   end, outer_matches)
 end
 
 H.get_matched_range_pairs_builtin = function(captures)
-  -- Fetch treesitter data for buffer
-  local lang = vim.bo.filetype
+  -- Get buffer's parser (LanguageTree)
+  local buf_id = vim.api.nvim_get_current_buf()
   -- TODO: Remove `opts.error` after compatibility with Neovim=0.11 is dropped
-  local has_parser, parser = pcall(vim.treesitter.get_parser, 0, lang, { error = false })
-  if not has_parser or parser == nil then H.error_treesitter('parser', lang) end
+  local has_parser, parser = pcall(vim.treesitter.get_parser, buf_id, nil, { error = false })
+  if not has_parser or parser == nil then H.error_treesitter('parser') end
 
-  local get_query = vim.fn.has('nvim-0.9') == 1 and vim.treesitter.query.get or vim.treesitter.get_query
-  local query = get_query(lang, 'textobjects')
-  if query == nil then H.error_treesitter('query', lang) end
+  -- Get parser (LanguageTree) at cursor (important for injected languages)
+  local pos = vim.api.nvim_win_get_cursor(0)
+  local lang_tree = parser:language_for_range({ pos[1] - 1, pos[2], pos[1] - 1, pos[2] })
+  local init_lang_tree = lang_tree
 
-  -- Compute matches for outer capture
-  local outer_matches = {}
-  for _, tree in ipairs(parser:trees()) do
-    vim.list_extend(outer_matches, H.get_builtin_matches(captures.outer:sub(2), tree:root(), query))
+  local missing_query_langs = {}
+  -- Compute matched ranges for both outer and inner captures
+  local outer, inner = {}, {}
+  -- Go up parent trees to work with injected languages
+  while (vim.tbl_isempty(inner) or vim.tbl_isempty(outer)) and lang_tree ~= nil do
+    H.append_lang_ranges(outer, inner, missing_query_langs, buf_id, captures, lang_tree)
+    lang_tree = lang_tree:parent()
   end
 
-  -- Pick inner range as the biggest range for node matching inner query
-  return vim.tbl_map(function(m)
-    local inner_matches = H.get_builtin_matches(captures.inner:sub(2), m.node, query)
-    return { outer = H.get_match_range(m.node, m.metadata), inner = H.get_biggest_range(inner_matches) }
-  end, outer_matches)
-end
-
-H.get_builtin_matches = function(capture, root, query)
-  local res = {}
-  for capture_id, node, metadata in query:iter_captures(root, 0) do
-    if query.captures[capture_id] == capture then
-      table.insert(res, { node = node, metadata = (metadata or {})[capture_id] or {} })
+  -- Fall back to children trees for injected languages
+  if vim.tbl_isempty(inner) or vim.tbl_isempty(outer) then
+    local check_children
+    check_children = function(l_tree)
+      for _, child in pairs(l_tree:children()) do
+        H.append_lang_ranges(outer, inner, missing_query_langs, buf_id, captures, child)
+        check_children(child)
+      end
     end
+    check_children(init_lang_tree)
   end
+
+  -- Match outer and inner ranges: for each outer range pick the biggest inner
+  -- range that lies within outer
+  local res = {}
+  for i, o in ipairs(outer) do
+    res[i] = { outer = o, inner = H.get_biggest_nested_range(inner, o) }
+  end
+
+  if vim.tbl_isempty(res) and not vim.tbl_isempty(missing_query_langs) then
+    H.error_treesitter('query', vim.tbl_keys(missing_query_langs))
+  end
+
   return res
 end
 
-H.get_biggest_range = function(match_arr)
+H.append_lang_ranges = function(outer, inner, missing_query_langs, buf_id, captures, lang_tree)
+  local lang = lang_tree:lang()
+  local query = vim.treesitter.query.get(lang, 'textobjects')
+
+  if query ~= nil then H.append_ranges(outer, inner, buf_id, query, captures, lang_tree) end
+  if query == nil then missing_query_langs[lang] = true end
+end
+
+H.append_ranges = function(outer, inner, buf_id, query, captures, lang_tree)
+  for _, tree in ipairs(lang_tree:trees()) do
+    local root = tree:root()
+    vim.list_extend(outer, H.get_match_ranges_builtin(root, buf_id, query, captures.outer:sub(2)))
+    vim.list_extend(inner, H.get_match_ranges_builtin(root, buf_id, query, captures.inner:sub(2)))
+  end
+end
+
+H.get_match_ranges_builtin = function(root, buf_id, query, capture)
+  local res = {}
+  -- TODO: Remove `opts.all` after compatibility with Neovim=0.10 is dropped
+  for _, match, metadata in query:iter_matches(root, buf_id, nil, nil, { all = true }) do
+    for capture_id, nodes in pairs(match) do
+      local mt = metadata[capture_id]
+      if query.captures[capture_id] == capture then table.insert(res, H.get_nodes_range_builtin(nodes, buf_id, mt)) end
+    end
+  end
+
+  return res
+end
+
+H.get_nodes_range_builtin = function(nodes, buf_id, metadata)
+  -- Get matched range as spanning from left most node start to right most node
+  -- end. This accounts for several matched nodes that are intentionally there
+  -- to cover complex cases. Approach is named "quantified captures".
+  local left, right
+  for _, node in ipairs(nodes) do
+    local range = vim.treesitter.get_range(node, buf_id, metadata)
+    if left == nil or range[3] < left[3] then left = range end
+    if right == nil or range[6] > right[6] then right = range end
+  end
+  return { left[1], left[2], left[3], right[4], right[5], right[6] }
+end
+
+H.get_biggest_nested_range = function(ranges, parent)
   local best_range, best_byte_count = nil, -math.huge
-  for _, match in ipairs(match_arr) do
-    local range = H.get_match_range(match.node, match.metadata)
-    local start_byte = vim.fn.line2byte(range[1] + 1) + range[2]
-    local end_byte = vim.fn.line2byte(range[3] + 1) + range[4] - 1
-    local byte_count = end_byte - start_byte + 1
-    if best_byte_count < byte_count then
-      best_range, best_byte_count = range, byte_count
+  for _, r in ipairs(ranges) do
+    local is_nested = parent[3] <= r[3] and r[6] <= parent[6] and not (parent[3] == r[3] and r[6] == parent[6])
+    local byte_count = r[6] - r[3] + 1
+    if is_nested and best_byte_count < byte_count then
+      best_range, best_byte_count = r, byte_count
     end
   end
 
   return best_range
 end
 
-H.get_match_range = function(node, metadata) return (metadata or {}).range and metadata.range or { node:range() } end
-
-H.error_treesitter = function(failed_get, lang)
-  local bufnr = vim.api.nvim_get_current_buf()
-  local msg = string.format([[Can not get %s for buffer %d and language '%s'.]], failed_get, bufnr, lang)
+H.error_treesitter = function(failed_get, langs)
+  local buf_id, ft = vim.api.nvim_get_current_buf(), vim.bo.filetype
+  if langs == nil then
+    local has_lang, ft_lang = pcall(vim.treesitter.language.get_lang, ft)
+    -- `vim.treesitter.language.get_lang()` defaults to `ft` on Neovim>0.11
+    -- TODO: Drop check after compatibility with Neovim=0.10 is dropped
+    langs = (has_lang and ft_lang ~= nil) and { ft_lang } or { ft }
+  end
+  table.sort(langs)
+  local langs_str = table.concat(vim.tbl_map(vim.inspect, langs), ', ')
+  local langs_noun = #langs == 1 and 'language' or 'languages'
+  local msg = string.format('Can not get %s for buffer %d and %s %s.', failed_get, buf_id, langs_noun, langs_str)
   H.error(msg)
 end
 
@@ -1823,6 +1864,12 @@ H.is_point_inside_spans = function(point, spans)
   return false
 end
 
+H.str_utfindex = function(s, i) return vim.str_utfindex(s, 'utf-32', i) end
+if vim.fn.has('nvim-0.11') == 0 then H.str_utfindex = function(s, i) return (vim.str_utfindex(s, i)) end end
+
+H.str_byteindex = function(s, i) return vim.str_byteindex(s, 'utf-32', i) end
+if vim.fn.has('nvim-0.11') == 0 then H.str_byteindex = function(s, i) return vim.str_byteindex(s, i) end end
+
 -- Work with operator marks ---------------------------------------------------
 H.get_marks_pos = function(mode)
   -- Region is inclusive on both ends
@@ -1868,10 +1915,10 @@ H.get_marks_pos = function(mode)
     -- Use `math.min()` because it might lead to 'index out of range' error
     -- when mark is positioned at the end of line (that extra space which is
     -- selected when selecting with `v$`)
-    local utf_index = vim.str_utfindex(line2, math.min(#line2, pos2[2]))
+    local utf_index = H.str_utfindex(line2, math.min(#line2, pos2[2]))
     -- This returns the last byte inside character because `vim.str_byteindex()`
     -- 'rounds upwards to the end of that sequence'.
-    pos2[2] = vim.str_byteindex(line2, utf_index)
+    pos2[2] = H.str_byteindex(line2, utf_index)
   end
 
   return {
@@ -1925,22 +1972,22 @@ H.cursor_cycle = function(pos_array, dir)
 end
 
 -- Work with user input -------------------------------------------------------
-H.user_surround_id = function(sur_type)
+H.user_surround_id = function(surr_type)
   -- Get from user single character surrounding identifier
-  local needs_help_msg = true
+  local needs_reminder = true
   vim.defer_fn(function()
-    if not needs_help_msg then return end
+    if not needs_reminder then return end
 
-    local msg = string.format('Enter %s surrounding identifier (single character) ', sur_type)
+    local msg = string.format('Reminder to press %s surrounding id ', surr_type)
     H.echo(msg)
     H.cache.msg_shown = true
   end, 1000)
   local ok, char = pcall(vim.fn.getcharstr)
-  needs_help_msg = false
+  needs_reminder = false
   H.unecho()
 
-  -- Terminate if couldn't get input (like with <C-c>) or it is `<Esc>`
-  if not ok or char == '\27' then return nil end
+  -- Terminate if couldn't get input (like with <C-c>) or on `<Esc>`
+  if not ok or char == '' or char == '\3' or char == '\27' then return nil end
   return char
 end
 
@@ -2211,6 +2258,15 @@ H.map = function(mode, lhs, rhs, opts)
   if lhs == '' then return end
   opts = vim.tbl_deep_extend('force', { silent = true }, opts or {})
   vim.keymap.set(mode, lhs, rhs, opts)
+  local no_global_s_mapping = not H.has_global_mapping(mode, 's')
+  if no_global_s_mapping and lhs:find('^s.') ~= nil then vim.keymap.set(mode, 's', '<Nop>') end
+end
+
+H.has_global_mapping = function(mode, lhs)
+  for _, map in ipairs(vim.api.nvim_get_keymap(mode)) do
+    if map.lhs == lhs then return true end
+  end
+  return false
 end
 
 H.get_line_cols = function(line_num) return vim.fn.getline(line_num):len() end
@@ -2252,7 +2308,7 @@ end
 ---@private
 H.cartesian_product = function(arr)
   if not (type(arr) == 'table' and #arr > 0) then return {} end
-  arr = vim.tbl_map(function(x) return H.islist(x) and x or { x } end, arr)
+  arr = vim.tbl_map(function(x) return vim.islist(x) and x or { x } end, arr)
 
   local res, cur_item = {}, {}
   local process
@@ -2274,14 +2330,13 @@ H.cartesian_product = function(arr)
 end
 
 H.wrap_callable_table = function(x)
-  if vim.is_callable(x) and type(x) == 'table' then return function(...) return x(...) end end
+  if vim.is_callable(x) and type(x) == 'table' then
+    return function(...) return x(...) end
+  end
   return x
 end
 
--- TODO: Remove after compatibility with Neovim=0.9 is dropped
-H.islist = vim.fn.has('nvim-0.10') == 1 and vim.islist or vim.tbl_islist
-H.tbl_flatten = vim.fn.has('nvim-0.10') == 1 and function(x) return vim.iter(x):flatten(math.huge):totable() end
-  or vim.tbl_flatten
+H.tbl_flatten = function(x) return vim.iter(x):flatten(math.huge):totable() end
 
 -- TODO: Remove after compatibility with Neovim=0.10 is dropped
 H.highlight_range = function(...) vim.hl.range(...) end

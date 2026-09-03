@@ -1,18 +1,15 @@
 --- *mini.map* Window with buffer text overview
---- *MiniMap*
 ---
 --- MIT License Copyright (c) 2022 Evgeni Chasnovski
----
---- ==============================================================================
----
+
 --- Features:
 --- - Show and manage special floating window displaying automatically updated
 ---   overview of current buffer text. Window takes up whole height of Neovim
 ---   instance and is fixed to a left/right side. Map content is computed by
 ---   taking all current lines, converting it to binary whitespace/non-whitespace
 ---   mask, rescaling to appropriate dimensions, and converting back to strings
----   consisting from special encoding symbols. All this is done **very fast** and
----   **asynchronously**. See |MiniMap.open()|, |MiniMap.refresh()|, |MiniMap.close()|,
+---   consisting from special encoding symbols. All this is done very fast and
+---   asynchronously. See |MiniMap.open()|, |MiniMap.refresh()|, |MiniMap.close()|,
 ---   |MiniMap.toggle()|, |MiniMap.toggle_side()|.
 ---   For a general overview and tips, see |mini.map-usage|.
 ---
@@ -27,8 +24,8 @@
 ---   for common integrations:
 ---     - Builtin search (as result of |/| and similar).
 ---     - Builtin diagnostic (taken from |vim.diagnostic.get()|).
----     - General diff hunks provided by 'mini.diff'.
----     - Hunks computed provided by 'lewis6991/gitsigns.nvim'.
+---     - General diff hunks provided by |mini.diff|.
+---     - Hunks computed provided by `lewis6991/gitsigns.nvim`.
 ---   For more details see |MiniMap.gen_integration|.
 ---
 --- - Focus on map window to quickly browse current (source) buffer. Moving inside
@@ -46,7 +43,7 @@
 ---     - Scrollbar symbols, separate for line and view. Can have any width
 ---       (even zero, which virtually disables scrollbar).
 ---     - Integrations producing map line highlights.
----     - Window options: side (left/right), width, 'winblend', and more.
+---     - Window options: side (left/right), width, |'winblend'|, and more.
 ---
 --- What it doesn't do:
 --- - Automatically refresh when typing in Insert mode. Although it can be done in
@@ -58,7 +55,7 @@
 --- - Provide autoopen functionality. Due to vast differences in user preference
 ---   of when map window should be shown, set up of automatic opening is left to
 ---   user. A common approach would be to call `MiniMap.open()` on |VimEnter| event.
----   If you use |MiniStarter|, you can modify `<CR>` buffer mapping: >lua
+---   If you use |mini.starter|, you can modify `<CR>` buffer mapping: >lua
 ---
 ---     local set_map_keymap = function()
 ---       local rhs = function()
@@ -85,54 +82,56 @@
 --- # Dependencies ~
 ---
 --- Suggested dependencies (provide extra functionality for integrations):
---- - Enabled 'mini.diff' module for general diff highlighting via
+--- - Enabled |mini.diff| module for general diff highlighting via
 ---   |MiniMap.gen_integration.diff()|. If missing, no highlighting is added.
---- - Plugin 'lewis6991/gitsigns.nvim' for Git status highlighting via
----   |MiniMap.gen_integration.gitsigns()|. If missing, no highlighting is added.
+--- - Plugin [lewis6991/gitsigns.nvim](https://github.com/lewis6991/gitsigns.nvim)
+---   for Git status highlighting via |MiniMap.gen_integration.gitsigns()|.
+---   If missing, no highlighting is added.
 ---
 --- # Comparisons ~
 ---
---- - 'wfxr/minimap.vim':
----     - 'mini.map' doesn't have dependencies while being as fast as written
----       in Rust dependency of 'minimap.vim'.
----     - 'mini.map' uses floating window, while 'minimap.vim' uses regular one.
----     - 'mini.map' provides slightly different visual interface with
+--- - [wfxr/minimap.vim](https://github.com/wfxr/minimap.vim):
+---     - |mini.map| doesn't have dependencies while being as fast as written
+---       in Rust dependency of `minimap.vim`.
+---     - |mini.map| uses floating window, while `minimap.vim` uses regular one.
+---     - |mini.map| provides slightly different visual interface with
 ---       scrollbar and integration counts.
----     - 'mini.map' allows encode symbols customization, 'minimap.vim' does not.
----     - 'mini.map' allows extending highlight integrations, while only
----       builtin search and git status are supported in 'minimap.vim'.
----     - 'mini.map' updates in asynchronous (non-blocking) fashion, 'minimap.vim'
+---     - |mini.map| allows encode symbols customization, `minimap.vim` does not.
+---     - |mini.map| allows extending highlight integrations, while only
+---       builtin search and git status are supported in `minimap.vim`.
+---     - |mini.map| updates in asynchronous (non-blocking) fashion, `minimap.vim`
 ---       does not.
----     - 'mini.map' can be used as a pure scrollbar, 'minimap.vim' can not.
---- - 'dstein64/nvim-scrollview':
----     - 'mini.map' has two-part scrollbar showing current line and view (with
----       variable height), while 'nvim-scrollview' shows only current view
+---     - |mini.map| can be used as a pure scrollbar, `minimap.vim` can not.
+--- - [dstein64/nvim-scrollview](https://github.com/dstein64/nvim-scrollview):
+---     - |mini.map| has two-part scrollbar showing current line and view (with
+---       variable height), while `nvim-scrollview` shows only current view
 ---       (with fixed height).
----     - 'nvim-scrollview' respects folds, i.e. shows view of visible lines,
----       while 'mini.map' by design always shows view based on actual lines.
----     - 'nvim-scrollview' creates scrollbar which can be dragged with mouse,
----       while 'mini.nvim' does not, by design (use |MiniMap.toggle_focus()|).
----     - 'mini.map' can show buffer outline, while 'nvim-scrollview' can not.
----     - 'mini.map' can show highlight integrations, while 'nvim-scrollview'
+---     - `nvim-scrollview` respects folds, i.e. shows view of visible lines,
+---       while |mini.map| by design always shows view based on actual lines.
+---     - `nvim-scrollview` creates scrollbar which can be dragged with mouse,
+---       while |mini.nvim| does not, by design (use |MiniMap.toggle_focus()|).
+---     - |mini.map| can show buffer outline, while `nvim-scrollview` can not.
+---     - |mini.map| can show highlight integrations, while `nvim-scrollview`
 ---       can not.
---- - 'petertriho/nvim-scrollbar':
----     - 'mini.map' has two-part scrollbar showing current line and view (with
----       variable height), while 'nvim-scrollbar' shows only current view.
----     - 'mini.map' can show buffer outline, while 'nvim-scrollbar' can not.
----     - 'mini.map' has fully extendable highlight integrations, while
----       'nvim-scrollbar' only supports diagnostic and search (with dependency).
---- - 'lewis6991/satellite.nvim':
----     - Almost the same differences as with 'dstein64/nvim-scrollview', except
----       'satellite.nvim' can display some set of integration highlights.
+--- - [petertriho/nvim-scrollbar](https://github.com/petertriho/nvim-scrollbar):
+---     - |mini.map| has two-part scrollbar showing current line and view (with
+---       variable height), while `nvim-scrollbar` shows only current view.
+---     - |mini.map| can show buffer outline, while `nvim-scrollbar` can not.
+---     - |mini.map| has fully extendable highlight integrations, while
+---       `nvim-scrollbar` only supports diagnostic and search (with dependency).
+--- - [lewis6991/satellite.nvim](https://github.com/lewis6991/satellite.nvim):
+---     - Almost the same differences as with `dstein64/nvim-scrollview`, except
+---       `satellite.nvim` can display some set of integration highlights.
 ---
 --- # Highlight groups ~
+--- *MiniMap-hl-groups*
 ---
---- * `MiniMapNormal` - basic highlight of whole window.
---- * `MiniMapSymbolCount` - counts of per-line integration items.
---- * `MiniMapSymbolLine` - scrollbar part representing current line.
---- * `MiniMapSymbolView` - scrollbar part representing current view.
+--- - `MiniMapNormal` - basic highlight of whole window.
+--- - `MiniMapSymbolCount` - counts of per-line integration items.
+--- - `MiniMapSymbolLine` - scrollbar part representing current line.
+--- - `MiniMapSymbolView` - scrollbar part representing current view.
 ---
---- To change any highlight group, modify it directly with |:highlight|.
+--- To change any highlight group, set it directly with |nvim_set_hl()|.
 ---
 --- # Disabling ~
 ---
@@ -141,6 +140,7 @@
 --- and customization intentions, writing exact rules for disabling module's
 --- functionality is left to user. See |mini.nvim-disabling-recipes| for common
 --- recipes.
+---@tag MiniMap
 
 --- # Mappings ~
 ---
@@ -163,7 +163,7 @@
 --- or line encoding is done.
 ---
 --- To avoid visual clutter, automatic refresh is done only in normal buffers
---- and help pages (i.e. with |buftype| being empty or "help")
+--- and help pages (i.e. with |'buftype'| being empty or "help")
 ---
 --- When you think content is not up to date, try one of these:
 --- - Call |MiniMap.refresh()| manually. Make mapping to make it easier.
@@ -194,15 +194,6 @@ local H = {}
 ---   require('mini.map').setup({}) -- replace {} with your config table
 --- <
 MiniMap.setup = function(config)
-  -- TODO: Remove after Neovim=0.8 support is dropped
-  if vim.fn.has('nvim-0.9') == 0 then
-    vim.notify(
-      '(mini.map) Neovim<0.9 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniMap = MiniMap
 
@@ -220,18 +211,14 @@ MiniMap.setup = function(config)
 end
 
 --stylua: ignore
---- Module config
----
---- Default values:
+--- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
----@text # Options ~
----
---- ## Symbols ~
+---@text # Symbols ~
 ---
 --- Options in `config.symbols` define characters used to display various
 --- information in map window.
 ---
---- ### Encode symbols ~
+--- ## Encode symbols ~
 ---
 --- The `config.symbols.encode` option defines which characters are used to
 --- encode source buffer lines. For details of encode algorithm, see
@@ -251,7 +238,7 @@ end
 --- If `nil` (default), output of |MiniMap.gen_encode_symbols.block()| with `'3x2'`
 --- identifier is used.
 ---
---- Example: { '1', '2', '3', '4', resolution = { row = 1, col = 2 } }. This
+--- Example: `{ '1', '2', '3', '4', resolution = { row = 1, col = 2 } }`. This
 --- will encode two characters in each input row. So a string `'  a  aaa'` will
 --- be encoded as `'1234'`.
 ---
@@ -260,7 +247,7 @@ end
 --- - |MiniMap.gen_encode_symbols.dot()|
 --- - |MiniMap.gen_encode_symbols.shade()|
 ---
---- ### Scrollbar symbols ~
+--- ## Scrollbar symbols ~
 ---
 --- Options `config.symbols.scroll_line` and `config.symbols.scroll_view` define
 --- strings used to represent current line and current view inside map window.
@@ -271,18 +258,18 @@ end
 --- slightly from normal map window. See "Pure scrollbar config" later section.
 ---
 --- Some suggestions for scrollbar symbols:
---- - View-line pairs: '▒' and '█'.
---- - Line - '🮚', '▶'.
---- - View - '╎', '┋', '┋'.
+--- - View-line pairs: `'▒'` and `'█'`.
+--- - Line - `'🮚'`, `'▶'`.
+--- - View - `'╎'`, `'┋'`, `'┋'`.
 ---
---- ## Integrations ~
+--- # Integrations ~
 ---
 --- Option `config.integrations` is an array of integrations. Each one is used
 --- to define map line highlights representing some important lines in source
 --- buffer. If `nil` (default), no integrations are used.
 ---
 --- Each integration should be a callable returning an array with data about
---- **source buffer** lines it wants to highlight. Each array element should be
+--- SOURCE BUFFER lines it wants to highlight. Each array element should be
 --- a table with <line> (source buffer line number) and <hl_group> (string with
 --- highlight group name) keys. Note: line number outside of source buffer
 --- count will be converted to a nearest appropriate one.
@@ -321,27 +308,27 @@ end
 ---     },
 ---   })
 --- <
---- ## Window config ~
+--- # Window config ~
 ---
 --- Option `config.window` defines some properties of map window.
 ---
 --- `window.focusable` - whether to allow focusing on map window with other
---- methods beside |MiniMap.toggle_focus()| (like |wincmd|, |CTRL-W|, or
---- mouse). Default: `false`.
+--- methods beside |MiniMap.toggle_focus()| (like |:wincmd|, |CTRL-W|, or mouse).
+--- Default: `false`.
 ---
 --- `window.side` - which side to stick map window: `'left'` or `'right'` (default).
 ---
 --- `window.show_integration_count` - whether to show integration count between
 --- scrollbar and encoded lines. Integration count is a number of integration
 --- outputs which were converted to same map line. When `true`, adds single
---- cell column with numbers from 2 to 9 and character '+' indicating count
+--- cell column with numbers from 2 to 9 and character `+` indicating count
 --- greater than 9. Count 1 is not shown, because it is redundant to highlighted
 --- map line. Default: `true`.
 ---
 --- `window.width` - width of floating window, including scrollbar and
 --- integration count column. Default: 10.
 ---
---- `window.winblend` - value of 'winblend' of floating window. Value 0 makes it
+--- `window.winblend` - value of |'winblend'| of floating window. Value 0 makes it
 --- completely non-transparent, 100 - completely transparent (content is still
 --- visible, but with slightly different highlights).
 ---
@@ -446,7 +433,7 @@ MiniMap.current = {
 --- - Convert strings to boolean mask: 2d boolean array with each row
 ---   representing a string. Element in every row subarray is `true` if
 ---   respective (possibly multibyte) character in a string is not a whitespace,
----   `false` otherwise. Note: tabs are expanded into 'tabstop' spaces.
+---   `false` otherwise. Note: tabs are expanded into |'tabstop'| spaces.
 --- - Rescale to appropriate dimensions:
 ---     - Each output dimension is just enough to encode all input strings, but
 ---       not more than supplied dimensions (`opts.n_rows * resolution.row` and
@@ -456,8 +443,8 @@ MiniMap.current = {
 ---       into 2d-bins with as equal as possible dimensions. Each bin then
 ---       converted into single boolean value: `true` if bin contains at least
 ---       one `true` element, `false` otherwise. This leads to a whitespace
----       output meaning that **all** entries in a bin are whitespace, while
----       non-whitespace output means that **some** entry is non-whitespace.
+---       output meaning that ALL entries in a bin are whitespace, while
+---       non-whitespace output means that SOME entry is non-whitespace.
 --- - Convert boolean mask to symbol strings:
 ---     - Input rescaled boolean mask is divided into bins with dimensions of
 ---       symbol resolution (assuming `false` outer padding).
@@ -467,10 +454,10 @@ MiniMap.current = {
 ---       Traversing left-right, top-bottom (top-left is lowest bit,
 ---       bottom-right - highest).
 ---
---- Example ~
+--- Example:
 ---
 --- Assume the output should have 3 rows of symbols each with width 2. Encode
---- symbols are ' ', '▌', '▐', '█' with `1x2` resolution.
+--- symbols are `' '`, `'▌'`, `'▐'`, `'█'` with `1x2` resolution.
 ---
 --- Assume input strings: >
 ---   aaaaa
@@ -557,7 +544,8 @@ MiniMap.open = function(opts)
 
   -- Open buffer and window
   local buf_id = MiniMap.current.buf_data.map
-  if buf_id == nil or not vim.api.nvim_buf_is_valid(buf_id) then
+  if buf_id == nil or not vim.api.nvim_buf_is_loaded(buf_id) then
+    pcall(vim.api.nvim_buf_delete, buf_id, { force = true })
     buf_id = H.create_map_buffer()
     MiniMap.current.buf_data.map = buf_id
   end
@@ -708,15 +696,15 @@ MiniMap.gen_encode_symbols = {}
 
 --- Generate block encode symbols
 ---
---- Outputs use solid block to encode binary data. Example: '🬗', '▟', '█'.
+--- Outputs use solid block to encode binary data. Example: `'🬗'`, `'▟'`, `'█'`.
 ---
 ---@param id string Resolution identifier.
----   Available values: `'1x2'`, `'2x1'`, `'2x2'`, `'3x2'` (default in 'mini.map').
+---   Available values: `'1x2'`, `'2x1'`, `'2x2'`, `'3x2'` (default in |mini.map|).
 MiniMap.gen_encode_symbols.block = function(id) return H.block_symbols[id] end
 
 --- Generate dot encode symbols
 ---
---- Outputs use dots to encode binary data. Example: '⡪', '⣼', '⣿'.
+--- Outputs use dots to encode binary data. Example: `'⡪'`, `'⣼'`, `'⣿'`.
 ---
 ---@param id string Resolution identifier. Available values: `'4x2'`, `'3x2'`.
 MiniMap.gen_encode_symbols.dot = function(id) return H.dot_symbols[id] end
@@ -724,7 +712,7 @@ MiniMap.gen_encode_symbols.dot = function(id) return H.dot_symbols[id] end
 --- Generate shade encode symbols
 ---
 --- Outputs use whole cell shades to encode binary data. They use same set of
---- characters ('░', '▒', '▒', '▓), but with different resolution.
+--- characters (`'░'`, `'▒'`, `'▒'`, `'▓'`), but with different resolution.
 ---
 ---@param id string Resolution identifier. Available values: `'1x2'`, `'2x1'`.
 MiniMap.gen_encode_symbols.shade = function(id) return H.shade_symbols[id] end
@@ -742,13 +730,8 @@ MiniMap.gen_integration = {}
 --- Highlight lines with matches of current builtin search (like with |/|, |?|, etc.).
 --- Integration count reflects number of actual matches.
 ---
---- It prompts integration highlighting update on every change of |hlsearch| option
---- (see |OptionSet|). Note that it is not happening for some keys:
---- - Toggle search highlight with |CTRL-L-default| or `\h` from 'mini.basics'.
----   Use custom mapping which changes mode. Like this: >lua
----
----   vim.keymap.set('n', [[\h]], ':let v:hlsearch = 1 - v:hlsearch<CR>')
---- <
+--- It prompts integration highlighting update on every change of |'hlsearch'|
+--- (see |OptionSet|) or |v:hlsearch|. Note that it is not happening for some keys:
 --- - After starting search with |n|, |N|, |star|, or |#|.
 ---   To enable highlight update on this keys, make custom mappings. Like this: >lua
 ---
@@ -766,11 +749,18 @@ MiniMap.gen_integration.builtin_search = function(hl_groups)
 
   -- Update when necessary. Not ideal, because it won't react on `n/N/*`, etc.
   -- See https://github.com/neovim/neovim/issues/18879
-  local augroup = vim.api.nvim_create_augroup('MiniMapBuiltinSearch', {})
-  vim.api.nvim_create_autocmd(
-    'OptionSet',
-    { group = augroup, pattern = 'hlsearch', callback = H.on_integration_update, desc = "On 'hlsearch' update" }
-  )
+  local gr = vim.api.nvim_create_augroup('MiniMapBuiltinSearch', {})
+  local opts = { group = gr, pattern = 'hlsearch', callback = H.on_integration_update, desc = "On 'hlsearch' update" }
+  vim.api.nvim_create_autocmd('OptionSet', opts)
+
+  -- - NOTE: beware of possible https://github.com/neovim/neovim/issues/21469
+  vim.cmd([[
+    silent! call dictwatcherdel(v:, 'hlsearch', 'MiniMapOnHLSearchChanged')
+    function! MiniMapOnHLSearchChanged(d,k,z)
+      lua MiniMap.refresh(nil, { lines = false, scrollbar = false })
+    endfunction
+    call dictwatcheradd(v:, 'hlsearch', 'MiniMapOnHLSearchChanged')
+  ]])
 
   local search_hl = hl_groups.search
 
@@ -869,10 +859,10 @@ MiniMap.gen_integration.diagnostic = function(hl_groups)
   end
 end
 
---- General diff hunks from 'mini.diff'
+--- General diff hunks from |mini.diff|
 ---
 --- Highlight lines which are part of current diff.
---- Requires 'mini.diff' as dependency.
+--- Requires |mini.diff| as dependency.
 ---
 ---@param hl_groups table|nil Table defining highlight groups. If `nil` (not
 ---   supplied), this status is not highlighted. Can have the following fields:
@@ -901,10 +891,10 @@ MiniMap.gen_integration.diff = function(hl_groups)
   end
 end
 
---- Hunks from 'lewis6991/gitsigns.nvim'
+--- Hunks from `lewis6991/gitsigns.nvim`
 ---
 --- Highlight lines which have non-trivial Git status.
---- Requires 'lewis6991/gitsigns.nvim' dependency.
+--- Requires [lewis6991/gitsigns.nvim](https://github.com/lewis6991/gitsigns.nvim).
 ---
 ---@param hl_groups table|nil Table defining highlight groups. If `nil` (not
 ---   supplied), this status is not highlighted. Can have the following fields:
@@ -1171,7 +1161,7 @@ H.mask_from_strings = function(strings, _)
     local mask_row = H.tbl_repeat(true, n_cols)
 
     -- Detect whitespace
-    s_ext:gsub('()%s', function(j) mask_row[vim.str_utfindex(s_ext, j)] = false end)
+    s_ext:gsub('()%s', function(j) mask_row[H.str_utfindex(s_ext, j)] = false end)
     res[i] = mask_row
   end
 
@@ -1627,7 +1617,7 @@ end
 
 -- Predicates -----------------------------------------------------------------
 H.is_array_of = function(x, predicate)
-  if not H.islist(x) then return false end
+  if not vim.islist(x) then return false end
   for _, v in ipairs(x) do
     if not predicate(v) then return false end
   end
@@ -1691,11 +1681,10 @@ end
 
 H.set_extmark_safely = function(...) pcall(vim.api.nvim_buf_set_extmark, ...) end
 
-H.str_width = function(x)
-  -- Use first returned value (UTF-32 index, and not UTF-16 one)
-  local res = vim.str_utfindex(x)
-  return res
-end
+H.str_utfindex = function(s, i) return vim.str_utfindex(s, 'utf-32', i) end
+if vim.fn.has('nvim-0.11') == 0 then H.str_utfindex = function(s, i) return (vim.str_utfindex(s, i)) end end
+
+H.str_width = function(x) return H.str_utfindex(x) end
 
 H.tbl_repeat = function(x, n)
   local res = {}
@@ -1704,8 +1693,5 @@ H.tbl_repeat = function(x, n)
   end
   return res
 end
-
--- TODO: Remove after compatibility with Neovim=0.9 is dropped
-H.islist = vim.fn.has('nvim-0.10') == 1 and vim.islist or vim.tbl_islist
 
 return MiniMap

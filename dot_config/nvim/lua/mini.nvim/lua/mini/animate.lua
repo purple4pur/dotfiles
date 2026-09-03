@@ -1,10 +1,7 @@
 --- *mini.animate* Animate common Neovim actions
---- *MiniAnimate*
 ---
 --- MIT License Copyright (c) 2022 Evgeni Chasnovski
----
---- ==============================================================================
----
+
 --- Features:
 --- - Works out of the box with a single `require('mini.animate').setup()`.
 ---   No extra mappings or commands needed.
@@ -42,10 +39,6 @@
 ---   mappings, etc.). See |MiniAnimate.config.scroll| and
 ---   |MiniAnimate.config.resize| for more details.
 ---
---- - Although all animations work in all supported versions of Neovim, scroll
----   and resize animations have best experience with Neovim>=0.9. This is due
----   to updated implementation of |WinScrolled| event.
----
 --- # Setup ~
 ---
 --- This module needs a setup with `require('mini.animate').setup({})` (replace
@@ -60,37 +53,37 @@
 ---
 --- # Comparisons ~
 ---
---- - Neovide:
+--- - [Neovide](https://neovide.dev/):
 ---     - Neovide is a standalone GUI which has more control over its animations.
----       While 'mini.animate' works inside terminal emulator (with all its
+---       While |mini.animate| works inside terminal emulator (with all its
 ---       limitations, like lack of pixel-size control over animations).
----     - Neovide animates cursor movement across screen, while 'mini.animate' -
+---     - Neovide animates cursor movement across screen, while |mini.animate| -
 ---       as it moves across same buffer.
 ---     - Neovide has fixed number of animation effects per action, while
----       'mini.animate' is fully customizable.
----     - 'mini.animate' implements animations for window open/close, while
+---       |mini.animate| is fully customizable.
+---     - |mini.animate| implements animations for window open/close, while
 ---       Neovide does not.
---- - 'edluffy/specs.nvim':
----     - 'mini.animate' approaches cursor movement visualization via
----       customizable path function (uses extmarks), while 'specs.nvim' can
+--- - [edluffy/specs.nvim](https://github.com/edluffy/specs.nvim):
+---     - |mini.animate| approaches cursor movement visualization via
+---       customizable path function (uses extmarks), while `specs.nvim` can
 ---       customize within its own visual effects (shading and floating
 ---       window resizing).
---- - 'karb94/neoscroll.nvim':
+--- - [karb94/neoscroll.nvim](https://github.com/karb94/neoscroll.nvim):
 ---     - Scroll animation is triggered only inside dedicated mappings.
----       'mini.animate' animates scroll resulting from any window view change.
---- - 'anuvyklack/windows.nvim':
+---       |mini.animate| animates scroll resulting from any window view change.
+--- - [anuvyklack/windows.nvim](https://github.com/anuvyklack/windows.nvim):
 ---     - Resize animation is done only within custom commands and mappings,
----       while 'mini.animate' animates any resize out of the box (works
----       similarly to 'windows.nvim' in Neovim>=0.9 with appropriate
----       'winheight' / 'winwidth' and 'winminheight' / 'winminwidth').
+---       while |mini.animate| animates any resize with appropriate values of
+---       |'winheight'| / |'winwidth'| and |'winminheight'| / |'winminwidth'|).
 ---
 --- # Highlight groups ~
+--- *MiniAnimate-hl-groups*
 ---
---- * `MiniAnimateCursor` - highlight of cursor during its animated movement.
---- * `MiniAnimateNormalFloat` - highlight of floating window for `open` and
+--- - `MiniAnimateCursor` - highlight of cursor during its animated movement.
+--- - `MiniAnimateNormalFloat` - highlight of floating window for `open` and
 ---   `close` animations.
 ---
---- To change any highlight group, modify it directly with |:highlight|.
+--- To change any highlight group, set it directly with |nvim_set_hl()|.
 ---
 --- # Disabling ~
 ---
@@ -99,6 +92,7 @@
 --- number of different scenarios and customization intentions, writing exact
 --- rules for disabling module's functionality is left to user. See
 --- |mini.nvim-disabling-recipes| for common recipes.
+---@tag MiniAnimate
 
 ---@diagnostic disable:undefined-field
 
@@ -116,15 +110,6 @@ local H = {}
 ---   require('mini.animate').setup({}) -- replace {} with your config table
 --- <
 MiniAnimate.setup = function(config)
-  -- TODO: Remove after Neovim=0.8 support is dropped
-  if vim.fn.has('nvim-0.9') == 0 then
-    vim.notify(
-      '(mini.animate) Neovim<0.9 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniAnimate = MiniAnimate
 
@@ -142,35 +127,33 @@ MiniAnimate.setup = function(config)
   H.create_default_hl()
 end
 
---- Module config
----
---- Default values:
+--- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 ---@text # General ~
----                                                             *MiniAnimate-timing*
---- - Every animation is a non-blockingly scheduled series of specific actions.
----   They are executed in a sequence of timed steps controlled by `timing` option.
----   It is a callable which, given next and total step numbers, returns wait time
----   (in ms). See |MiniAnimate.gen_timing| for builtin timing functions.
+---
+--- - *MiniAnimate-timing* Every animation is a non-blockingly scheduled series of
+---   specific actions. They are executed in a sequence of timed steps controlled
+---   by `timing` option. It is a callable which, given next and total step numbers,
+---   returns wait time (in ms).
+---   See |MiniAnimate.gen_timing| for builtin timing functions.
 ---   See |MiniAnimate.animate()| for more details about animation process.
 ---
 --- - Every animation can be enabled/disabled independently by setting `enable`
 ---   option to `true`/`false`.
 ---
----                                                         *MiniAnimate-done-event*
---- - Every animation triggers custom |User| event when it is finished. It is
----   named `MiniAnimateDoneXxx` with `Xxx` replaced by capitalized supported
----   animation action name (like `MiniAnimateDoneCursor`). Use it to schedule
----   some action after certain animation is completed. Alternatively, you can
----   use |MiniAnimate.execute_after()| (usually preferred in mappings).
+--- - *MiniAnimate-done-event* Every animation triggers custom |User| event when it
+---   is finished. It is named `MiniAnimateDoneXxx` with `Xxx` replaced by capitalized
+---   supported animation action name (like `MiniAnimateDoneCursor`). Use it to
+---   schedule some action after certain animation is completed. Alternatively,
+---   you can use |MiniAnimate.execute_after()| (usually preferred in mappings).
 ---
 --- - Each animation has its main step generator which defines how particular
 ---   animation is done. They all are callables which take some input data and
 ---   return an array of step data. Length of that array determines number of
 ---   animation steps. Outputs `nil` and empty table result in no animation.
 ---
----                                                      *MiniAnimate.config.cursor*
 --- # Cursor ~
+--- *MiniAnimate.config.cursor*
 ---
 --- This animation is triggered for each movement of cursor inside same window
 --- and buffer. Its visualization step consists from placing single extmark (see
@@ -212,8 +195,8 @@ end
 --- <
 --- After animation is done, `MiniAnimateDoneCursor` event is triggered.
 ---
----                                                      *MiniAnimate.config.scroll*
 --- # Scroll ~
+--- *MiniAnimate.config.scroll*
 ---
 --- This animation is triggered for each vertical scroll of current window.
 --- Its visualization step consists from performing a small subscroll which all
@@ -236,28 +219,26 @@ end
 --- - As scroll animation is essentially a precisely scheduled non-blocking
 ---   subscrolls, this has two important interconnected consequences:
 ---     - If another scroll is attempted during the animation, it is done based
----       on the **currently visible** window view. Example: if user presses
----       |CTRL-D| and then |CTRL-U| when animation is half done, window will not
----       display the previous view half of 'scroll' above it. This especially
----       affects mouse wheel scrolling, as each its turn results in a new scroll
----       for number of lines defined by 'mousescroll'. Tweak it to your liking.
+---       on the CURRENTLY VISIBLE window view. Example: if user presses |CTRL-D|
+---       and then |CTRL-U| when animation is half done, window will not display
+---       the previous view half of |'scroll'| above it. This especially affects
+---       mouse wheel scrolling, as each its turn results in a new scroll for
+---       number of lines defined by |'mousescroll'|. Tweak it to your liking.
 ---     - It breaks the use of several relative scrolling commands in the same
 ---       command. Use |MiniAnimate.execute_after()| to schedule action after
 ---       reaching target window view.
 ---       Example: a useful `nnoremap n nzvzz` mapping (consecutive application
 ---       of |n|, |zv|, and |zz|) should be expressed in the following way: >lua
 ---
----   '<Cmd>lua vim.cmd("normal! n"); ' ..
----     'MiniAnimate.execute_after("scroll", "normal! zvzz")<CR>'
+---         '<Cmd>lua vim.cmd("normal! n"); ' ..
+---           'MiniAnimate.execute_after("scroll", "normal! zvzz")<CR>'
 --- <
 --- - Default timing might conflict with scrolling via holding a key (like `j` or `k`
----   with 'wrap' enabled) due to high key repeat rate: next scroll is done before
+---   with |'wrap'| enabled) due to high key repeat rate: next scroll is done before
 ---   first step of current one finishes. Resolve this by not scrolling like that
 ---   or by ensuring maximum value of step duration to be lower than between
 ---   repeated keys: set timing like `function(_, n) return math.min(250/n, 10) end`
 ---   or use timing with constant step duration.
---- - This animation works best with Neovim>=0.9 (after certain updates
----   to |WinScrolled| event).
 ---
 --- Configuration example: >lua
 ---
@@ -274,8 +255,8 @@ end
 --- <
 --- After animation is done, `MiniAnimateDoneScroll` event is triggered.
 ---
----                                                      *MiniAnimate.config.resize*
 --- # Resize ~
+--- *MiniAnimate.config.resize*
 ---
 --- This animation is triggered for window resize while having same layout of
 --- same windows. For example, it won't trigger when window is opened/closed or
@@ -309,14 +290,11 @@ end
 --- - As resize animation is essentially a precisely scheduled non-blocking
 ---   subresizes, this has two important interconnected consequences:
 ---     - If another resize is attempted during the animation, it is done based
----       on the **currently visible** window sizes. This might affect relative
+---       on the CURRENTLY VISIBLE window sizes. This might affect relative
 ---       resizing.
 ---     - It breaks the use of several relative resizing commands in the same
 ---       command. Use |MiniAnimate.execute_after()| to schedule action after
 ---       reaching target window sizes.
---- - This animation works best with Neovim>=0.9 (after certain updates to
----   |WinScrolled| event). For example, resize resulting from effect of
----   'winheight' / 'winwidth' will work properly.
 ---
 --- Configuration example: >lua
 ---
@@ -336,8 +314,9 @@ end
 --- <
 --- After animation is done, `MiniAnimateDoneResize` event is triggered.
 ---
----                               *MiniAnimate.config.open* *MiniAnimate.config.close*
 --- # Window open/close ~
+--- *MiniAnimate.config.open*
+--- *MiniAnimate.config.close*
 ---
 --- These animations are similarly triggered for regular (non-floating) window
 --- open/close. Their visualization step consists from drawing empty floating
@@ -370,7 +349,7 @@ end
 --- <
 --- The `winblend` option is similar to `timing` option: it is a callable
 --- which, given current and total step numbers, returns value of floating
---- window's 'winblend' option. Note, that it is called for current step (so
+--- window's |'winblend'| option. Note, that it is called for current step (so
 --- starts from 0), as opposed to `timing` which is called before step.
 --- Example:
 --- - Function `function(s, n) return 80 + 20 * s / n end` results in linear
@@ -533,7 +512,7 @@ end
 ---
 --- Mostly meant to be used inside mappings.
 ---
---- Example ~
+--- Example:
 ---
 --- A useful `nnoremap n nzvzz` mapping (consecutive application of |n|, |zv|, and |zz|)
 --- should be expressed in the following way: >lua
@@ -653,7 +632,7 @@ end
 ---     },
 ---   })
 --- <
----@seealso |MiniIndentscope.gen_animation| for similar concept in 'mini.indentscope'.
+---@seealso |MiniIndentscope.gen_animation| for similar concept in |mini.indentscope|.
 MiniAnimate.gen_timing = {}
 
 ---@alias __animate_timing_opts table|nil Options that control progression. Possible keys:
@@ -836,14 +815,13 @@ MiniAnimate.gen_path.spiral = function(opts)
   local predicate = opts.predicate or H.default_path_predicate
   local width = opts.width or 2
 
+  --stylua: ignore
   local add_layer = function(res, w, destination)
     local dest_line, dest_col = destination[1], destination[2]
-    --stylua: ignore start
     for j = -w, w-1 do table.insert(res, { dest_line - w, dest_col + j }) end
     for i = -w, w-1 do table.insert(res, { dest_line + i, dest_col + w }) end
     for j = -w, w-1 do table.insert(res, { dest_line + w, dest_col - j }) end
     for i = -w, w-1 do table.insert(res, { dest_line - i, dest_col - w }) end
-    --stylua: ignore end
   end
 
   return function(destination)
@@ -1149,8 +1127,8 @@ MiniAnimate.gen_winblend = {}
 --- Generate linear `winblend` progression
 ---
 ---@param opts table|nil Options that control generator. Possible keys:
----   - <from> `(number)` - initial value of 'winblend'.
----   - <to> `(number)` - final value of 'winblend'.
+---   - <from> `(number)` - initial value of |'winblend'|.
+---   - <to> `(number)` - final value of |'winblend'|.
 ---
 ---@return function Winblend function (see |MiniAnimate.config.open|
 ---   or |MiniAnimate.config.close|).
@@ -1261,6 +1239,11 @@ H.create_autocommands = function()
   au('CursorMoved', '*', H.auto_cursor, 'Animate cursor')
 
   au('WinScrolled', '*', function()
+    -- On Neovim>=0.13 `WinScrolled` is also triggered when window scrolls
+    -- during 'incsearch' and when cancelling. Ignore these state changes to
+    -- not have extra scroll as a result of it.
+    H.ignore_incsearch_scroll()
+
     -- Inside `WinScrolled` first animate resize before scroll to avoid flicker
     H.auto_resize()
     H.auto_scroll()
@@ -1279,7 +1262,7 @@ H.create_autocommands = function()
   -- end). Use `vim.schedule()` to make it affect state only after scroll is
   -- done and cursor is already in correct final position.
   au('CursorMoved', '*', vim.schedule_wrap(H.track_scroll_state_partial), 'Track partial scroll state')
-  au('CmdlineLeave', '*', H.on_cmdline_leave, 'On CmdlineLeave')
+  au('CmdlineLeave', '*', function() H.ignore_incsearch_scroll() end, 'Ignore incsearch scroll')
 
   -- Use `vim.schedule_wrap()` animation to get a window data used for
   -- displaying (and not one after just opening). Useful for 'nvim-tree'.
@@ -1412,15 +1395,16 @@ H.track_scroll_state_partial = function()
   H.cache.scroll_state.cursor = { line = vim.fn.line('.'), virtcol = vim.fn.virtcol('.') }
 end
 
-H.on_cmdline_leave = function()
+H.ignore_incsearch_scroll = function()
   local cmd_type = vim.fn.getcmdtype()
   local is_insearch = vim.o.incsearch and (cmd_type == '/' or cmd_type == '?')
-  if not is_insearch then return end
+  if not (is_insearch or H.cache.scroll_state.aborted_incsearch) then return end
 
   -- Update scroll state so that there is no scroll animation after confirming
   -- incremental search. Otherwise it leads to unnecessary animation from
   -- initial scroll state to the one **already shown**.
   H.track_scroll_state()
+  H.cache.scroll_state.aborted_incsearch = vim.v.event.abort
 end
 
 H.auto_openclose = function(action_type)
@@ -1603,7 +1587,7 @@ H.scroll_action = function(key, n, cursor_data)
   -- Computation of available top/bottom line depends on `scrolloff = 0`
   -- because otherwise it will go out of bounds causing scroll overshoot with
   -- later "bounce" back on view restore (see
-  -- https://github.com/echasnovski/mini.nvim/issues/177).
+  -- https://github.com/nvim-mini/mini.nvim/issues/177).
   local top, bottom = vim.fn.line('w0'), vim.fn.line('w$')
   local line = math.min(math.max(cursor_data.line, top), bottom)
 
@@ -1752,24 +1736,17 @@ H.get_layout_windows = function(layout)
 end
 
 H.apply_resize_state = function(state, full_view)
-  -- Set window sizes while ensuring that 'cmdheight' will not change. Can
-  -- happen if changing height of window main row layout or increase terminal
-  -- height quickly (see #270)
-  local cache_cmdheight = vim.o.cmdheight
-
   for win_id, dims in pairs(state.sizes) do
     vim.api.nvim_win_set_height(win_id, dims.height)
     vim.api.nvim_win_set_width(win_id, dims.width)
   end
-
-  vim.o.cmdheight = cache_cmdheight
 
   -- Use `or {}` to allow states without `view` (mainly inside animation)
   for win_id, view in pairs(state.views or {}) do
     vim.api.nvim_win_call(win_id, function()
       -- Allow to not restore full view. It mainly solves horizontal flickering
       -- when resizing from small to big width and cursor is on the end of long
-      -- line. This is especially visible for Neovim>=0.9 and high 'winwidth'.
+      -- line. This is especially visible for high 'winwidth'.
       -- Example: `set winwidth=120 winheight=40` and hop between two
       -- vertically split windows with cursor on `$` of long line.
       if full_view then
@@ -1816,7 +1793,8 @@ H.make_openclose_step = function(action_type, win_id, config)
       end
 
       -- Empty buffer should always be valid (might have been closed by user command)
-      if H.empty_buf_id == nil or not vim.api.nvim_buf_is_valid(H.empty_buf_id) then
+      if H.empty_buf_id == nil or not vim.api.nvim_buf_is_loaded(H.empty_buf_id) then
+        pcall(vim.api.nvim_buf_delete, H.empty_buf_id, { force = true })
         H.empty_buf_id = vim.api.nvim_create_buf(false, true)
         H.set_buf_name(H.empty_buf_id, 'open-close-scratch')
       end
@@ -2119,7 +2097,7 @@ end
 H.get_n_visible_lines = function(from_line, to_line)
   local min_line, max_line = math.min(from_line, to_line), math.max(from_line, to_line)
 
-  -- If `max_line` is inside fold, scrol should stop on the fold (not after)
+  -- If `max_line` is inside fold, scroll should stop on the fold (not after)
   local max_line_fold_start = vim.fn.foldclosed(max_line)
   local target_line = max_line_fold_start == -1 and max_line or max_line_fold_start
 

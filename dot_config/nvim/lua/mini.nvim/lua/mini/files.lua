@@ -1,10 +1,7 @@
 --- *mini.files* Navigate and manipulate file system
---- *MiniFiles*
 ---
 --- MIT License Copyright (c) 2023 Evgeni Chasnovski
----
---- ==============================================================================
----
+
 --- Features:
 --- - Navigate file system using column view (Miller columns) to display nested
 ---   directories. See |MiniFiles-navigation| for overview.
@@ -12,9 +9,10 @@
 --- - Opt-in preview of file or directory under cursor.
 ---
 --- - Manipulate files and directories by editing text buffers: create, delete,
----   copy, rename, move. See |MiniFiles-manipulation| for overview.
+---   rename (all three are LSP aware), copy, move.
+---   See |MiniFiles-manipulation| for an overview.
 ---
---- - Use as default file explorer instead of |netrw|.
+--- - Use as default file explorer instead of built-in one.
 ---
 --- - Configurable:
 ---     - Filter/prefix/sort of file system entries.
@@ -40,8 +38,6 @@
 --- - This module is written and thoroughly tested on Linux. Support for other
 ---   platform/OS (like Windows or MacOS) is a goal, but there is no guarantee.
 ---
---- - Works on all supported versions but using Neovim>=0.9 is recommended.
----
 --- - This module silently reacts to not enough permissions:
 ---     - In case of missing file, check its or its parent read permissions.
 ---     - In case of no manipulation result, check write permissions.
@@ -50,8 +46,9 @@
 ---
 --- Suggested dependencies (provide extra functionality, will work without them):
 ---
---- - Enabled |MiniIcons| module to show icons near file/directory names.
----   Falls back to 'nvim-tree/nvim-web-devicons' plugin or uses default icons.
+--- - Enabled |mini.icons| module to show icons near file/directory names.
+---   Falls back to [nvim-tree/nvim-web-devicons](https://github.com/nvim-tree/nvim-web-devicons)
+---   plugin or uses default icons.
 ---
 --- # Setup ~
 ---
@@ -68,43 +65,44 @@
 ---
 --- # Comparisons ~
 ---
---- - 'nvim-tree/nvim-tree.lua':
+--- - [nvim-tree/nvim-tree.lua](https://github.com/nvim-tree/nvim-tree.lua):
 ---     - Provides tree view of file system, while this module uses column view.
 ---     - File system manipulation is done with custom set of mappings for each
 ---       action, while this module is designed to do that by editing text.
 ---     - Has more out of the box functionality with extra configuration, while
 ---       this module has not (by design).
 ---
---- - 'stevearc/oil.nvim':
+--- - [stevearc/oil.nvim](https://github.com/stevearc/oil.nvim):
 ---     - Uses single window to show information only about currently explored
 ---       directory, while this module uses column view to show whole currently
 ---       explored branch.
 ---     - Also uses text editing to manipulate file system entries.
 ---     - Can work for remote file systems, while this module can not (by design).
+---     - Both provide LSP integration.
 ---
---- - 'nvim-neo-tree/neo-tree.nvim':
----     - Compares to this module mostly the same as 'nvim-tree/nvim-tree.lua'.
+--- - [nvim-neo-tree/neo-tree.nvim](https://github.com/nvim-neo-tree/neo-tree.nvim):
+---     - Compares to this module mostly the same as `nvim-tree/nvim-tree.lua`.
 ---
 --- # Highlight groups ~
+--- *MiniFiles-hl-groups*
 ---
---- * `MiniFilesBorder` - border of regular windows.
---- * `MiniFilesBorderModified` - border of windows showing modified buffer.
---- * `MiniFilesCursorLine` - cursor line in explorer windows.
---- * `MiniFilesDirectory` - text and icon representing directory.
---- * `MiniFilesFile` - text representing file.
---- * `MiniFilesNormal` - basic foreground/background highlighting.
---- * `MiniFilesTitle` - title of regular windows.
---- * `MiniFilesTitleFocused` - title of focused window.
+--- - `MiniFilesBorder` - border of regular windows.
+--- - `MiniFilesBorderModified` - border of windows showing modified buffer.
+--- - `MiniFilesCursorLine` - cursor line in explorer windows.
+--- - `MiniFilesDirectory` - text and icon representing directory.
+--- - `MiniFilesFile` - text representing file.
+--- - `MiniFilesNormal` - basic foreground/background highlighting.
+--- - `MiniFilesTitle` - title of regular windows.
+--- - `MiniFilesTitleFocused` - title of focused window.
 ---
---- To change any highlight group, modify it directly with |:highlight|.
+--- To change any highlight group, set it directly with |nvim_set_hl()|.
 ---
 --- # Disabling ~
 ---
 --- This plugin provides only manually started functionality, so no disabling
 --- is available.
+---@tag MiniFiles
 
---- Navigation ~
----
 --- Every navigation starts by calling |MiniFiles.open()|, either directly or via
 --- mapping (see its help for examples of some common scenarios). It will show
 --- an explorer consisting of side-by-side floating windows with the following
@@ -125,7 +123,7 @@
 ---   example, if there are more elements in the branch than can be shown windows.
 ---
 --- - Every buffer line represents separate file system entry following certain
----   format (not visible for users by default; set |conceallevel| to 0 to see it)
+---   format (not visible for users by default; set |'conceallevel'| to 0 to see it)
 ---
 --- - Once directory is shown, its buffer is not updated automatically following
 ---   external file system changes. Manually use |MiniFiles.synchronize()| for that.
@@ -189,7 +187,7 @@
 --- - "Set mark" and "Go to mark" both wait for user to press a single character
 ---   of a bookmark id. Example: `ma` sets directory path of focused window as
 ---   bookmark "a"; `'a` jumps (sets as whole branch) to bookmark "a".
----   Special bookmark "'" always points to path before the latest bookmark jump.
+---   Special bookmark `'` always points to path before the latest bookmark jump.
 ---
 --- - "Reset" focuses only on "anchor" directory (the one used to open current
 ---   explorer) and resets all stored directory cursor positions.
@@ -216,8 +214,6 @@
 --- - Keys can be configured with `mappings` table of |MiniFiles.config|.
 ---@tag MiniFiles-navigation
 
---- Manipulation ~
----
 --- File system manipulation is done by editing text inside directory buffers,
 --- which are shown inside dedicated window(s). See |MiniFiles-navigation| for
 --- more information about navigating to a particular directory.
@@ -249,7 +245,7 @@
 --- at the start of every line representing file system entry.
 ---
 --- By default they are hidden as concealed text (along with prefix separators)
---- for more convenience but you can see them by setting |conceallevel| to 0.
+--- for more convenience but you can see them by setting |'conceallevel'| to 0.
 --- DO NOT modify text to the left of entry name.
 ---
 --- During synchronization, actual text for entry name is compared to path index
@@ -265,12 +261,12 @@
 --- - Create directory by creating new line with directory name followed by `/`.
 ---
 --- - Create file or directory inside nested directories by creating new line
----   with text like 'dir/nested-dir/' or 'dir/nested-dir/file'.
+---   with text like `dir/nested-dir/` or `dir/nested-dir/file`.
 ---   Always use `/` on any OS.
 ---
 --- ## Delete ~
 ---
---- - Delete file or directory by deleting **whole line** describing it.
+--- - Delete file or directory by deleting WHOLE LINE describing it.
 ---
 --- - If `options.permanent_delete` is `true`, delete is permanent. Otherwise
 ---   file system entry is moved to a module-specific trash directory
@@ -290,11 +286,14 @@
 ---
 --- - It is not needed to end directory name with `/`.
 ---
+--- - Appending `/` to a file name will delete it and create empty directory
+---   with the same name.
+---
 --- - Cyclic renames ("a" to "b" and "b" to "a") are not supported.
 ---
 --- ## Copy ~
 ---
---- - Copy file or directory by copying **whole line** describing it and pasting
+--- - Copy file or directory by copying WHOLE LINE describing it and pasting
 ---   it inside buffer of target directory.
 ---
 --- - Change of target path is allowed. Edit only entry name in target location
@@ -307,21 +306,33 @@
 ---
 --- ## Move ~
 ---
---- - Move file or directory by cutting **whole line** describing it and then
+--- - Move file or directory by cutting WHOLE LINE describing it and then
 ---   pasting it inside target directory.
 ---
 --- - Change of target path is allowed. Edit only entry name in target location
 ---   (not icon or path index to the left of it).
 ---
 --- - Moving directory inside itself is not supported.
+---
+--- # LSP integration ~
+---
+--- Create, delete, and rename are LSP aware (on Neovim>=0.11): the information
+--- is forwarded to all active LSP servers for them to perform additional actions.
+--- This means that LSP servers can, for example, update imports after renaming
+--- a file or populate a file with a boilerplate code after creation.
+---
+--- The actual changes depend entirely on the LSP server and whether it supports
+--- relevant methods:
+--- - `workspace/will{Create,Delete,Rename}Files` before a file system action.
+--- - `workspace/did{Create,Delete,Rename}Files` after a file system action.
+---
+--- It can be disabled by setting `options.lsp_timeout = 0` in |MiniFiles.config|.
 ---@tag MiniFiles-manipulation
 
---- Events ~
----
 --- To allow user customization and integration of external tools, certain |User|
 --- autocommand events are triggered under common circumstances.
 ---
---- UI events ~
+--- # UI events ~
 ---
 --- - `MiniFilesExplorerOpen` - just after explorer finishes opening.
 ---
@@ -335,7 +346,7 @@
 ---   Can be used for integrations to set useful |extmarks|.
 ---
 --- - `MiniFilesWindowOpen` - when new window is opened. Can be used to set
----   window-local settings (like border, 'winblend', etc.)
+---   window-local settings (like border, |'winblend'|, etc.)
 ---
 --- - `MiniFilesWindowUpdate` - when a window is updated. Triggers VERY frequently.
 ---   At least after every cursor movement and "go in" / "go out" action.
@@ -348,7 +359,7 @@
 ---   `MiniFilesBufferCreate` and buffer's first `MiniFilesBufferUpdate` as
 ---   they are triggered before window is created.
 ---
---- File action events ~
+--- # File action events ~
 ---
 --- - `MiniFilesActionCreate` - after entry is successfully created.
 ---
@@ -368,14 +379,12 @@
 --- - <to> - full path of entry after action (`nil` for permanent "delete" action).
 ---@tag MiniFiles-events
 
---- Common configuration examples ~
----
 --- # Toggle explorer ~
 ---
 --- Use a combination of |MiniFiles.open()| and |MiniFiles.close()|: >lua
 ---
 ---   local minifiles_toggle = function(...)
----     if not MiniFiles.close() then MiniFiles.open(...) end
+---     if MiniFiles.close() == nil then MiniFiles.open(...) end
 ---   end
 --- <
 --- # Customize windows ~
@@ -571,15 +580,6 @@ local H = {}
 ---   require('mini.files').setup({}) -- replace {} with your config table
 --- <
 MiniFiles.setup = function(config)
-  -- TODO: Remove after Neovim=0.8 support is dropped
-  if vim.fn.has('nvim-0.9') == 0 then
-    vim.notify(
-      '(mini.files) Neovim<0.9 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniFiles = MiniFiles
 
@@ -597,9 +597,7 @@ MiniFiles.setup = function(config)
 end
 
 --stylua: ignore
---- Module config
----
---- Default values:
+--- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 ---@text # Content ~
 ---
@@ -609,6 +607,10 @@ end
 ---
 --- A file system entry data is a table with the following fields:
 --- __minifiles_fs_entry_data_fields
+---
+--- `content.highlight` describes how file system entry name should be highlighted.
+--- Takes file system entry data as input and returns a highlight group name.
+--- Uses |MiniFiles.default_highlight()| by default.
 ---
 --- `content.prefix` describes what text (prefix) to show to the left of file
 --- system entry name (if any) and how to highlight it. It also takes file
@@ -652,14 +654,18 @@ end
 --- # Options ~
 ---
 --- `options.use_as_default_explorer` is a boolean indicating whether this module
---- will be used as a default file explorer to edit directory (instead of |netrw|).
+--- is used as a default file explorer to edit directory (instead of built-in).
 --- Note: to work with directory in |arglist|, do not lazy load this module.
 ---
 --- `options.permanent_delete` is a boolean indicating whether to perform
 --- permanent delete or move into special trash directory.
 --- This is a module-specific variant of "remove to trash".
---- Target directory is 'mini.files/trash' inside standard path of Neovim data
+--- Target directory is `mini.files/trash` inside standard path of Neovim data
 --- directory (execute `:echo stdpath('data')` to see its path in your case).
+---
+--- `options.lsp_timeout` is a number that defines a timeout for synchronous
+--- LSP integration requests (see |MiniFiles-manipulation|).
+--- Set to 0 to disable LSP integration.
 ---
 --- # Windows ~
 ---
@@ -668,20 +674,23 @@ end
 --- There is no constraint by default.
 ---
 --- `windows.preview` is a boolean indicating whether to show preview of
---- file/directory under cursor. Note: it is shown with highlighting if Neovim
---- version is sufficient and file is small enough (less than 1K bytes per line
---- or 1M bytes in total).
+--- file/directory under cursor. Notes:
+--- - It is always shown, even if current line is for not yet existing path.
+--- - File preview is highlighted if its size is small enough (less than 1K
+---   bytes per line or 1M bytes in total).
 ---
---- `windows.width_focus` and `windows.width_nofocus` are number of columns used
---- as `width` for focused and non-focused windows respectively.
+--- `windows.width_focus`, `windows.width_nofocus` and `windows.width_preview`
+--- are number of columns used as `width` for the corresponding window type.
 MiniFiles.config = {
   -- Customization of shown content
   content = {
     -- Predicate for which file system entries to show
     filter = nil,
-    -- What prefix to show to the left of file system entry
+    -- Highlight group to use for a file system entry
+    highlight = nil,
+    -- Prefix text and highlight to show to the left of file system entry
     prefix = nil,
-    -- In which order to show file system entries
+    -- Order in which to show file system entries
     sort = nil,
   },
 
@@ -709,6 +718,8 @@ MiniFiles.config = {
     permanent_delete = true,
     -- Whether to use for editing directories
     use_as_default_explorer = true,
+    -- Timeout for synchronous LSP integration requests
+    lsp_timeout = 1000,
   },
 
   -- Customization of explorer windows
@@ -798,6 +809,10 @@ MiniFiles.open = function(path, use_latest, opts)
   -- Track lost focus
   H.explorer_track_lost_focus()
 
+  -- Adjust some `vim.ui` methods to not track lost focus when they are active,
+  -- since most of their implementations use separate floating windows
+  H.explorer_adjust_vim_ui()
+
   -- Trigger appropriate event
   H.trigger_event('MiniFilesExplorerOpen')
 end
@@ -808,7 +823,8 @@ end
 --- - If in `opts` at least one of `content` entry is not `nil`, all directory
 ---   buffers are forced to update.
 ---
----@param opts table|nil Table of options to update.
+---@param opts table|nil Table of options overriding local options of active
+---   explorer session.
 MiniFiles.refresh = function(opts)
   local explorer = H.explorer_get()
   if explorer == nil then return end
@@ -846,7 +862,7 @@ MiniFiles.synchronize = function()
     local msg = table.concat(H.fs_actions_to_lines(fs_actions), '\n')
     local confirm_res = vim.fn.confirm(msg, '&Yes\n&No\n&Cancel', 1, 'Question')
     if confirm_res == 3 then return false end
-    if confirm_res == 1 then H.fs_actions_apply(fs_actions) end
+    if confirm_res == 1 then H.fs_actions_apply(fs_actions, explorer.opts.options.lsp_timeout) end
   end
 
   H.explorer_refresh(explorer, { force_update = true })
@@ -889,6 +905,11 @@ MiniFiles.close = function()
   -- Confirm close if there is modified buffer
   if not H.explorer_ignore_pending_fs_actions(explorer, 'Close') then return false end
 
+  -- Unadjust `vim.ui` methods
+  vim.ui.select = H.vim_ui.select or vim.ui.select
+  vim.ui.input = H.vim_ui.input or vim.ui.input
+  H.vim_ui = { select_active = false, input_active = false }
+
   -- Trigger appropriate event
   H.trigger_event('MiniFilesExplorerClose')
 
@@ -918,9 +939,8 @@ MiniFiles.close = function()
   end
 
   -- Update histories and unmark as opened
-  local tabpage_id, anchor = vim.api.nvim_get_current_tabpage(), explorer.anchor
-  H.explorer_path_history[anchor] = explorer
-  H.opened_explorers[tabpage_id] = nil
+  H.explorer_path_history[explorer.anchor] = explorer
+  H.opened_explorers[explorer.tabpage_id] = nil
 
   -- Return `true` indicating success in closing
   return true
@@ -1007,7 +1027,7 @@ MiniFiles.reveal_cwd = function()
   local branch, depth_focus = state.branch, state.depth_focus
 
   local cwd = H.fs_full_path(vim.fn.getcwd())
-  local cwd_ancestor_pattern = string.format('^%s/.', vim.pesc(cwd))
+  local cwd_ancestor_pattern = string.format('^%s%s.', vim.pesc(cwd), cwd == '/' and '' or '/')
   while branch[1]:find(cwd_ancestor_pattern) ~= nil do
     table.insert(branch, 1, H.fs_get_parent(branch[1]))
     depth_focus = depth_focus + 1
@@ -1107,7 +1127,7 @@ end
 ---@param branch table Array of strings representing actually present on disk paths.
 ---   Each consecutive pair should represent direct parent-child paths.
 ---   Should contain at least one directory path.
----   May end with file path (will be previwed).
+---   May end with file path (will be previewed).
 ---   Relative paths are resolved using |current-directory|.
 ---@param opts table|nil Options. Possible fields:
 ---   - <depth_focus> `(number)` - an index in `branch` for path to focus. Will
@@ -1182,11 +1202,11 @@ MiniFiles.default_filter = function(fs_entry) return true end
 
 --- Default prefix of file system entries
 ---
---- - If |MiniIcons| is set up, use |MiniIcons.get()| for "directory"/"file" category.
+--- - If set up |mini.icons|, use |MiniIcons.get()| for "directory"/"file" category.
 --- - Otherwise:
 ---     - For directory return fixed icon and "MiniFilesDirectory" group name.
----     - For file try to use `get_icon()` from 'nvim-tree/nvim-web-devicons'.
----       If missing, return fixed icon and 'MiniFilesFile' group name.
+---     - For file try to use `get_icon()` from `nvim-tree/nvim-web-devicons`.
+---       If missing, return fixed icon and `MiniFilesFile` group name.
 ---
 ---@param fs_entry table Table with the following fields:
 --- __minifiles_fs_entry_data_fields
@@ -1241,6 +1261,18 @@ MiniFiles.default_sort = function(fs_entries)
   return vim.tbl_map(function(x) return { name = x.name, fs_type = x.fs_type, path = x.path } end, res)
 end
 
+--- Default file system entry highlight
+---
+--- Returns `'MiniFilesDirectory'` for directory and `'MiniFilesFile'` otherwise.
+---
+---@param fs_entry table Table with the following fields:
+--- __minifiles_fs_entry_data_fields
+---
+---@return string Highlight group name.
+MiniFiles.default_highlight = function(fs_entry)
+  return fs_entry.fs_type == 'directory' and 'MiniFilesDirectory' or 'MiniFilesFile'
+end
+
 -- Helper data ================================================================
 -- Module default config
 H.default_config = vim.deepcopy(MiniFiles.config)
@@ -1277,6 +1309,9 @@ H.latest_paths = {}
 --   initial `buf_set_lines` (`noautocmd` doesn't quick work for this event).
 H.opened_buffers = {}
 
+-- Cache for `vim.ui` methods that are adjusted while explorer is open
+H.vim_ui = { select = nil, select_active = false, input = nil, input_active = false }
+
 -- File system information
 H.is_windows = vim.loop.os_uname().sysname == 'Windows_NT'
 
@@ -1288,6 +1323,7 @@ H.setup_config = function(config)
 
   H.check_type('content', config.content, 'table')
   H.check_type('content.filter', config.content.filter, 'function', true)
+  H.check_type('content.highlight', config.content.highlight, 'function', true)
   H.check_type('content.prefix', config.content.prefix, 'function', true)
   H.check_type('content.sort', config.content.sort, 'function', true)
 
@@ -1309,6 +1345,7 @@ H.setup_config = function(config)
   H.check_type('options', config.options, 'table')
   H.check_type('options.use_as_default_explorer', config.options.use_as_default_explorer, 'boolean')
   H.check_type('options.permanent_delete', config.options.permanent_delete, 'boolean')
+  H.check_type('options.lsp_timeout', config.options.lsp_timeout, 'number')
 
   H.check_type('windows', config.windows, 'table')
   H.check_type('windows.max_number', config.windows.max_number, 'number')
@@ -1330,12 +1367,20 @@ H.create_autocommands = function(config)
   end
 
   if config.options.use_as_default_explorer then
-    -- Stop 'netrw' from showing. Needs `VimEnter` event autocommand if
-    -- this is called prior 'netrw' is set up
+    -- Stop using default explorer (whether it is already set up or not)
+    -- - Neovim<0.13 uses `netrw` and it is still present on Neovim>=0.13
     vim.cmd('silent! autocmd! FileExplorer *')
     vim.cmd('autocmd VimEnter * ++once silent! autocmd! FileExplorer *')
+    -- - Neovim>=0.13 uses `dir.lua`
+    if vim.fn.has('nvim-0.13') == 1 then
+      vim.cmd('silent! autocmd! nvim.dir *')
+      vim.cmd('autocmd VimEnter * ++once silent! autocmd! nvim.dir *')
+    end
 
-    au('BufEnter', '*', H.track_dir_edit, 'Track directory edit')
+    -- - Use `nested` to allow other events (`BufWinEnter` for 'mini.clue')
+    local opts = { nested = true, group = gr, callback = H.track_dir_edit, desc = 'Track directory edit' }
+    -- TODO: Use `au FileType directory` after Neovim=0.12 support is dropped
+    vim.api.nvim_create_autocmd('BufEnter', opts)
   end
 
   au('VimResized', '*', MiniFiles.refresh, 'Refresh on resize')
@@ -1366,6 +1411,7 @@ end
 H.normalize_opts = function(explorer_opts, opts)
   opts = vim.tbl_deep_extend('force', H.get_config(), explorer_opts or {}, opts or {})
   opts.content.filter = opts.content.filter or MiniFiles.default_filter
+  opts.content.highlight = opts.content.highlight or MiniFiles.default_highlight
   opts.content.prefix = opts.content.prefix or MiniFiles.default_prefix
   opts.content.sort = opts.content.sort or MiniFiles.default_sort
 
@@ -1374,25 +1420,34 @@ end
 
 -- Autocommands ---------------------------------------------------------------
 H.track_dir_edit = function(data)
-  -- Make early returns
-  if vim.api.nvim_get_current_buf() ~= data.buf then return end
+  -- Open explorer only on intentional directory edit (not in a script)
+  if vim.api.nvim_get_current_buf() ~= data.buf or vim.wo.diff then return end
 
   if vim.b.minifiles_processed_dir then
     -- Smartly delete directory buffer if already visited
     local alt_buf = vim.fn.bufnr('#')
-    if alt_buf ~= data.buf and vim.fn.buflisted(alt_buf) == 1 then vim.api.nvim_win_set_buf(0, alt_buf) end
+    -- - Setting alternative buffer is enough for the "directory buffer" to be
+    -- wiped out, as it has `bufhidden=wipe`. Forcing delete after showing alt
+    -- buffer might result in hard-to-track errors (like when opening directory
+    -- in 'mini.pick' when there is an altbuf for the buffer in target window).
+    if alt_buf ~= data.buf and vim.fn.buflisted(alt_buf) == 1 then return vim.api.nvim_win_set_buf(0, alt_buf) end
     return vim.api.nvim_buf_delete(data.buf, { force = true })
   end
 
   local path = vim.api.nvim_buf_get_name(0)
   if vim.fn.isdirectory(path) ~= 1 then return end
 
-  -- Make directory buffer disappear when it is not needed
-  vim.bo.bufhidden = 'wipe'
-  vim.b.minifiles_processed_dir = true
+  -- Delay opening to not act if the buffer was opened temporarily in a script
+  vim.schedule(function()
+    if vim.api.nvim_get_current_buf() ~= data.buf or vim.wo.diff then return end
 
-  -- Open directory without history
-  vim.schedule(function() MiniFiles.open(path, false) end)
+    -- Make directory buffer disappear when it is not needed
+    vim.bo.bufhidden = 'wipe'
+    vim.b.minifiles_processed_dir = true
+
+    -- Open directory without history
+    MiniFiles.open(path, false)
+  end)
 end
 
 -- Explorers ------------------------------------------------------------------
@@ -1412,6 +1467,7 @@ end
 ---@field windows table Array of currently opened window ids (left to right).
 ---@field anchor string Anchor directory of the explorer. Used as index in
 ---   history and for `reset()` operation.
+---@field tabpage_id number Id of current tabpage
 ---@field target_window number Id of window in which files will be opened.
 ---@field opts table Options used for this particular explorer.
 ---@field is_corrupted boolean Whether this particular explorer can not be
@@ -1424,6 +1480,7 @@ H.explorer_new = function(path)
     views = {},
     windows = {},
     anchor = path,
+    tabpage_id = vim.api.nvim_get_current_tabpage(),
     target_window = vim.api.nvim_get_current_win(),
     bookmarks = {},
     opts = {},
@@ -1504,14 +1561,21 @@ H.explorer_refresh = function(explorer, opts)
   local depth_range = H.compute_visible_depth_range(explorer, explorer.opts)
 
   -- Refresh window for every target depth keeping track of position column
-  local cur_win_col, cur_win_count = 0, 0
+  local cur_win_col, cur_win_count, opened_windows = 0, 0, {}
   for depth = depth_range.from, depth_range.to do
     cur_win_count = cur_win_count + 1
-    local cur_width = H.explorer_refresh_depth_window(explorer, depth, cur_win_count, cur_win_col)
+    local cur_width, was_opened = H.explorer_refresh_depth_window(explorer, depth, cur_win_count, cur_win_col)
+    opened_windows[explorer.windows[cur_win_count]] = was_opened
 
     -- Add 2 to account for left and right borders
     cur_win_col = cur_win_col + cur_width + 2
   end
+
+  -- Focus on target window. Do this before closing windows to keep current
+  -- window within the explorer.
+  local win_focus_count = explorer.depth_focus - depth_range.from + 1
+  local win_id_focused = explorer.windows[win_focus_count]
+  H.window_focus(win_id_focused)
 
   -- Close possibly opened window that don't fit (like after `VimResized`)
   for depth = cur_win_count + 1, #explorer.windows do
@@ -1519,20 +1583,23 @@ H.explorer_refresh = function(explorer, opts)
     explorer.windows[depth] = nil
   end
 
-  -- Focus on proper window
-  local win_focus_count = explorer.depth_focus - depth_range.from + 1
-  local win_id_focused = explorer.windows[win_focus_count]
-  H.window_focus(win_id_focused)
-
   -- Register as currently opened
-  local tabpage_id = vim.api.nvim_win_get_tabpage(win_id_focused)
-  H.opened_explorers[tabpage_id] = explorer
+  explorer.tabpage_id = vim.api.nvim_win_get_tabpage(win_id_focused)
+  H.opened_explorers[explorer.tabpage_id] = explorer
+
+  -- Trigger window related events after all windows are fully refreshed
+  for _, win_id in ipairs(explorer.windows) do
+    local data = { buf_id = vim.api.nvim_win_get_buf(win_id), win_id = win_id }
+    if opened_windows[win_id] then H.trigger_event('MiniFilesWindowOpen', data) end
+    H.trigger_event('MiniFilesWindowUpdate', data)
+  end
 
   return explorer
 end
 
 H.explorer_track_lost_focus = function()
   local track = vim.schedule_wrap(function()
+    if H.vim_ui.select_active or H.vim_ui.input_active then return end
     local ft = vim.bo.filetype
     if ft == 'minifiles' or ft == 'minifiles-help' then return end
     local cur_win_id = vim.api.nvim_get_current_win()
@@ -1540,6 +1607,26 @@ H.explorer_track_lost_focus = function()
     pcall(vim.api.nvim_set_current_win, cur_win_id)
   end)
   H.timers.focus:start(1000, 1000, track)
+end
+
+H.explorer_adjust_vim_ui = function()
+  H.vim_ui.select = vim.ui.select
+  vim.ui.select = function(items, opts, on_choice)
+    H.vim_ui.select_active = true
+    H.vim_ui.select(items, opts, function(...)
+      H.vim_ui.select_active = false
+      on_choice(...)
+    end)
+  end
+
+  H.vim_ui.input = vim.ui.input
+  vim.ui.input = function(opts, on_confirm)
+    H.vim_ui.input_active = true
+    H.vim_ui.input(opts, function(...)
+      H.vim_ui.input_active = false
+      on_confirm(...)
+    end)
+  end
 end
 
 H.explorer_normalize = function(explorer)
@@ -1550,17 +1637,8 @@ H.explorer_normalize = function(explorer)
     table.insert(norm_branch, path)
   end
 
-  local cur_max_depth = #norm_branch
-
   explorer.branch = norm_branch
-  explorer.depth_focus = math.min(math.max(explorer.depth_focus, 1), cur_max_depth)
-
-  -- Close all guaranteed to be unnecessary windows. NOTE: some windows might
-  -- still get outdated later if branch is too deep to fit into Neovim's width.
-  for i = cur_max_depth + 1, #explorer.windows do
-    H.window_close(explorer.windows[i])
-    explorer.windows[i] = nil
-  end
+  explorer.depth_focus = math.min(math.max(explorer.depth_focus, 1), #norm_branch)
 
   -- Compute if explorer is corrupted and should not operate further
   for _, win_id in pairs(explorer.windows) do
@@ -1585,7 +1663,9 @@ H.explorer_sync_cursor_and_branch = function(explorer, depth)
   local cursor_path
   if type(cursor) == 'table' and H.is_valid_buf(buf_id) then
     local l = H.get_bufline(buf_id, cursor[1])
-    cursor_path = H.path_index[H.match_line_path_id(l)]
+    -- Fall back to treating current line as full basename, but for not yet
+    -- existing (a.k.a. "imaginary") path keep showing preview.
+    cursor_path = H.path_index[H.match_line_path_id(l)] or H.fs_child_path(path, l .. '\000')
   elseif type(cursor) == 'string' then
     cursor_path = H.fs_child_path(path, cursor)
   else
@@ -1602,9 +1682,8 @@ H.explorer_sync_cursor_and_branch = function(explorer, depth)
 
   -- Show preview to the right of current buffer if needed
   local show_preview = explorer.opts.windows.preview
-  local path_is_present = type(cursor_path) == 'string' and H.fs_is_present_path(cursor_path)
   local is_cur_buf = explorer.depth_focus == depth
-  if show_preview and path_is_present and is_cur_buf then table.insert(explorer.branch, cursor_path) end
+  if show_preview and is_cur_buf then table.insert(explorer.branch, cursor_path) end
 
   return explorer
 end
@@ -1692,10 +1771,16 @@ H.explorer_compute_fs_actions = function(explorer)
   for _, diff in pairs(raw_copy) do
     local action, target = 'copy', copy
     if delete_map[diff.from] then
-      action = H.fs_get_parent(diff.from) == H.fs_get_parent(diff.to) and 'rename' or 'move'
-      target = action == 'rename' and rename or move
-      -- NOTE: Use map instead of array to ensure single move/rename per path
-      delete_map[diff.from] = nil
+      -- Treat appending `/` to file name as file -> directory conversion
+      -- (i.e. delete file + create directory)
+      if diff.to == (diff.from .. '/') and H.fs_get_type(diff.from) == 'file' then
+        target, action, diff.from = create, 'create', nil
+      else
+        action = H.fs_get_parent(diff.from) == H.fs_get_parent(diff.to) and 'rename' or 'move'
+        target = action == 'rename' and rename or move
+        -- NOTE: Use map instead of array to ensure single move/rename per path
+        delete_map[diff.from] = nil
+      end
     end
     table.insert(target, { action = action, dir = diff.dir, from = diff.from, to = diff.to })
   end
@@ -1705,7 +1790,7 @@ H.explorer_compute_fs_actions = function(explorer)
   local trash_dir = H.fs_child_path(vim.fn.stdpath('data'), 'mini.files/trash')
   for p, _ in pairs(delete_map) do
     local to = is_trash and H.fs_child_path(trash_dir, H.fs_get_basename(p)) or nil
-    table.insert(delete, { action = 'delete', from = p, to = to })
+    table.insert(delete, { action = 'delete', from = p, fs_type = H.fs_get_type(p), to = to })
   end
 
   -- Construct final array with proper order of actions:
@@ -1717,11 +1802,17 @@ H.explorer_compute_fs_actions = function(explorer)
     for _, diff in ipairs(arr) do
       local will_be_deleted = false
       for _, del in ipairs(delete) do
-        local from_is_affected = del.from == diff.from or vim.startswith(diff.from or '', del.from .. '/')
+        local del_from_dir = del.from .. '/'
+        local from_is_affected = del.from == diff.from or vim.startswith(diff.from or '', del_from_dir)
         -- Don't directly account for deleted path to allow "act on freed path"
-        local to_is_affected = vim.startswith(diff.to, del.from .. '/')
+        -- But make "append `/` to file" work as "delete file" + "create dir"
+        local to_is_affected = vim.startswith(diff.to, del_from_dir) and diff.to ~= del_from_dir
         will_be_deleted = will_be_deleted or from_is_affected or to_is_affected
       end
+
+      -- Pre-compute file system type of operation as it is harder to compute
+      -- later. This info is useful for LSP hooks.
+      diff.fs_type = H.fs_get_type(diff.from) or (vim.endswith(diff.to or '', '/') and 'directory' or 'file')
       table.insert(will_be_deleted and before_delete or after_delete, diff)
     end
   end
@@ -1768,14 +1859,15 @@ H.explorer_refresh_depth_window = function(explorer, depth, win_count, win_col)
     -- Use shortened full path in left most window
     title = win_count == 1 and H.fs_shorten_path(H.fs_full_path(path)) or H.fs_get_basename(path),
   }
-  config.title = ' ' .. H.escape_newline(config.title) .. ' '
+  config.title = ' ' .. H.sanitize_string(config.title) .. ' '
 
   -- Prepare and register window
-  local win_id = windows[win_count]
+  local win_id, was_opened = windows[win_count], false
   if not H.is_valid_win(win_id) then
     H.window_close(win_id)
     win_id = H.window_open(view.buf_id, config)
     windows[win_count] = win_id
+    was_opened = true
   end
 
   H.window_update(win_id, config)
@@ -1783,15 +1875,12 @@ H.explorer_refresh_depth_window = function(explorer, depth, win_count, win_col)
   -- Show view in window
   H.window_set_view(win_id, view)
 
-  -- Trigger dedicated event
-  H.trigger_event('MiniFilesWindowUpdate', { buf_id = vim.api.nvim_win_get_buf(win_id), win_id = win_id })
-
   -- Update explorer data
   explorer.views = views
   explorer.windows = windows
 
   -- Return width of current window to keep track of window column
-  return cur_width
+  return cur_width, was_opened
 end
 
 H.explorer_get_path_depth = function(explorer, path)
@@ -1922,9 +2011,9 @@ H.explorer_show_help = function(explorer, explorer_buf_id, explorer_win_id)
   config.col = 0
   config.width = max_line_width
   config.height = #lines
-  config.title = vim.fn.has('nvim-0.9') == 1 and " 'mini.files' help " or nil
+  config.title = " 'mini.files' help "
   config.zindex = config.zindex + 1
-  local default_border = (vim.fn.exists('+winborder') == 1 and vim.o.winborder ~= '') and vim.o.winborder or 'single'
+  local default_border = (vim.fn.exists('+winborder') == 0 or vim.o.winborder == '') and 'single' or nil
   config.border = config.border or default_border
   config.style = 'minimal'
 
@@ -1934,6 +2023,8 @@ H.explorer_show_help = function(explorer, explorer_buf_id, explorer_win_id)
   H.window_update_highlight(win_id, 'FloatTitle', 'MiniFilesTitle')
   H.window_update_highlight(win_id, 'CursorLine', 'MiniFilesCursorLine')
   vim.wo[win_id].cursorline = true
+  local culopt = vim.wo[win_id].cursorlineopt
+  if culopt:find('line') == nil then vim.wo[win_id].cursorlineopt = culopt .. ',line' end
 
   vim.api.nvim_set_current_win(win_id)
   return win_id
@@ -2103,6 +2194,12 @@ H.buffer_create = function(path, mappings)
   -- Register buffer
   H.opened_buffers[buf_id] = { path = path }
 
+  -- Set buffer options
+  vim.bo[buf_id].filetype = 'minifiles'
+
+  -- Do not set up tracking behavior for imaginary paths
+  if H.fs_is_imaginary_path(path) then return buf_id end
+
   -- Make buffer mappings
   H.buffer_make_mappings(buf_id, mappings)
 
@@ -2112,14 +2209,11 @@ H.buffer_create = function(path, mappings)
     vim.api.nvim_create_autocmd(events, { group = augroup, buffer = buf_id, desc = desc, callback = callback })
   end
 
-  au({ 'CursorMoved', 'CursorMovedI' }, 'Tweak cursor position', H.view_track_cursor)
+  au({ 'CursorMoved', 'CursorMovedI', 'TextChangedP' }, 'Tweak cursor position', H.view_track_cursor)
   au({ 'TextChanged', 'TextChangedI', 'TextChangedP' }, 'Track buffer modification', H.view_track_text_change)
 
   -- Tweak buffer to be used nicely with other 'mini.nvim' modules
   vim.b[buf_id].minicursorword_disable = true
-
-  -- Set buffer options
-  vim.bo[buf_id].filetype = 'minifiles'
 
   -- Trigger dedicated event
   H.trigger_event('MiniFilesBufferCreate', { buf_id = buf_id })
@@ -2211,20 +2305,23 @@ H.buffer_make_mappings = function(buf_id, mappings)
   buf_map('n', mappings.synchronize, MiniFiles.synchronize, 'Synchronize')
   buf_map('n', mappings.trim_left,   MiniFiles.trim_left,   'Trim branch left')
   buf_map('n', mappings.trim_right,  MiniFiles.trim_right,  'Trim branch right')
+  --stylua: ignore end
 
   H.map('x', mappings.go_in, go_in_visual, { buffer = buf_id, desc = 'Go in selected entries', expr = true })
-  --stylua: ignore end
 end
 
 H.buffer_update = function(buf_id, path, opts, is_preview)
-  if not (H.is_valid_buf(buf_id) and H.fs_is_present_path(path)) then return end
+  if not H.is_valid_buf(buf_id) then return end
 
   -- Perform entry type specific updates
-  local update_fun = H.fs_get_type(path) == 'directory' and H.buffer_update_directory or H.buffer_update_file
-  update_fun(buf_id, path, opts, is_preview)
+  local fs_type = H.fs_get_type(path)
+  if fs_type == 'directory' then H.buffer_update_directory(buf_id, path, opts, is_preview) end
+  if fs_type == 'file' then H.buffer_update_file(buf_id, path, opts, is_preview) end
+  if fs_type == nil then H.set_buflines(buf_id, { '-No-fs-entry-' .. string.rep('-', opts.windows.width_preview) }) end
 
   -- Trigger dedicated event
-  H.trigger_event('MiniFilesBufferUpdate', { buf_id = buf_id, win_id = H.opened_buffers[buf_id].win_id })
+  local data = { buf_id = buf_id, win_id = H.opened_buffers[buf_id].win_id }
+  if fs_type ~= nil then H.trigger_event('MiniFilesBufferUpdate', data) end
 
   -- Reset buffer as not modified
   H.opened_buffers[buf_id].n_modified = -1
@@ -2244,19 +2341,20 @@ H.buffer_update_directory = function(buf_id, path, opts, is_preview)
 
   -- Compute lines
   local lines, icon_hl, name_hl = {}, {}, {}
-  local prefix_fun, n_computed_prefixes = opts.content.prefix, is_preview and vim.o.lines or math.huge
+  local prefix_fun, hl_fun = opts.content.prefix, opts.content.highlight
+  local n_computed_prefixes = is_preview and vim.o.lines or math.huge
   for i, entry in ipairs(fs_entries) do
-    local prefix, hl
+    local prefix, hl, name
     -- Compute prefix only in visible preview (for performance).
     -- NOTE: limiting entries in `fs_read_dir()` is not possible because all
     -- entries are needed for a proper filter and sort.
     if i <= n_computed_prefixes then
       prefix, hl = prefix_fun(entry)
     end
-    prefix, hl, name = prefix or '', hl or '', H.escape_newline(entry.name)
+    prefix, hl, name = prefix or '', hl or '', H.sanitize_string(entry.name)
     table.insert(lines, string.format(line_format, H.path_index[entry.path], prefix, name))
     table.insert(icon_hl, hl)
-    table.insert(name_hl, entry.fs_type == 'directory' and 'MiniFilesDirectory' or 'MiniFilesFile')
+    table.insert(name_hl, hl_fun(entry) or 'MiniFilesNormal')
   end
 
   -- Set lines
@@ -2335,7 +2433,7 @@ H.buffer_compute_fs_diff = function(buf_id)
     local path_to = H.fs_child_path(path, name_to) .. (vim.endswith(name_to, '/') and '/' or '')
 
     -- Ignore blank lines and already synced entries (even several user-copied)
-    if l:find('^%s*$') == nil and H.escape_newline(path_from) ~= H.escape_newline(path_to) then
+    if l:find('^%s*$') == nil and H.sanitize_string(path_from) ~= H.sanitize_string(path_to) then
       table.insert(res, { from = path_from, to = path_to, dir = path })
     elseif path_id ~= nil then
       present_path_ids[path_id] = true
@@ -2391,7 +2489,7 @@ end
 H.window_open = function(buf_id, config)
   -- Add always the same extra data
   config.anchor = 'NW'
-  config.border = (vim.fn.exists('+winborder') == 1 and vim.o.winborder ~= '') and vim.o.winborder or 'single'
+  config.border = (vim.fn.exists('+winborder') == 0 or vim.o.winborder == '') and 'single' or nil
   config.focusable = true
   config.relative = 'editor'
   config.style = 'minimal'
@@ -2400,9 +2498,6 @@ H.window_open = function(buf_id, config)
 
   -- Add temporary data which will be updated later
   config.row = 1
-
-  -- Ensure it works on Neovim<0.9
-  if vim.fn.has('nvim-0.9') == 0 then config.title = nil end
 
   -- Open without entering
   local win_id = vim.api.nvim_open_win(buf_id, false, config)
@@ -2424,29 +2519,26 @@ H.window_open = function(buf_id, config)
   H.window_update_highlight(win_id, 'FloatTitle', 'MiniFilesTitle')
   H.window_update_highlight(win_id, 'CursorLine', 'MiniFilesCursorLine')
 
-  -- Trigger dedicated event
-  H.trigger_event('MiniFilesWindowOpen', { buf_id = buf_id, win_id = win_id })
-
   return win_id
 end
 
 H.window_update = function(win_id, config)
+  -- Preserve some config values
+  local win_config = vim.api.nvim_win_get_config(win_id)
+  config.border, config.title_pos = win_config.border, win_config.title_pos
+
   -- Compute helper data
   local has_tabline = vim.o.showtabline == 2 or (vim.o.showtabline == 1 and #vim.api.nvim_list_tabpages() > 1)
   local max_height = H.window_get_max_height()
+  local max_width = vim.o.columns - (config.border == 'none' and 0 or 2)
 
   -- Ensure proper fit
   config.row = has_tabline and 1 or 0
   config.height = config.height ~= nil and math.min(config.height, max_height) or nil
-  config.width = config.width ~= nil and math.min(config.width, vim.o.columns) or nil
+  config.width = config.width ~= nil and math.min(config.width, max_width) or nil
 
   -- Ensure proper title
   if type(config.title) == 'string' then config.title = H.fit_to_width(config.title, config.width) end
-  if vim.fn.has('nvim-0.9') == 0 then config.title = nil end
-
-  -- Preserve some config values
-  local win_config = vim.api.nvim_win_get_config(win_id)
-  config.border, config.title_pos = win_config.border, win_config.title_pos
 
   -- Update config
   config.relative = 'editor'
@@ -2455,6 +2547,7 @@ H.window_update = function(win_id, config)
   -- Reset basic highlighting (removes possible "focused" highlight group)
   H.window_update_highlight(win_id, 'FloatTitle', 'MiniFilesTitle')
 
+  --typos: ignore
   -- Make sure proper `conceallevel` (can be not the case with 'noice.nvim')
   vim.wo[win_id].conceallevel = 3
 end
@@ -2489,21 +2582,22 @@ H.window_set_view = function(win_id, view)
   buf_data.win_id = win_id
 
   -- Set cursor (if defined), visible only in directories
-  pcall(H.window_set_cursor, win_id, view.cursor)
-  -- NOTE: set 'cursorline' here because changing buffer might remove it
-  vim.wo[win_id].cursorline = H.fs_get_type(buf_data.path) == 'directory'
+  local ok_cursor = pcall(vim.api.nvim_win_set_cursor, win_id, view.cursor)
+  -- - Tweak cursor here, before `CursorMoved`, event to reduce flicker
+  local is_dir = H.fs_get_type(buf_data.path) == 'directory'
+  if ok_cursor and is_dir then pcall(H.window_tweak_cursor, win_id, buf_id) end
+
+  -- NOTE: set 'cursorline[opt]' here because changing buffer might remove it
+  vim.wo[win_id].cursorline = is_dir
+  local culopt = vim.wo[win_id].cursorlineopt
+  if culopt:find('line') == nil then vim.wo[win_id].cursorlineopt = culopt .. ',line' end
+
+  -- Respect global 'list' option, as it is disabled in floating windows
+  vim.wo[win_id][0].list = vim.go.list
+  vim.wo[win_id][0].listchars = vim.go.listchars
 
   -- Update border highlight based on buffer status
   H.window_update_border_hl(win_id)
-end
-
-H.window_set_cursor = function(win_id, cursor)
-  if type(cursor) ~= 'table' then return end
-
-  vim.api.nvim_win_set_cursor(win_id, cursor)
-
-  -- Tweak cursor here and don't rely on `CursorMoved` event to reduce flicker
-  H.window_tweak_cursor(win_id, vim.api.nvim_win_get_buf(win_id))
 end
 
 H.window_tweak_cursor = function(win_id, buf_id)
@@ -2603,10 +2697,14 @@ end
 
 H.fs_normalize_path = function(path) return (path:gsub('/+', '/'):gsub('(.)/$', '%1')) end
 if H.is_windows then
-  H.fs_normalize_path = function(path) return (path:gsub('\\', '/'):gsub('/+', '/'):gsub('(.)[\\/]$', '%1')) end
+  H.fs_normalize_path = function(path)
+    return (path:gsub('\\', '/'):gsub('([^/:])/+', '%1/'):gsub('([^:])/+$', '%1'):gsub('^(%a):/+([^/])', '%1://%2'))
+  end
 end
 
-H.fs_is_present_path = function(path) return vim.loop.fs_stat(path) ~= nil end
+H.fs_is_imaginary_path = function(path) return path:sub(-1) == '\000' end
+
+H.fs_is_present_path = function(path) return vim.loop.fs_stat(path) ~= nil and not H.fs_is_imaginary_path(path) end
 
 H.fs_child_path = function(dir, name) return H.fs_normalize_path(string.format('%s/%s', dir, name)) end
 
@@ -2617,6 +2715,15 @@ H.fs_shorten_path = function(path)
   path = H.fs_normalize_path(path)
   local home_dir = H.fs_normalize_path(vim.loop.os_homedir() or '~')
   return (path:gsub('^' .. vim.pesc(home_dir), '~'))
+end
+
+H.fs_relcwd_path = function(path) return vim.fn.fnamemodify(path, ':.') end
+if H.is_windows then
+  -- Make manually because `C://dir/file` paths conflict with `C:/dir` cwd path
+  H.fs_relcwd_path = function(path)
+    local cwd = H.fs_normalize_path(vim.fn.getcwd())
+    return (H.fs_normalize_path(path):gsub('^' .. vim.pesc(cwd) .. '/', ''))
+  end
 end
 
 H.fs_get_basename = function(path) return H.fs_normalize_path(path):match('[^/]+$') end
@@ -2638,7 +2745,7 @@ end
 H.fs_is_windows_top = function(path) return H.is_windows and path:find('^%w:[\\/]?$') ~= nil end
 
 H.fs_get_type = function(path)
-  if not H.fs_is_present_path(path) then return nil end
+  if path == nil or not (not H.fs_is_imaginary_path(path) and H.fs_is_present_path(path)) then return nil end
   return vim.fn.isdirectory(path) == 1 and 'directory' or 'file'
 end
 
@@ -2667,7 +2774,7 @@ H.fs_actions_to_lines = function(fs_actions)
 
     -- Add to per directory lines
     local dir_actions = actions_per_dir[dir] or {}
-    table.insert(dir_actions, '  ' .. H.escape_newline(l))
+    table.insert(dir_actions, '  ' .. H.sanitize_string(l))
     actions_per_dir[dir] = dir_actions
   end
 
@@ -2682,11 +2789,18 @@ H.fs_actions_to_lines = function(fs_actions)
   return res
 end
 
-H.fs_actions_apply = function(fs_actions)
+H.fs_actions_apply = function(fs_actions, lsp_timeout)
+  H.lsp_fs_hook('willCreate', fs_actions, lsp_timeout)
+  H.lsp_fs_hook('willDelete', fs_actions, lsp_timeout)
+  H.lsp_fs_hook('willRename', fs_actions, lsp_timeout)
+
+  local ok_actions = {}
   for i = 1, #fs_actions do
     local diff, action = fs_actions[i], fs_actions[i].action
     local ok, success = pcall(H.fs_do[action], diff.from, diff.to)
     if ok and success then
+      table.insert(ok_actions, diff)
+
       -- Trigger event
       local to = action == 'create' and diff.to:gsub('/$', '') or diff.to
       local data = { action = action, from = diff.from, to = to }
@@ -2698,6 +2812,95 @@ H.fs_actions_apply = function(fs_actions)
       if has_moved then H.adjust_after_move(diff.from, to, fs_actions, i + 1) end
     end
   end
+
+  H.lsp_fs_hook('didCreate', ok_actions, lsp_timeout)
+  H.lsp_fs_hook('didDelete', ok_actions, lsp_timeout)
+  H.lsp_fs_hook('didRename', ok_actions, lsp_timeout)
+end
+
+H.lsp_fs_hook = function(method, diffs, lsp_timeout)
+  if lsp_timeout == 0 then return end
+
+  local full_method = 'workspace/' .. method .. 'Files'
+  local clients = vim.lsp.get_clients({ method = full_method })
+  if #clients == 0 then return end
+
+  -- Transform 'mini.files' diffs into LSP file actions for the input method
+  -- https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#createFilesParams
+  -- https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#deleteFilesParams
+  -- https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#renameFilesParams
+  local files, to_uri = {}, H.fname_to_uri
+  local needs_check = method == 'willCreate' or method == 'willRename'
+  local is_create, is_delete, is_rename =
+    vim.endswith(method, 'Create'), vim.endswith(method, 'Delete'), vim.endswith(method, 'Rename')
+  for _, d in ipairs(diffs) do
+    local file = {}
+    if is_create and d.action == 'create' then file = { uri = to_uri(d.to) } end
+    if is_delete and d.action == 'delete' then file = { uri = to_uri(d.from) } end
+    if is_rename and d.action == 'rename' then file = { oldUri = to_uri(d.from), newUri = to_uri(d.to) } end
+
+    -- Pass file system type according to the LSP spec
+    file.fs_type = d.fs_type == 'directory' and 'folder' or 'file'
+
+    -- Some actions might not succeed, so make best effort check before that
+    local pass_check = not needs_check or (needs_check and d.to ~= nil and not H.fs_is_present_path(d.to))
+    if (file.uri or file.oldUri) ~= nil and pass_check then table.insert(files, file) end
+  end
+
+  -- Execute LSP action for every currently existing client
+  if #files == 0 then return end
+  for _, client in ipairs(clients) do
+    H.lsp_fs_hook_client(client, full_method, files, lsp_timeout)
+  end
+end
+-- TODO: Remove after compatibility with Neovim=0.10 is dropped
+if vim.fn.has('nvim-0.11') == 0 then H.lsp_fs_hook = function() end end
+
+H.lsp_fs_hook_client = function(client, full_method, lsp_files, timeout)
+  -- Compute parameters of the LSP action by filtering all input file actions
+  -- https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#fileOperationFilter
+  local is_scheme = function(uri, scheme) return scheme == nil or vim.startswith(uri, scheme .. ':') end
+  local is_fs_type = function(lsp_file, ref_fs_type) return ref_fs_type == nil or ref_fs_type == lsp_file.fs_type end
+  local make_filter = function(scheme, ref_fs_type, glob, ignore_case)
+    local adjust_case = ignore_case and vim.fn.tolower or function(x) return x end
+    local glob_lpeg = vim.glob.to_lpeg(adjust_case(glob) or '**')
+    return function(lsp_file)
+      local uri = lsp_file.uri or lsp_file.oldUri
+      local fname = adjust_case(H.uri_to_fname(uri))
+      return is_scheme(uri, scheme) and is_fs_type(lsp_file, ref_fs_type) and glob_lpeg:match(fname) ~= nil
+    end
+  end
+
+  local method = full_method:match('^workspace/(.+)Files$')
+  local filter_configs = client.server_capabilities.workspace.fileOperations[method].filters
+  local filters = {}
+  for _, fc in ipairs(filter_configs) do
+    local glob, matches, scheme = fc.pattern.glob, fc.pattern.matches, fc.scheme
+    local ignore_case = type(fc.pattern.options) == 'table' and fc.pattern.options.ignoreCase
+
+    table.insert(filters, make_filter(scheme, matches, glob, ignore_case))
+  end
+
+  local params = { files = {} }
+  for _, f in ipairs(lsp_files) do
+    -- https://github.com/microsoft/language-server-protocol/issues/2203
+    -- Empty filters should match nothing, but this a useful default for misbehaving servers
+    local ok = #filters == 0
+    for _, filt in ipairs(filters) do
+      -- It is not clear from LSP spec if it is `and` or `or`, but it needs to
+      -- handle filters matching both `file` and `folder`. So `or`.
+      ok = ok or filt(f)
+    end
+    -- Remove manually added field to comply with LSP spec
+    f.fs_type = nil
+    if ok then table.insert(params.files, f) end
+  end
+
+  -- Perform an action
+  if vim.startswith(method, 'did') then return client:notify(full_method, params) end
+  -- - Use sync to comply with LSP spec (apply edit before file operations)
+  local response, err = client:request_sync(full_method, params, timeout)
+  if (response or {}).result ~= nil then vim.lsp.util.apply_workspace_edit(response.result, client.offset_encoding) end
 end
 
 H.fs_do = {}
@@ -2745,10 +2948,13 @@ H.fs_do.delete = function(from, to)
   -- Act based on whether delete is permanent or not
   if to == nil then return vim.fn.delete(from, 'rf') == 0 end
   pcall(vim.fn.delete, to, 'rf')
-  return H.fs_do.move(from, to)
+  -- Move to trash but skip renaming loaded buffer (same as with permanent
+  -- delete). This also skips triggering extra autocommands that can have
+  -- unwanted side effects (like loading LSP in the new "trash" project).
+  return H.fs_do.move(from, to, true)
 end
 
-H.fs_do.move = function(from, to)
+H.fs_do.move = function(from, to, skip_buf_rename)
   -- Don't override existing path
   if H.fs_is_present_path(to) then return H.warn_existing_path(from, 'move or rename') end
 
@@ -2770,8 +2976,10 @@ H.fs_do.move = function(from, to)
   H.replace_path_in_index(from, to)
 
   -- Rename in loaded buffers
-  for _, buf_id in ipairs(vim.api.nvim_list_bufs()) do
-    H.rename_loaded_buffer(buf_id, from, to)
+  if not skip_buf_rename then
+    for _, buf_id in ipairs(vim.api.nvim_list_bufs()) do
+      H.rename_loaded_buffer(buf_id, from, to)
+    end
   end
 
   return success
@@ -2789,7 +2997,7 @@ H.rename_loaded_buffer = function(buf_id, from, to)
   if cur_name == new_name then return end
 
   -- Rename buffer using relative form (for nicer `:buffers` output)
-  vim.api.nvim_buf_set_name(buf_id, vim.fn.fnamemodify(new_name, ':.'))
+  vim.api.nvim_buf_set_name(buf_id, H.fs_relcwd_path(new_name))
 
   -- Force write to avoid the 'overwrite existing file' error message on write
   -- for normal files
@@ -2812,6 +3020,16 @@ H.adjust_after_move = function(from, to, fs_actions, start_ind)
   end
 end
 
+H.uri_to_fname = vim.uri_to_fname
+H.fname_to_uri = vim.uri_from_fname
+if H.is_windows then
+  -- On Windows `uri_to_fname` forces `\`, but forcing `/` seems more robust
+  H.uri_to_fname = function(x) return (vim.uri_to_fname(x):gsub('\\', '/')) end
+  -- On Windows paths like `C://...` have issues with glob matching and some
+  -- LSP implementations. Force `C:/` instead.
+  H.fname_to_uri = function(x) return vim.uri_from_fname((x:gsub('^(%a)://([^/])', '%1:/%2'))) end
+end
+
 -- Validators -----------------------------------------------------------------
 H.validate_opened_buffer = function(x)
   if x == nil or x == 0 then x = vim.api.nvim_get_current_buf() end
@@ -2828,7 +3046,7 @@ H.validate_line = function(buf_id, x)
 end
 
 H.validate_branch = function(x)
-  if not (H.islist(x) and x[1] ~= nil) then H.error('`branch` should be array with at least one element') end
+  if not (vim.islist(x) and x[1] ~= nil) then H.error('`branch` should be array with at least one element') end
   local res = {}
   for i, p in ipairs(x) do
     if type(p) ~= 'string' then H.error('`branch` contains not string: ' .. vim.inspect(p)) end
@@ -2838,7 +3056,7 @@ H.validate_branch = function(x)
   end
   for i = 2, #res do
     local parent, child = res[i - 1], res[i]
-    if (parent .. '/' .. child:match('[^/]+$')) ~= res[i] then
+    if H.fs_child_path(parent, child:match('[^/]+$')) ~= child then
       H.error('`branch` contains not a parent-child pair: ' .. vim.inspect(parent) .. ' and ' .. vim.inspect(child))
     end
   end
@@ -2869,7 +3087,7 @@ H.edit = function(path, win_id)
   local b = vim.api.nvim_win_get_buf(win_id or 0)
   local try_mimic_buf_reuse = (vim.fn.bufname(b) == '' and vim.bo[b].buftype ~= 'quickfix' and not vim.bo[b].modified)
     and (#vim.fn.win_findbuf(b) == 1 and vim.deep_equal(vim.fn.getbufline(b, 1, '$'), { '' }))
-  local buf_id = vim.fn.bufadd(vim.fn.fnamemodify(path, ':.'))
+  local buf_id = vim.fn.bufadd(H.fs_relcwd_path(path))
   -- Showing in window also loads. Use `pcall` to not error with swap messages.
   pcall(vim.api.nvim_win_set_buf, win_id or 0, buf_id)
   vim.bo[buf_id].buflisted = true
@@ -2900,10 +3118,12 @@ H.set_extmark = function(...) pcall(vim.api.nvim_buf_set_extmark, ...) end
 
 H.win_set_buf = function(win_id, buf_id)
   vim.wo[win_id].winfixbuf = false
-  vim.api.nvim_win_set_buf(win_id, buf_id)
+  -- Prevent `BufEnter,BufLeave` that come from `nvim_win_set_buf` and conflict
+  -- with other modules (like 'mini.jump'). Use 'mini.files' events if needed.
+  local cmd = string.format('noautocmd call nvim_win_set_buf(%d, %d)', win_id, buf_id)
+  vim.cmd(cmd)
   vim.wo[win_id].winfixbuf = true
 end
-if vim.fn.has('nvim-0.10') == 0 then H.win_set_buf = vim.api.nvim_win_set_buf end
 
 H.get_first_valid_normal_window = function()
   for _, win_id in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
@@ -2913,13 +3133,11 @@ end
 
 H.getcharstr = function()
   local ok, char = pcall(vim.fn.getcharstr)
-  if not ok or char == '\27' or char == '' then return end
+  -- Terminate if couldn't get input (like with <C-c>) or on `<Esc>`
+  if not ok or char == '' or char == '\3' or char == '\27' then return nil end
   return char
 end
 
-H.escape_newline = function(x) return ((x or ''):gsub('\n', '<NL>')) end
-
--- TODO: Remove after compatibility with Neovim=0.9 is dropped
-H.islist = vim.fn.has('nvim-0.10') == 1 and vim.islist or vim.tbl_islist
+H.sanitize_string = function(x) return ((x or ''):gsub('\n', '<NL>'):gsub('%z', '')) end
 
 return MiniFiles

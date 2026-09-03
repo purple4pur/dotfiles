@@ -1,16 +1,21 @@
 --- *mini.misc* Miscellaneous functions
---- *MiniMisc*
 ---
 --- MIT License Copyright (c) 2021 Evgeni Chasnovski
----
---- ==============================================================================
----
+
 --- Features the following functions:
 --- - |MiniMisc.bench_time()| to benchmark function execution time.
 ---   Useful in combination with `stat_summary()`.
 ---
+--- - |MiniMisc.log_add()|, |MiniMisc.log_show()| and other helper functions to work
+---   with a special in-memory log array. Useful when debugging Lua code.
+---
 --- - |MiniMisc.put()| and |MiniMisc.put_text()| to pretty print its arguments
 ---   into command line and current buffer respectively.
+---
+--- - |MiniMisc.resize_window()| to resize current window to its editable width.
+---
+--- - |MiniMisc.safely()| to execute a function on a condition and warn on error.
+---   Useful to organize |init.lua| in fail-safe sections with simple lazy loading.
 ---
 --- - |MiniMisc.setup_auto_root()| to set up automated change of current directory.
 ---
@@ -42,6 +47,7 @@
 ---
 --- This module doesn't have runtime options, so using `vim.b.minimisc_config`
 --- will have no effect here.
+---@tag MiniMisc
 
 -- Module definition ==========================================================
 local MiniMisc = {}
@@ -57,15 +63,6 @@ local H = {}
 ---   require('mini.misc').setup({}) -- replace {} with your config table
 --- <
 MiniMisc.setup = function(config)
-  -- TODO: Remove after Neovim=0.8 support is dropped
-  if vim.fn.has('nvim-0.9') == 0 then
-    vim.notify(
-      '(mini.misc) Neovim<0.9 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniMisc = MiniMisc
 
@@ -76,9 +73,7 @@ MiniMisc.setup = function(config)
   H.apply_config(config)
 end
 
---- Module config
----
---- Default values:
+--- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 MiniMisc.config = {
   -- Array of fields to make global (to be used as independent variables)
@@ -116,6 +111,85 @@ MiniMisc.get_gutter_width = function(win_id)
   win_id = (win_id == nil or win_id == 0) and vim.api.nvim_get_current_win() or win_id
   return vim.fn.getwininfo(win_id)[1].textoff
 end
+
+--- Add an entry to the in-memory log array
+---
+--- Useful when trying to debug a Lua code (like Neovim config or plugin).
+--- Use this instead of ad-hoc `print()` statements.
+---
+--- Each entry is a table with the following fields:
+--- - <desc> `(any)` - entry description. Usually a string describing a place
+---   in the code.
+--- - <state> `(any)` - data about current state. Usually a table.
+--- - <timestamp> `(number)` - a timestamp of when the entry was added. A number of
+---   milliseconds since the in-memory log was initiated (after |MiniMisc.setup()|
+---   or |MiniMisc.log_clear()|). Useful during profiling.
+---
+---@param desc any Entry description.
+---@param state any Data about current state.
+---@param opts table|nil Options. Possible fields:
+---   - <deepcopy> - (boolean) Whether to create a copy of tables in {state}.
+---     Usually helpful to record the exact state during code execution and avoid
+---     side effects of tables being changed in-place. Default `true`.
+---
+---@usage >lua
+---   local t = { a = 1 }
+---   MiniMisc.log_add('before', { t = t }) -- Will show `t = { a = 1 }` state
+---   t.a = t.a + 1
+---   MiniMisc.log_add('after', { t = t })  -- Will show `t = { a = 2 }` state
+---
+---   -- Use `:lua MiniMisc.log_show()` or `:=MiniMisc.log_get()` to see the log
+--- <
+---@seealso - |MiniMisc.log_get()| to get log array
+--- - |MiniMisc.log_show()| to show log array in the dedicated buffer
+--- - |MiniMisc.log_clear()| to clear the log array
+MiniMisc.log_add = function(desc, state, opts)
+  opts = vim.tbl_extend('force', { deepcopy = true }, opts or {})
+  local entry = {
+    desc = desc,
+    state = opts.deepcopy and H.copy_tables(state) or state,
+    timestamp = 0.000001 * (vim.loop.hrtime() - H.log_cache.start_htime),
+  }
+  table.insert(H.log_cache.log, entry)
+end
+
+--- Get log array
+---
+---@return table[] Log array. Returned as is, without |vim.deepcopy()|.
+---
+---@seealso - |MiniMisc.log_add()| to add to the log array
+MiniMisc.log_get = function() return H.log_cache.log end
+
+--- Show log array in a scratch buffer
+---
+---@seealso - |MiniMisc.log_add()| to add to the log array
+MiniMisc.log_show = function()
+  local buf_id = H.log_cache.buf_id
+  if buf_id == nil or not vim.api.nvim_buf_is_valid(buf_id) then
+    buf_id = vim.api.nvim_create_buf(true, true)
+    vim.api.nvim_buf_set_name(buf_id, 'minimisc://' .. buf_id .. '/log')
+    H.log_cache.buf_id = buf_id
+  end
+  local lines = vim.split(vim.inspect(H.log_cache.log), '\n')
+  vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)
+
+  local buf_wins = vim.fn.win_findbuf(buf_id)
+  if buf_wins[1] == nil then return vim.api.nvim_win_set_buf(0, buf_id) end
+  vim.api.nvim_set_current_win(buf_wins[1])
+end
+
+--- Clear log array
+---
+--- This also sets a new starting point for entry timestamps.
+---
+---@seealso - |MiniMisc.log_add()| to add to the log array
+MiniMisc.log_clear = function()
+  H.log_cache.log = {}
+  H.log_cache.start_htime = vim.loop.hrtime()
+  H.notify('Cleared log')
+end
+
+H.log_cache = { log = {}, start_htime = vim.loop.hrtime(), buf_id = nil }
 
 --- Print Lua objects in command line
 ---
@@ -156,7 +230,7 @@ end
 ---@param win_id number|nil Window identifier (see |win_getid()|) to be resized.
 ---   Default: 0 for current.
 ---@param text_width number|nil Number of editable columns resized window will
----   display. Default: first element of 'colorcolumn' or otherwise 'textwidth'
+---   display. Default: first element of |'colorcolumn'| or otherwise |'textwidth'|
 ---   (using screen width as its default but not more than 79).
 MiniMisc.resize_window = function(win_id, text_width)
   win_id = win_id or 0
@@ -185,13 +259,166 @@ H.default_text_width = function(win_id)
   end
 end
 
+--- Execute a function on a condition and warn on error
+---
+--- Input function is executed exactly once. Its possible error is captured and is
+--- shown as a |vim.notify()| warning.
+---
+--- Useful to organize |init.lua| in fail-safe sections with simple lazy loading.
+---
+---@param when string When to execute a function. One of:
+---   - `'now'` - immediately.
+---   - `'later'` - queue to be executed soon without blocking the execution of next
+---     code in file. Queued functions are executed in order they are added.
+---   - `'delay:<number>'` - after a specified delay with |vim.defer_fn()|.
+---   - `'event:<events>'` - on whichever specified event is triggered first.
+---   - `'event:<events>~<patterns>` - same as above, but events must match
+---     specified |autocmd-pattern|.
+---   - `'filetype:<filetypes>'` - same as `'event:FileType~<filetypes>'`, but follow
+---     successful function execution with |filetype-detect| for all normal buffers
+---     (if new |ftdetect| scripts were added) and sourcing |ftplugin| (for buffers
+---     matching `<filetypes>`). Intended to be used for loading "language plugins".
+---@param f function Function to execute (without arguments).
+---
+---@usage >lua
+---   MiniMisc.safely('later', function()
+---     vim.notify('This will be executed after the next "now" call')
+---   end)
+---   MiniMisc.safely('now', function() error('This will be a warning') end)
+---
+---   MiniMisc.safely('event:InsertEnter', function()
+---     require('mini.completion').setup()
+---   end)
+---   MiniMisc.safely('event:CmdlineEnter~/', function()
+---     vim.notify('Start searching for the first time')
+---   end)
+---
+---   MiniMisc.safely('filetype:tex,plaintex', function()
+---     -- Load plugin to improve writing LaTeX
+---   end)
+--- <
+MiniMisc.safely = function(when, f)
+  H.check_type('when', when, 'string', false)
+  H.check_type('f', f, 'callable', false)
+
+  if when == 'now' then
+    H.execute_now(f)
+    return
+  end
+
+  -- Compute traceback before delaying execution to provide more info
+  local trace = debug.traceback('', 2)
+
+  if when == 'later' then
+    if #H.safely_cache.later == 0 then vim.schedule(H.execute_later) end
+    table.insert(H.safely_cache.later, { f = f, trace = trace })
+    return
+  end
+
+  local delay = tonumber(when:match('^delay:(%d+)$'))
+  if delay ~= nil then
+    vim.defer_fn(function() H.execute_now(f, trace) end, delay)
+    return
+  end
+
+  local events = when:match('^event:(.+)$')
+  if events then
+    local ev, patt = events:match('^(.+)~(.+)$')
+    local event = vim.split(ev or events, ',', { trimempty = true })
+    local pattern = vim.split(patt or '', ',', { trimempty = true })
+    H.make_defer_autocmd(event, pattern, f, trace)
+    return
+  end
+
+  local filetypes = when:match('^filetype:(.+)$')
+  if filetypes then
+    local ft_arr = vim.split(filetypes, ',')
+    -- NOTE: Needs `vim.schedule_wrap()` for a correct redetect. This also
+    -- prompts using `H.execute_now` and not rely on `H.make_defer_autocmd`.
+    local f_and_redetect = vim.schedule_wrap(function()
+      -- Look out for new 'ftdetect' scripts by comparing before and after
+      local ftdetect_scripts_before = vim.api.nvim_get_runtime_file('ftdetect/*.{vim,lua}', true)
+
+      local ok = H.execute_now(f, trace)
+
+      -- Skip redetect if there was error or detection is disabled
+      if not (ok and vim.g.did_load_filetypes == 1) then return end
+
+      local ftdetect_scripts_after = vim.api.nvim_get_runtime_file('ftdetect/*.{vim,lua}', true)
+      local needs_redetect = not vim.deep_equal(ftdetect_scripts_before, ftdetect_scripts_after)
+      for _, buf_id in ipairs(vim.api.nvim_list_bufs()) do
+        H.redetect_filetypes(buf_id, ft_arr, needs_redetect)
+      end
+    end)
+    return H.make_defer_autocmd('FileType', ft_arr, f_and_redetect)
+  end
+
+  H.error('Could not parse `when` in `safely`')
+end
+
+H.execute_now = function(f, init_trace)
+  local ok, err = xpcall(f, function(e) return debug.traceback(e .. '\n', 2) end)
+  if ok then return true end
+  init_trace = init_trace == nil and '' or ('\n\nTraceback of `MiniMisc.safely()` call:\n' .. init_trace)
+  H.notify('Error during safe execution: ' .. err .. init_trace, 'WARN')
+  return false
+end
+
+H.safely_cache = { later = {} }
+
+H.execute_later = function()
+  local timer = assert(vim.loop.new_timer())
+  local f
+  f = vim.schedule_wrap(function()
+    local cb = H.safely_cache.later[1]
+    if cb == nil then
+      if not timer:is_closing() then timer:close() end
+      return
+    end
+
+    table.remove(H.safely_cache.later, 1)
+    H.execute_now(cb.f, cb.trace)
+    timer:start(1, 0, f)
+  end)
+  -- Space out "later" executions to be sure that they don't block anything
+  timer:start(1, 0, f)
+end
+
+H.make_defer_autocmd = function(event, pattern, f, trace)
+  if type(pattern) == 'table' and #pattern == 0 then pattern = nil end
+
+  local au_id
+  local function cb()
+    -- Execute exactly once, not once per event or pattern match
+    -- Delete before executing `f` to account for nested events
+    vim.api.nvim_del_autocmd(au_id)
+    H.execute_now(f, trace)
+  end
+
+  local group = vim.api.nvim_create_augroup('MiniMiscSafely', { clear = false })
+  local opts = { group = group, pattern = pattern, callback = cb, nested = true }
+  au_id = vim.api.nvim_create_autocmd(event, opts)
+end
+
+H.redetect_filetypes = function(buf_id, ft_arr, needs_redetect)
+  if not vim.api.nvim_buf_is_loaded(buf_id) then return end
+
+  vim.api.nvim_buf_call(buf_id, function()
+    -- Try detecting new filetypes
+    if needs_redetect and vim.bo.buftype == '' then vim.cmd('filetype detect') end
+
+    -- Force execution of 'ftplugin' scripts for matched filetypes
+    if vim.tbl_contains(ft_arr, vim.bo.filetype) then vim.bo.filetype = vim.bo.filetype end
+  end)
+end
+
 --- Set up automated change of current directory
 ---
 --- What it does:
 --- - Creates autocommand which on every |BufEnter| event with |MiniMisc.find_root()|
 ---   finds root directory for current buffer file and sets |current-directory|
 ---   to it (using |chdir()|).
---- - Resets |autochdir| to `false`.
+--- - Resets |'autochdir'| to `false`.
 ---
 ---@param names table|function|nil Forwarded to |MiniMisc.find_root()|.
 ---@param fallback function|nil Forwarded to |MiniMisc.find_root()|.
@@ -230,7 +457,7 @@ end
 --- directory. If buffer is not associated with file, returns `nil`.
 ---
 --- Root directory is a directory containing at least one of pre-defined files.
---- It is searched using |vim.fn.find()| with `upward = true` starting from
+--- It is searched using |vim.fs.find()| with `upward = true` starting from
 --- directory of current buffer file until first occurrence of root file(s).
 ---
 --- Notes:
@@ -280,7 +507,7 @@ MiniMisc.find_root = function(buf_id, names, fallback)
 
   -- Use absolute path to an existing directory
   if type(res) ~= 'string' then return end
-  res = H.fs_normalize(vim.fn.fnamemodify(res, ':p'))
+  res = vim.fs.normalize(vim.fn.fnamemodify(res, ':p'))
   if vim.fn.isdirectory(res) == 0 then return end
 
   -- Cache result per directory path
@@ -299,25 +526,31 @@ H.root_cache = {}
 --- - Creates autocommands for |ColorScheme| and |VimResume| events, which
 ---   change terminal background to have same color as |guibg| of |hl-Normal|.
 --- - Creates autocommands for |VimLeavePre| and |VimSuspend| events which set
----   terminal background back to the color at the time this function was
----   called first time in current session.
+---   terminal background back to its original color.
 --- - Synchronizes background immediately to allow not depend on loading order.
 ---
 --- Primary use case is to remove possible "frame" around current Neovim instance
 --- which appears if Neovim's |hl-Normal| background color differs from what is
 --- used by terminal emulator itself.
 ---
---- Works only on Neovim>=0.10.
-MiniMisc.setup_termbg_sync = function()
-  -- Handling `'\027]11;?\007'` response was added in Neovim 0.10
-  if vim.fn.has('nvim-0.10') == 0 then return H.notify('`setup_termbg_sync()` requires Neovim>=0.10', 'WARN') end
-
+---@param opts table|nil Options. Possible fields:
+---   - <explicit_reset> `(boolean)` - whether to reset terminal background by
+---     explicitly setting it to the color it had when this function was called.
+---     Set to `true` if terminal emulator doesn't support OSC 111 control sequence.
+---     Default: `false`.
+MiniMisc.setup_termbg_sync = function(opts)
   -- Proceed only if there is a valid stdout to use
   local has_stdout_tty = false
   for _, ui in ipairs(vim.api.nvim_list_uis()) do
     has_stdout_tty = has_stdout_tty or ui.stdout_tty
   end
   if not has_stdout_tty then return end
+
+  opts = vim.tbl_extend('force', { explicit_reset = false }, opts or {})
+
+  -- Choose a method for how terminal emulator background is reset
+  local reset = function() io.stdout:write('\027]111\027\\') end
+  if opts.explicit_reset then reset = function() io.stdout:write('\027]11;' .. H.termbg_init .. '\007') end end
 
   local augroup = vim.api.nvim_create_augroup('MiniMiscTermbgSync', { clear = true })
   local track_au_id, bad_responses, had_proper_response = nil, {}, false
@@ -328,25 +561,24 @@ MiniMisc.setup_termbg_sync = function()
     -- Neovim=0.10 uses string sequence as response, while Neovim>=0.11 sets it
     -- in `sequence` table field
     local seq = type(args.data) == 'table' and args.data.sequence or args.data
-    local ok, bg_init = pcall(H.parse_osc11, seq)
-    if not (ok and type(bg_init) == 'string') then return table.insert(bad_responses, seq) end
+    local ok, termbg = pcall(H.parse_osc11, seq)
+    if not (ok and type(termbg) == 'string') then return table.insert(bad_responses, seq) end
     had_proper_response = true
     pcall(vim.api.nvim_del_autocmd, track_au_id)
+
+    -- Set up reset to the color returned from the very first call
+    H.termbg_init = H.termbg_init or termbg
+    vim.api.nvim_create_autocmd({ 'VimLeavePre', 'VimSuspend' }, { group = augroup, callback = reset })
 
     -- Set up sync
     local sync = function()
       local normal = vim.api.nvim_get_hl_by_name('Normal', true)
-      if normal.background == nil then return end
+      if normal.background == nil then return reset() end
       -- NOTE: use `io.stdout` instead of `io.write` to ensure correct target
       -- Otherwise after `io.output(file); file:close()` there is an error
       io.stdout:write(string.format('\027]11;#%06x\007', normal.background))
     end
     vim.api.nvim_create_autocmd({ 'VimResume', 'ColorScheme' }, { group = augroup, callback = sync })
-
-    -- Set up reset to the color returned from the very first call
-    H.termbg_init = H.termbg_init or bg_init
-    local reset = function() io.stdout:write('\027]11;' .. H.termbg_init .. '\007') end
-    vim.api.nvim_create_autocmd({ 'VimLeavePre', 'VimSuspend' }, { group = augroup, callback = reset })
 
     -- Sync immediately
     sync()
@@ -384,16 +616,16 @@ end
 ---
 --- When reopening a file this will make sure the cursor is placed back to the
 --- position where you left before. This implements |restore-cursor| in a nicer way.
---- File should have a recognized file type (see 'filetype') and be opened in
---- a normal buffer (see 'buftype').
+--- File should have a recognized file type (see |'filetype'|) and be opened in
+--- a normal buffer (see |'buftype'|).
 ---
---- Note: it relies on file mark data stored in 'shadafile' (see |shada-f|).
+--- Note: it relies on file mark data stored in |'shadafile'| (see |shada-f|).
 --- Be sure to enable it.
 ---
----@param opts table|nil Options for |MiniMisc.restore_cursor|. Possible fields:
+---@param opts table|nil Options. Possible fields:
 ---   - <center> - (boolean) Center the window after we restored the cursor.
 ---     Default: `true`.
----   - <ignore_filetype> - Array with file types to be ignored (see 'filetype').
+---   - <ignore_filetype> - Array with file types to be ignored (see |'filetype'|).
 ---     Default: `{ "gitcommit", "gitrebase" }`.
 ---
 ---@usage >lua
@@ -450,7 +682,7 @@ end
 --- Compute summary statistics of numerical array
 ---
 --- This might be useful to compute summary of time benchmarking with
---- |MiniMisc.bench_time|.
+--- |MiniMisc.bench_time()|.
 ---
 ---@param t table Array (table suitable for `ipairs`) of numbers.
 ---
@@ -548,15 +780,15 @@ end
 
 --- Add possibility of nested comment leader
 ---
---- This works by parsing 'commentstring' buffer option, extracting
+--- This works by parsing |'commentstring'| buffer option, extracting
 --- non-whitespace comment leader (symbols on the left of commented line), and
---- locally modifying 'comments' option (by prepending `n:<leader>`). Does
---- nothing if 'commentstring' is empty or has comment symbols both in front
---- and back (like "/*%s*/").
+--- locally modifying |'comments'| option (by prepending `n:<leader>`). Does
+--- nothing if |'commentstring'| is empty or has comment symbols both in front
+--- and back (like `/*%s*/`).
 ---
 --- Nested comment leader added with this function is useful for formatting
---- nested comments. For example, have in Lua "first-level" comments with '--'
---- and "second-level" comments with '----'. With nested comment leader second
+--- nested comments. For example, have in Lua "first-level" comments with `--`
+--- and "second-level" comments with `----`. With nested comment leader second
 --- type can be formatted with `gq` in the same way as first one.
 ---
 --- Recommended usage is with |autocmd|: >lua
@@ -564,7 +796,7 @@ end
 ---   local use_nested_comments = function() MiniMisc.use_nested_comments() end
 ---   vim.api.nvim_create_autocmd('BufEnter', { callback = use_nested_comments })
 --- <
---- Note: for most filetypes 'commentstring' option is added only when buffer
+--- Note: for most filetypes |'commentstring'| option is added only when buffer
 --- with this filetype is entered, so using non-current `buf_id` can not lead
 --- to desired effect.
 ---
@@ -598,20 +830,22 @@ end
 ---@param buf_id number|nil Buffer identifier (see |bufnr()|) to be zoomed.
 ---   Default: 0 for current.
 ---@param config table|nil Optional config for window (as for |nvim_open_win()|).
+---
+---@return boolean Whether current buffer is zoomed in.
 MiniMisc.zoom = function(buf_id, config)
   -- Hide
   if H.zoom_winid and vim.api.nvim_win_is_valid(H.zoom_winid) then
     pcall(vim.api.nvim_del_augroup_by_name, 'MiniMiscZoom')
     vim.api.nvim_win_close(H.zoom_winid, true)
     H.zoom_winid = nil
-    return
+    return false
   end
 
   -- Show
   local compute_config = function()
     -- Use precise dimensions for no Command line interactions (better scroll)
     local max_width, max_height = vim.o.columns, vim.o.lines - vim.o.cmdheight
-    local default_border = (vim.fn.exists('+winborder') == 1 and vim.o.winborder ~= '') and vim.o.winborder or 'none'
+    local default_border = (vim.fn.exists('+winborder') == 0 or vim.o.winborder == '') and 'none' or nil
     --stylua: ignore
     local default_config = {
       relative = 'editor', row = 0, col = 0,
@@ -620,14 +854,16 @@ MiniMisc.zoom = function(buf_id, config)
     }
     local res = vim.tbl_deep_extend('force', default_config, config or {})
 
-    -- Adjust dimensions to fit border
-    local border_offset = (res.border or 'none') == 'none' and 0 or 2
-    res.height = math.min(res.height, max_height - border_offset)
-    res.width = math.min(res.width, max_width - border_offset)
+    -- Adjust dimensions to fit actually present border parts
+    local bor = res.border == 'none' and { '' } or res.border
+    local n = type(bor) == 'table' and #bor or 0
+    local height_offset = n == 0 and 2 or ((bor[1 % n + 1] == '' and 0 or 1) + (bor[5 % n + 1] == '' and 0 or 1))
+    local width_offset = n == 0 and 2 or ((bor[3 % n + 1] == '' and 0 or 1) + (bor[7 % n + 1] == '' and 0 or 1))
+    res.height = math.min(res.height, max_height - height_offset)
+    res.width = math.min(res.width, max_width - width_offset)
 
     -- Ensure proper title
     if type(res.title) == 'string' then res.title = H.fit_to_width(res.title, res.width) end
-    if vim.fn.has('nvim-0.9') == 0 then res.title = nil end
 
     return res
   end
@@ -646,6 +882,7 @@ MiniMisc.zoom = function(buf_id, config)
   end
   vim.api.nvim_create_autocmd('VimResized', { group = gr, callback = adjust_config })
   vim.api.nvim_create_autocmd('OptionSet', { group = gr, pattern = 'cmdheight', callback = adjust_config })
+  return true
 end
 
 -- Helper data ================================================================
@@ -692,7 +929,7 @@ H.notify = function(msg, level) vim.notify('(mini.misc) ' .. msg, vim.log.levels
 H.is_valid_buf = function(buf_id) return type(buf_id) == 'number' and vim.api.nvim_buf_is_valid(buf_id) end
 
 H.is_array_of = function(x, predicate)
-  if not H.islist(x) then return false end
+  if not vim.islist(x) then return false end
   for _, v in ipairs(x) do
     if not predicate(v) then return false end
   end
@@ -708,12 +945,8 @@ H.fit_to_width = function(text, width)
   return t_width <= width and text or ('…' .. vim.fn.strcharpart(text, t_width - width + 1, width - 1))
 end
 
-H.fs_normalize = vim.fs.normalize
-if vim.fn.has('nvim-0.9') == 0 then
-  H.fs_normalize = function(...) return vim.fs.normalize(...):gsub('(.)/+$', '%1') end
+H.copy_tables = function(x)
+  return type(x) == 'table' and setmetatable(vim.tbl_map(H.copy_tables, x), getmetatable(x)) or x
 end
-
--- TODO: Remove after compatibility with Neovim=0.9 is dropped
-H.islist = vim.fn.has('nvim-0.10') == 1 and vim.islist or vim.tbl_islist
 
 return MiniMisc

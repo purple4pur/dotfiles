@@ -1,10 +1,7 @@
 --- *mini.fuzzy* Fuzzy matching
---- *MiniFuzzy*
 ---
 --- MIT License Copyright (c) 2021 Evgeni Chasnovski
----
---- ==============================================================================
----
+
 --- Features:
 --- - Minimal and fast fuzzy matching algorithm which prioritizes match width.
 ---
@@ -13,7 +10,8 @@
 ---     - |MiniFuzzy.filtersort()|.
 ---     - |MiniFuzzy.process_lsp_items()|.
 ---
---- - Generator of |telescope.nvim| sorter: |MiniFuzzy.get_telescope_sorter()|.
+--- - Generator of sorter (|MiniFuzzy.get_telescope_sorter()|) for
+---   [nvim-telescope/telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)
 ---
 --- # Setup ~
 ---
@@ -35,21 +33,20 @@
 ---    but simple examples should work.
 --- 2. Smart case is used: case insensitive if input word (which is usually a
 ---    user input) is all lower case. Case sensitive otherwise.
+---@tag MiniFuzzy
 
---- # Algorithm design ~
----
 --- General design uses only width of found match and index of first letter
 --- match. No special characters or positions (like in fzy and fzf) are used.
 ---
 --- Given non-empty input `word` and target `candidate`:
---- - The goal is to find matching between `word`'s letters and letters in
+--- - The goal is to find matching between letters in `word` and letters in
 ---   `candidate` which minimizes certain score. It is assumed that order of
 ---   letters in `word` and those matched in `candidate` should be the same.
 ---
 --- - Matching is represented by matched positions: an array `positions` of
 ---   integers with length equal to number of letters in `word`. The following
----   should be always true in case of a match: `candidate`'s letter at index
----   `positions[i]` is letters[i]` for all valid `i`.
+---   should be always true in case of a match: `candidate` letter at index
+---   `positions[i]` is `letters[i]` for all valid `i`.
 ---
 --- - Matched positions are evaluated based only on two features: their width
 ---   (number of indexes between first and last positions) and first match
@@ -60,8 +57,8 @@
 ---   `cutoff * min(width, cutoff) + min(first, cutoff)`. It is designed to be
 ---   equivalent to first comparing widths (lower is better) and then comparing
 ---   first match (lower is better). For example, if `word = 'time'`:
----     - '_time' (width 4) will have a better match than 't_ime' (width 5).
----     - 'time_a' (width 4, first 1) will have a better match than 'a_time'
+---     - `_time` (width 4) will have a better match than `t_ime` (width 5).
+---     - `time_a` (width 4, first 1) will have a better match than `a_time`
 ---       (width 4, first 3).
 ---
 --- - Final matched positions are those which minimize score among all possible
@@ -82,15 +79,6 @@ local H = {}
 ---   require('mini.fuzzy').setup({}) -- replace {} with your config table
 --- <
 MiniFuzzy.setup = function(config)
-  -- TODO: Remove after Neovim=0.8 support is dropped
-  if vim.fn.has('nvim-0.9') == 0 then
-    vim.notify(
-      '(mini.fuzzy) Neovim<0.9 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniFuzzy = MiniFuzzy
 
@@ -101,9 +89,7 @@ MiniFuzzy.setup = function(config)
   H.apply_config(config)
 end
 
---- Module config
----
---- Default values:
+--- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 MiniFuzzy.config = {
   -- Maximum allowed value of match features (width and first match). All
@@ -153,7 +139,7 @@ end
 
 --- Fuzzy matching for `lsp_completion.process_items` of |MiniCompletion.config|
 ---
----@param items table Array with LSP 'textDocument/completion' response items.
+---@param items table Array with LSP `'textDocument/completion'` response items.
 ---@param base string Word to complete.
 ---
 ---@return table Array of items with text (`filterText` or `label`) fuzzy matching `base`.
@@ -165,8 +151,7 @@ end
 
 --- Custom getter for `telescope.nvim` sorter
 ---
---- Designed to be used as value for |telescope.defaults.file_sorter|
---- and |telescope.defaults.generic_sorter|.
+--- Designed as a value for file and generic sorter of `telescope.nvim`.
 ---
 ---@param opts table|nil Options (currently not used).
 ---

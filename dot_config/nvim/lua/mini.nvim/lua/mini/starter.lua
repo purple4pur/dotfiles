@@ -1,10 +1,7 @@
 --- *mini.starter* Start screen
---- *MiniStarter*
 ---
 --- MIT License Copyright (c) 2021 Evgeni Chasnovski
----
---- ==============================================================================
----
+
 --- Displayed items are fully customizable both in terms of what they do and
 --- how they look (with reasonable defaults). Item selection can be done using
 --- prefix query with instant visual feedback.
@@ -12,7 +9,7 @@
 --- Key design ideas:
 --- - All available actions are defined inside items. Each item should have the
 ---   following info:
----     - <action> - function or string for |vim.cmd| which is executed when
+---     - <action> - function or string for |vim.cmd()| which is executed when
 ---       item is chosen. Empty string result in placeholder "inactive" item.
 ---     - <name> - string which will be displayed and used for choosing.
 ---     - <section> - string representing to which section item belongs.
@@ -20,7 +17,7 @@
 ---
 --- - Configure what items are displayed by supplying an array which can be
 ---   normalized to an array of items. Read about how supplied items are
----   normalized in |MiniStarter.refresh|.
+---   normalized in |MiniStarter.refresh()|.
 ---
 --- - Modify the final look by supplying content hooks: functions which take
 ---   buffer content (see |MiniStarter.get_content()|) and identifier as input
@@ -46,8 +43,8 @@
 --- `:lua MiniStarter.*`).
 ---
 --- See |MiniStarter.config| for `config` structure and default values. For
---- some configuration examples (including one similar to 'vim-startify' and
---- 'dashboard-nvim'), see |MiniStarter-example-config|.
+--- some configuration examples (including one similar to `vim-startify` and
+--- `dashboard-nvim`), see |MiniStarter-example-config|.
 ---
 --- You can override runtime config settings locally to buffer inside
 --- `vim.b.ministarter_config` which should have same structure as
@@ -58,18 +55,19 @@
 --- To stop module from showing non-error feedback, set `config.silent = true`.
 ---
 --- # Highlight groups ~
+--- *MiniStarter-hl-groups*
 ---
---- * `MiniStarterCurrent` - current item.
---- * `MiniStarterFooter` - footer units.
---- * `MiniStarterHeader` - header units.
---- * `MiniStarterInactive` - inactive item.
---- * `MiniStarterItem` - item name.
---- * `MiniStarterItemBullet` - units from |MiniStarter.gen_hook.adding_bullet|.
---- * `MiniStarterItemPrefix` - unique query for item.
---- * `MiniStarterSection` - section units.
---- * `MiniStarterQuery` - current query in active items.
+--- - `MiniStarterCurrent` - current item.
+--- - `MiniStarterFooter` - footer units.
+--- - `MiniStarterHeader` - header units.
+--- - `MiniStarterInactive` - inactive item.
+--- - `MiniStarterItem` - item name.
+--- - `MiniStarterItemBullet` - units from |MiniStarter.gen_hook.adding_bullet()|.
+--- - `MiniStarterItemPrefix` - unique query for item.
+--- - `MiniStarterSection` - section units.
+--- - `MiniStarterQuery` - current query in active items.
 ---
---- To change any highlight group, modify it directly with |:highlight|.
+--- To change any highlight group, set it directly with |nvim_set_hl()|.
 ---
 --- # Disabling ~
 ---
@@ -78,11 +76,10 @@
 --- of different scenarios and customization intentions, writing exact rules
 --- for disabling module's functionality is left to user. See
 --- |mini.nvim-disabling-recipes| for common recipes.
+---@tag MiniStarter
 
---- Example configurations
----
---- Configuration similar to 'mhinz/vim-startify': >lua
----
+--- # Similar to `mhinz/vim-startify` ~
+--- >lua
 ---   local starter = require('mini.starter')
 ---   starter.setup({
 ---     evaluate_single = true,
@@ -100,8 +97,8 @@
 ---     },
 ---   })
 --- <
---- Configuration similar to 'glepnir/dashboard-nvim': >lua
----
+--- # Similar to `glepnir/dashboard-nvim` ~
+--- >lua
 ---   local starter = require('mini.starter')
 ---   starter.setup({
 ---     items = {
@@ -113,9 +110,8 @@
 ---     },
 ---   })
 --- <
---- Elaborated configuration showing capabilities of custom items,
---- header/footer, and content hooks: >lua
----
+--- # Demo of capabilities ~
+--- >lua
 ---   local my_items = {
 ---     { name = 'Echo random number', action = 'lua print(math.random())', section = 'Section 1' },
 ---     function()
@@ -169,14 +165,12 @@
 --- <
 ---@tag MiniStarter-example-config
 
---- # Lifecycle of Starter buffer ~
----
 --- - Open with |MiniStarter.open()|. It includes creating buffer with
 ---   appropriate options, mappings, behavior; call to |MiniStarter.refresh()|;
 ---   issue `MiniStarterOpened` |User| event.
 --- - Wait for user to choose an item. This is done using following logic:
 ---     - Typing any character from `MiniStarter.config.query_updaters` leads
----       to updating query. Read more in |MiniStarter.add_to_query|.
+---       to updating query. Read more in |MiniStarter.add_to_query()|.
 ---     - <BS> deletes latest character from query.
 ---     - <Down>/<Up>, <C-n>/<C-p>, <M-j>/<M-k> move current item.
 ---     - <CR> executes action of current item.
@@ -204,15 +198,6 @@ local H = {}
 ---   require('mini.starter').setup({}) -- replace {} with your config table
 --- <
 MiniStarter.setup = function(config)
-  -- TODO: Remove after Neovim=0.8 support is dropped
-  if vim.fn.has('nvim-0.9') == 0 then
-    vim.notify(
-      '(mini.starter) Neovim<0.9 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniStarter = MiniStarter
 
@@ -229,9 +214,7 @@ MiniStarter.setup = function(config)
   H.create_default_hl()
 end
 
---- Module config
----
---- Default values:
+--- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 MiniStarter.config = {
   -- Whether to open Starter buffer on VimEnter. Not opened if Neovim was
@@ -277,13 +260,13 @@ MiniStarter.config = {
 --- Open Starter buffer
 ---
 --- - Create buffer if necessary and move into it.
---- - Set buffer options. Note that settings are done with |noautocmd| to
+--- - Set buffer options. Note that settings are done with |:noautocmd| to
 ---   achieve a massive speedup.
 --- - Set buffer mappings. Besides basic mappings (described inside "Lifecycle
 ---   of Starter buffer" of |mini.starter|), map every character from
 ---   `MiniStarter.config.query_updaters` to add itself to query with
----   |MiniStarter.add_to_query|.
---- - Populate buffer with |MiniStarter.refresh|.
+---   |MiniStarter.add_to_query()|.
+--- - Populate buffer with |MiniStarter.refresh()|.
 --- - Issue custom `MiniStarterOpened` event to allow acting upon opening
 ---   Starter buffer. Use it with
 ---   `autocmd User MiniStarterOpened <your command>`.
@@ -357,8 +340,8 @@ end
 --- - Sequentially apply hooks from `MiniStarter.config.content_hooks` to
 ---   content. All hooks are applied with `(content, buf_id)` signature. Output
 ---   of one hook serves as first argument to the next.
---- - Gather final items from content with |MiniStarter.content_to_items|.
---- - Convert content to buffer lines with |MiniStarter.content_to_lines| and
+--- - Gather final items from content with |MiniStarter.content_to_items()|.
+--- - Convert content to buffer lines with |MiniStarter.content_to_lines()| and
 ---   add them to buffer.
 --- - Add highlighting of content units.
 --- - Position cursor.
@@ -436,15 +419,15 @@ MiniStarter.sections.builtin_actions = function()
   }
 end
 
---- Section with |MiniSessions| sessions
+--- Section with |mini.sessions| sessions
 ---
 --- Sessions are taken from |MiniSessions.detected|. Notes:
---- - If it shows "'mini.sessions' is not set up", it means that you didn't
+--- - If it shows `'mini.sessions' is not set up`, it means that you didn't
 ---   call `require('mini.sessions').setup()`.
---- - If it shows "There are no detected sessions in 'mini.sessions'", it means
+--- - If it shows `There are no detected sessions in 'mini.sessions'`, it means
 ---   that there are no sessions at the current sessions directory. Either
 ---   create session or supply different directory where session files are
----   stored (see |MiniSessions.setup|).
+---   stored (see |MiniSessions.setup()|).
 --- - Local session (if detected) is always displayed first.
 ---
 ---@param n number|nil Number of returned items. Default: 5.
@@ -501,7 +484,7 @@ end
 
 --- Section with most recently used files
 ---
---- Files are taken from |vim.v.oldfiles|.
+--- Files are taken from |v:oldfiles|.
 ---
 ---@param n number|nil Number of returned items. Default: 5.
 ---@param current_dir boolean|nil Whether to return files only from current working
@@ -524,29 +507,27 @@ MiniStarter.sections.recent_files = function(n, current_dir, show_path)
 
   return function()
     local section = string.format('Recent files%s', current_dir and ' (current directory)' or '')
+    local sep = vim.loop.os_uname().sysname == 'Windows_NT' and '\\' or '/'
+    local cwd = vim.fn.getcwd() .. sep
 
-    -- Use only actual readable files
-    local files = vim.tbl_filter(function(f) return vim.fn.filereadable(f) == 1 end, vim.v.oldfiles or {})
-
-    if #files == 0 then
-      return { { name = 'There are no recent files (`v:oldfiles` is empty)', action = '', section = section } }
-    end
-
-    -- Possibly filter files from current directory
-    if current_dir then
-      local sep = vim.loop.os_uname().sysname == 'Windows_NT' and [[%\]] or '%/'
-      local cwd_pattern = '^' .. vim.pesc(vim.fn.getcwd()) .. sep
-      -- Use only files from current directory and its subdirectories
-      files = vim.tbl_filter(function(f) return f:find(cwd_pattern) ~= nil end, files)
+    local files = {}
+    for _, f in ipairs(vim.v.oldfiles) do
+      -- Use only actually readable files possibly respecting current directory
+      if vim.fn.filereadable(f) == 1 and (not current_dir or vim.startswith(f, cwd)) then
+        table.insert(files, f)
+        if #files >= n then break end
+      end
     end
 
     if #files == 0 then
-      return { { name = 'There are no recent files in current directory', action = '', section = section } }
+      local suffix = current_dir and 'in current directory' or '(`v:oldfiles` is empty)'
+      local text = 'There are no recent files ' .. suffix
+      return { { name = text, action = '', section = section } }
     end
 
     -- Create items
     local items = {}
-    for _, f in ipairs(vim.list_slice(files, 1, n)) do
+    for _, f in ipairs(files) do
       local name = vim.fn.fnamemodify(f, ':t') .. show_path(f)
       table.insert(items, { action = function() H.edit(f) end, name = name, section = section })
     end
@@ -555,14 +536,14 @@ MiniStarter.sections.recent_files = function(n, current_dir, show_path)
   end
 end
 
--- stylua: ignore
---- Section with 'mini.pick' pickers
+--stylua: ignore
+--- Section with |mini.pick| pickers
 ---
 --- Notes:
---- - All actions require |mini.pick| module of 'mini.nvim'.
+--- - All actions require |mini.pick| module of |mini.nvim|.
 --- - "Command history", "Explorer", and "Visited paths" items
----   require |mini.extra| module of 'mini.nvim'.
---- - "Visited paths" items requires |mini.visits| module of 'mini.nvim'.
+---   require |mini.extra| module of |mini.nvim|.
+--- - "Visited paths" items requires |mini.visits| module of |mini.nvim|.
 ---
 ---@return __starter_section_fun
 MiniStarter.sections.pick = function()
@@ -578,12 +559,14 @@ MiniStarter.sections.pick = function()
   end
 end
 
--- stylua: ignore
+--stylua: ignore
 --- Section with basic Telescope pickers relevant to start screen
 ---
 --- Notes:
---- - All actions require 'nvim-telescope/telescope.nvim' plugin.
---- - "Browser" item requires 'nvim-telescope/telescope-file-browser.nvim'.
+--- - All actions require
+---   [nvim-telescope/telescope.nvim](https://github.com/nvim-telescope/telescope.nvim).
+--- - "Browser" item requires
+---   [nvim-telescope/telescope-file-browser.nvim](https://github.com/nvim-telescope/telescope-file-browser.nvim).
 ---
 ---@return __starter_section_fun
 MiniStarter.sections.telescope = function()
@@ -603,7 +586,7 @@ end
 --- Table with pre-configured content hook generators
 ---
 --- Each element is a function which returns content hook. So to use them
---- inside |MiniStarter.setup|, call them.
+--- inside |MiniStarter.setup()|, call them.
 MiniStarter.gen_hook = {}
 
 --- Hook generator for padding
@@ -722,7 +705,7 @@ end
 --- and vertically. Window width and height are taken from first window in current
 --- tabpage displaying the Starter buffer.
 ---
---- Basically, this computes left and top pads for |MiniStarter.gen_hook.padding|
+--- Basically, this computes left and top pads for |MiniStarter.gen_hook.padding()|
 --- such that output lines would appear aligned in certain way.
 ---
 ---@param horizontal string|nil One of "left", "center", "right". Default: "left".
@@ -770,8 +753,8 @@ end
 ---     - "hl" - which highlighting should be applied to content string. May be
 ---       `nil` for no highlighting.
 ---
---- See |MiniStarter.content_to_lines| for converting content to buffer lines
---- and |MiniStarter.content_to_items| - to list of parsed items.
+--- See |MiniStarter.content_to_lines()| for converting content to buffer lines
+--- and |MiniStarter.content_to_items()| - to list of parsed items.
 ---
 --- Notes:
 --- - Content units with type "item" also have `item` element with all
@@ -799,7 +782,7 @@ end
 ---      units with some type).
 ---    - `nil`, all units are kept.
 ---
----@return table Array of resulting units' coordinates. Each coordinate is a
+---@return table Array with coordinates of resulting units. Each coordinate is a
 ---   table with <line> and <unit> keys. To retrieve actual unit from coordinate
 ---   `c`, use `content[c.line][c.unit]`.
 MiniStarter.content_coords = function(content, predicate)
@@ -819,7 +802,7 @@ MiniStarter.content_coords = function(content, predicate)
   return res
 end
 
--- stylua: ignore start
+--stylua: ignore
 --- Convert content to buffer lines
 ---
 --- One buffer line is made by concatenating `string` element of units within
@@ -839,18 +822,17 @@ MiniStarter.content_to_lines = function(content)
     content or MiniStarter.get_content()
   )
 end
--- stylua: ignore end
 
 --- Convert content to items
 ---
 --- Parse content (in depth-first fashion) and retrieve each item from `item`
 --- element of content units with type "item". This also:
 --- - Computes some helper information about how item will be actually
----   displayed (after |MiniStarter.content_to_lines|) and minimum number of
+---   displayed (after |MiniStarter.content_to_lines()|) and minimum number of
 ---   prefix characters needed for a particular item to be queried single.
 --- - Modifies item's `name` element taking it from corresponding `string`
 ---   element of content unit. This allows modifying item's `name` at the stage
----   of content hooks (like, for example, in |MiniStarter.gen_hook.indexing|).
+---   of content hooks (like, for example, in |MiniStarter.gen_hook.indexing()|).
 ---
 ---@param content table|nil Content "2d array". Default: content of current buffer.
 ---
@@ -1327,7 +1309,7 @@ H.make_buffer_autocmd = function(buf_id)
     vim.api.nvim_create_autocmd(event, { group = augroup, buffer = buf_id, callback = callback, desc = desc })
   end
 
-  au('VimResized', function() MiniStarter.refresh(buf_id) end, 'Refresh')
+  au({ 'VimResized', 'BufEnter' }, function() MiniStarter.refresh(buf_id) end, 'Refresh')
   au('CursorMoved', function() H.position_cursor_on_current_item(buf_id) end, 'Position cursor')
 
   local cache_showtabline = vim.o.showtabline
@@ -1365,7 +1347,7 @@ H.apply_buffer_options = function(buf_id)
     'nospell',
     'noswapfile',
     'signcolumn=no',
-    vim.fn.has('nvim-0.9') == 1 and 'statuscolumn=' or '',
+    'statuscolumn=',
     'synmaxcol&',
     -- Differ from 'vim-startify'
     'buftype=nofile',

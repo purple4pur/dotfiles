@@ -1,17 +1,17 @@
 *mini.notify* Show notifications
-*MiniNotify*
 
 MIT License Copyright (c) 2024 Evgeni Chasnovski
 
-==============================================================================
-
+------------------------------------------------------------------------------
+                                                                    *MiniNotify*
 Features:
 
 - Show one or more highlighted notifications in a single floating window.
 
 - Manage notifications (add, update, remove, clear).
 
-- |vim.notify()| wrapper generator (see |MiniNotify.make_notify()|).
+- Custom |vim.notify()| implementation. To adjust, use |MiniNotify.make_notify()|
+  or save-restore `vim.notify` manually after calling |MiniNotify.setup()|.
 
 - Automated show of LSP progress report.
 
@@ -32,22 +32,26 @@ You can override runtime config settings locally to buffer inside
 
 # Comparisons ~
 
-- 'j-hui/fidget.nvim':
+- [j-hui/fidget.nvim](https://github.com/j-hui/fidget.nvim):
     - Basic goals of providing interface for notifications are similar.
     - Has more configuration options and visual effects, while this module
       does not (by design).
 
-- 'rcarriga/nvim-notify':
-    - Similar to 'j-hui/fidget.nvim'.
+- [rcarriga/nvim-notify](https://github.com/rcarriga/nvim-notify):
+    - Similar to `j-hui/fidget.nvim`.
 
 # Highlight groups ~
+*MiniNotify-hl-groups*
 
-* `MiniNotifyBorder` - window border.
-* `MiniNotifyLspProgress` - notifications from built-in LSP progress report.
-* `MiniNotifyNormal` - basic foreground/background highlighting.
-* `MiniNotifyTitle` - window title.
+- `MiniNotifyBorder` - window border.
+- `MiniNotifyLspProgress` - notifications from built-in LSP progress report.
+- `MiniNotifyNormal` - basic foreground/background highlighting.
+- `MiniNotifyTitle` - window title.
 
-To change any highlight group, modify it directly with |:highlight|.
+To change any highlight group, set it directly with |nvim_set_hl()|.
+
+NOTE: |vim.notify()| override after |MiniNotify.make_notify()| uses own
+highlight groups per notification level.
 
 # Disabling ~
 
@@ -82,8 +86,10 @@ Notes:
                           `MiniNotify.setup`({config})
 Module setup
 
-This will also clean the history. Use `MiniNotify.setup(MiniNotify.config)` to
-force clean history while preserving the config.
+This will also:
+- Set |vim.notify()| custom implementation (see |MiniNotify.make_notify()|).
+- Clean the history. Use `MiniNotify.setup(MiniNotify.config)` to force
+  clean history while preserving the config.
 
 Parameters ~
 {config} `(table|nil)` Module config table. See |MiniNotify.config|.
@@ -97,9 +103,7 @@ Usage ~
 ------------------------------------------------------------------------------
                                                              *MiniNotify.config*
                               `MiniNotify.config`
-Module config
-
-Default values:
+Defaults ~
 >lua
   MiniNotify.config = {
     -- Content management
@@ -180,8 +184,8 @@ Example: >lua
 `config.lsp_progress` defines automated notifications for LSP progress.
 It is implemented as a single updating notification per progress with all
 information about it.
-Setting up is done inside |MiniNotify.setup()| via |vim.schedule()|'ed setting
-of |lsp-handler| for "$/progress" method.
+Setting up is done inside |MiniNotify.setup()| via scheduled (|vim.schedule()|)
+setting of |lsp-handler| for "$/progress" method.
 
 `lsp_progress.enable` is a boolean indicating whether LSP progress should
 be shown in notifications. Can be disabled in current session.
@@ -214,16 +218,16 @@ window's buffer already showing notifications). It should have the same
 structure as in |nvim_open_win()|. It has the following default values
 which show notifications in the upper right corner with upper limit on width:
 - `width` is chosen to fit buffer content but at most `window.max_width_share`
-  share of 'columns'.
+  share of |'columns'|.
   To have higher maximum width, use function in `config.window` which computes
   dimensions inside of it (based on buffer content).
-- `height` is chosen to fit buffer content with enabled 'wrap' (assuming
+- `height` is chosen to fit buffer content with enabled |'wrap'| (assuming
   default value of `width`).
-- `anchor`, `col`, and `row` are "NE", 'columns', and 0 or 1 (depending on tabline).
+- `anchor`, `col`, and `row` are "NE", |'columns'|, and 0 or 1 (depending on tabline).
 - `border` is "single".
 - `zindex` is 999 to be as much on top as reasonably possible.
 
-`window.max_width_share` defines maximum window width as a share of 'columns'.
+`window.max_width_share` defines maximum window width as a share of |'columns'|.
 Should be a number between 0 (not included) and 1.
 Default: 0.382.
 
@@ -236,7 +240,7 @@ Example for showing notifications in bottom right corner: >lua
   end
   require('mini.notify').setup({ window = { config = win_config } })
 <
-`window.winblend` defines 'winblend' value for notification window.
+`window.winblend` defines |'winblend'| value for notification window.
 Default: 25.
 
 ------------------------------------------------------------------------------
@@ -250,34 +254,37 @@ this module. General idea is to show notification as soon as safely possible
 
 All notifications set `source = "vim.notify"` in their `data` field.
 
-Examples: >lua
+This is used with default options inside |MiniNotify.setup()|. To adjust,
+call manually after `setup()`. For example, to show errors longer: >lua
 
-  -- Defaults
-  vim.notify = require('mini.notify').make_notify()
+  require('mini.notify').setup()
+  vim.notify = MiniNotify.make_notify({ ERROR = { duration = 10000 } })
+<
+To preserve original `vim.notify`: >lua
 
-  -- Change duration for errors to show them longer
-  local opts = { ERROR = { duration = 10000 } }
-  vim.notify = require('mini.notify').make_notify(opts)
+  local notify_orig = vim.notify
+  require('mini.notify').setup()
+  vim.notify = notify_orig
 <
 Parameters ~
 {opts} `(table|nil)` Options to configure behavior of notification `level`
-  (as in |MiniNotfiy.add()|). Fields are the same as names of `vim.log.levels`
+  (as in |MiniNotify.add()|). Fields are the same as names of `vim.log.levels`
   with values being tables with possible fields:
-    - <duration> `(number)` - duration (in ms) of how much a notification
-      should be shown. If 0 or negative, notification is not shown at all.
-    - <hl_group> `(string)` - highlight group of notification.
+  - <duration> `(number)` - duration (in ms) of how much a notification
+    should be shown. If 0 or negative, notification is not shown at all.
+  - <hl_group> `(string)` - highlight group of notification.
   Only data different to default can be supplied.
 
   Default: >lua
 
-    {
-      ERROR = { duration = 5000, hl_group = 'DiagnosticError'  },
-      WARN  = { duration = 5000, hl_group = 'DiagnosticWarn'   },
-      INFO  = { duration = 5000, hl_group = 'DiagnosticInfo'   },
-      DEBUG = { duration = 0,    hl_group = 'DiagnosticHint'   },
-      TRACE = { duration = 0,    hl_group = 'DiagnosticOk'     },
-      OFF   = { duration = 0,    hl_group = 'MiniNotifyNormal' },
-    }
+  {
+    ERROR = { duration = 5000, hl_group = 'DiagnosticError'  },
+    WARN  = { duration = 5000, hl_group = 'DiagnosticWarn'   },
+    INFO  = { duration = 5000, hl_group = 'DiagnosticInfo'   },
+    DEBUG = { duration = 0,    hl_group = 'DiagnosticHint'   },
+    TRACE = { duration = 0,    hl_group = 'DiagnosticOk'     },
+    OFF   = { duration = 0,    hl_group = 'MiniNotifyNormal' },
+  }
 <
 ------------------------------------------------------------------------------
                                                               *MiniNotify.add()*
@@ -285,7 +292,7 @@ Parameters ~
 Add notification
 
 Add notification to history. It is considered "active" and is shown.
-To hide, call |MiniNotfiy.remove()| with identifier this function returns.
+To hide, call |MiniNotify.remove()| with identifier this function returns.
 
 Example: >lua
 

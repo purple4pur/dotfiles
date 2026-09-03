@@ -1,10 +1,7 @@
 --- *mini.doc* Generate Neovim help files
---- *MiniDoc*
 ---
 --- MIT License Copyright (c) 2022 Evgeni Chasnovski
----
---- ==============================================================================
----
+
 --- Key design ideas:
 --- - Keep documentation next to code by writing EmmyLua-like annotation
 ---   comments. They will be parsed as is, so formatting should follow built-in
@@ -47,29 +44,30 @@
 --- # Tips ~
 ---
 --- - Some settings tips that might make writing annotation comments easier:
----     - Set up appropriate 'comments' for `lua` file type to respect
+---     - Set up appropriate |'comments'| for `lua` file type to respect
 ---       EmmyLua-like's `---` comment leader. Value `:---,:--` seems to work.
----     - Set up appropriate 'formatoptions' (see also |fo-table|). Consider
+---     - Set up appropriate |'formatoptions'| (see also |fo-table|). Consider
 ---       adding `j`, `n`, `q`, and `r` flags.
----     - Set up appropriate 'formatlistpat' to help auto-formatting lists (if
----       `n` flag is added to 'formatoptions'). One suggestion (not entirely
----       ideal) is a value `^\s*[0-9\-\+\*]\+[\.\)]*\s\+`. This reads as 'at
+---     - Set up appropriate |'formatlistpat'| to help auto-formatting lists (if
+---       `n` flag is added to |'formatoptions'|). One suggestion (not entirely
+---       ideal) is a value `^\s*[0-9\-\+\*]\+[\.\)]*\s\+`. This reads as "at
 ---       least one special character (digit, `-`, `+`, `*`) possibly followed
 ---       by some punctuation (`.` or `)`) followed by at least one space is a
----       start of list item'.
+---       start of list item".
 --- - Probably one of the most reliable resources for what is considered to be
 ---   best practice when using this module is this whole plugin. Look at source
 ---   code for the reference.
 ---
 --- # Comparisons ~
 ---
---- - 'tjdevries/tree-sitter-lua':
+--- - [tjdevries/tree-sitter-lua](https://github.com/tjdevries/tree-sitter-lua):
 ---     - Its key design is to use treesitter grammar to parse both Lua code
 ---       and annotation comments. This makes it not easy to install,
 ---       customize, and support.
 ---     - It takes more care about automating output formatting (like auto
 ---       indentation and line width fit). This plugin leans more to manual
 ---       formatting with option to supply customized post-processing hooks.
+---@tag MiniDoc
 
 --- Data structures
 ---
@@ -77,7 +75,7 @@
 --- some fields (keys with data values) and methods (keys with function
 --- values):
 --- - `Section structure` is an array of string lines describing one aspect
----   (determined by section id like '@param', '@return', '@text') of an
+---   (determined by section id like `@param`, `@return`, `@text`) of an
 ---   annotation subject. All lines will be used directly in help file.
 --- - `Block structure` is an array of sections describing one annotation
 ---   subject like function, table, concept.
@@ -131,9 +129,9 @@
 --- - `File`:
 ---     - `path` - absolute path to a file (`''` if not generated from file).
 --- - `Doc`:
----     - `input` - array of input file paths (as in |MiniDoc.generate|).
----     - `output` - output path (as in |MiniDoc.generate|).
----     - `config` - configuration used (as in |MiniDoc.generate|).
+---     - `input` - array of input file paths (as in |MiniDoc.generate()|).
+---     - `output` - output path (as in |MiniDoc.generate()|).
+---     - `config` - configuration used (as in |MiniDoc.generate()|).
 ---@tag MiniDoc-data-structures
 
 -- Module definition ==========================================================
@@ -150,15 +148,6 @@ local H = {}
 ---   require('mini.doc').setup({}) -- replace {} with your config table
 --- <
 MiniDoc.setup = function(config)
-  -- TODO: Remove after Neovim=0.8 support is dropped
-  if vim.fn.has('nvim-0.9') == 0 then
-    vim.notify(
-      '(mini.doc) Neovim<0.9 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniDoc = MiniDoc
 
@@ -169,9 +158,7 @@ MiniDoc.setup = function(config)
   H.apply_config(config)
 end
 
---- Module config
----
---- Default values:
+--- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 ---@text # Notes ~
 ---
@@ -400,18 +387,21 @@ MiniDoc.config = {
       end, d)
 
       -- Insert modeline
-      d:insert(
-        H.as_struct(
-          { H.as_struct({ H.as_struct({ ' vim:tw=78:ts=8:noet:ft=help:norl:' }, 'section') }, 'block') },
-          'file'
-        )
-      )
+      --typos: ignore
+      local section = H.as_struct({ ' vim:tw=78:ts=8:noet:ft=help:norl:' }, 'section')
+      d:insert(H.as_struct({ H.as_struct({ section }, 'block') }, 'file'))
     end,
     --minidoc_replace_end
 
     -- Applied before output file is written. Takes lines array as argument.
-    --minidoc_replace_start write_pre = --<function: currently returns its input>,
-    write_pre = function(l) return l end,
+    --minidoc_replace_start write_pre = --<function: removes delimiters at the top>,
+    write_pre = function(l)
+      -- Remove first two lines with `======` and `------` delimiters to comply
+      -- with `:h local-additions` template
+      if l[1]:find('^=+$') ~= nil then table.remove(l, 1) end
+      if l[1]:find('^-+$') ~= nil then table.remove(l, 1) end
+      return l
+    end,
     --minidoc_replace_end
 
     -- Applied after output help file is written. Takes doc as argument.
@@ -473,13 +463,13 @@ MiniDoc.current = { aliases = {}, toc = {} }
 ---   cases. It intentionally works only if first line after block has no
 ---   indentation and contains all necessary information to determine if
 ---   inference should happen.
---- - Hooks for sections describing some "variable-like" object ('@class',
----   '@field', '@param') automatically enclose first word in '{}'.
---- - Hooks for sections which supposed to have "type-like" data ('@field',
----   '@param', '@return', '@type') automatically enclose *first found*
----   "type-like" word and its neighbor characters in '`(<type>)`' (expect
----   false positives). Algorithm is far from being 100% correct, but seems to
----   work with present allowed type annotation. For allowed types see
+--- - Hooks for sections describing some "variable-like" object (`@class`,
+---   `@field`, `@param`) automatically enclose first word in `{}`.
+--- - Hooks for sections which supposed to have "type-like" data (`@field`,
+---   `@param`, `@return`, `@type`) automatically enclose FIRST FOUND type-like
+---   word and its neighbor characters in `(<type>)` (expect false positives).
+---   Algorithm is far from being 100% correct, but seems to work with present
+---   allowed type annotation. For allowed types see
 ---   https://github.com/sumneko/lua-language-server/wiki/EmmyLua-Annotations#types-and-type
 ---   or, better yet, look in source code of this module.
 --- - Automated creation of table of contents (TOC) is done in the following way:
@@ -517,7 +507,7 @@ MiniDoc.default_hooks = MiniDoc.config.hooks
 ---     `@text`). All subsequent lines without captured section id go into
 ---     "current section".
 --- - Apply structure hooks (they should modify its input in place, which is
----   possible due to 'table nature' of all inputs):
+---   possible due to "table nature" of all inputs):
 ---     - Each block is processed by `MiniDoc.config.hooks.block_pre`. This is a
 ---       designated step for auto-generation of sections from described
 ---       annotation subject (like sections with id `@tag`, `@type`).
@@ -550,9 +540,9 @@ MiniDoc.default_hooks = MiniDoc.config.hooks
 --- # Project specific script ~
 ---
 --- If all arguments have default `nil` values, first there is an attempt to
---- source project specific script. This is basically a `luafile
---- <MiniDoc.config.script_path>` with current Lua runtime while caching and
---- restoring current `MiniDoc.config`. Its successful execution stops any
+--- source project specific script. This is basically a
+--- `luafile <MiniDoc.config.script_path>` with current Lua runtime while caching
+--- and restoring current `MiniDoc.config`. Its successful execution stops any
 --- further generation actions while error means proceeding generation as if no
 --- script was found.
 ---
@@ -561,11 +551,11 @@ MiniDoc.default_hooks = MiniDoc.config.hooks
 --- or without arguments).
 ---
 ---@param input table|nil Array of file paths which will be processed in supplied
----   order. Default: all '.lua' files from current directory following by all
----   such files in these subdirectories: 'lua/', 'after/', 'colors/'. Note:
----   any 'init.lua' file is placed before other files from the same directory.
+---   order. Default: all `.lua` files from current directory following by all
+---   such files in these subdirectories: `lua/`, `after/`, `colors/`. Note:
+---   any `init.lua` file is placed before other files from the same directory.
 ---@param output string|nil Path for output help file. Default:
----   `doc/<current_directory>.txt` (designed to be used for generating help
+---   `doc/<current-directory>.txt` (designed to be used for generating help
 ---   file for plugin).
 ---@param config table|nil Configuration overriding parts of |MiniDoc.config|.
 ---
@@ -701,7 +691,7 @@ H.default_config = vim.deepcopy(MiniDoc.config)
 -- description with '\n' separating output lines.
 H.alias_registry = {}
 
---stylua: ignore start
+--stylua: ignore
 H.pattern_sets = {
   -- Patterns for working with afterlines. At the moment deliberately crafted
   -- to work only on first line without indent.
@@ -734,7 +724,6 @@ H.pattern_sets = {
     '[%a][%w_%.]*', -- Allow any class as a type
   },
 }
---stylua: ignore end
 
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
@@ -1352,7 +1341,7 @@ end
 H.full_path = function(path) return vim.fn.resolve(vim.fn.fnamemodify(path, ':p')) end
 
 H.is_array_of = function(x, predicate)
-  if not H.islist(x) then return false end
+  if not vim.islist(x) then return false end
   for _, v in ipairs(x) do
     if not predicate(v) then return false end
   end
@@ -1361,9 +1350,6 @@ end
 
 H.is_string = function(x) return type(x) == 'string' end
 
--- TODO: Remove after compatibility with Neovim=0.9 is dropped
-H.islist = vim.fn.has('nvim-0.10') == 1 and vim.islist or vim.tbl_islist
-H.tbl_flatten = vim.fn.has('nvim-0.10') == 1 and function(x) return vim.iter(x):flatten(math.huge):totable() end
-  or vim.tbl_flatten
+H.tbl_flatten = function(x) return vim.iter(x):flatten(math.huge):totable() end
 
 return MiniDoc

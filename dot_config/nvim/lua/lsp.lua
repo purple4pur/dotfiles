@@ -1,5 +1,4 @@
 vim.opt.runtimepath:append(vim.fn.stdpath('config') .. '/lua/nvim-lspconfig')
-local lspconfig = require('lspconfig')
 
 vim.diagnostic.config({
     signs = false,
@@ -24,30 +23,29 @@ vim.api.nvim_create_autocmd('LspAttach', {
     end,
 })
 
---lspconfig.lua_ls.setup({
---    -- reference: https://github.com/neovim/nvim-lspconfig/blob/master/doc/server_configurations.md#lua_ls
+--vim.lsp.config('lua_ls', {
+--    -- reference: https://github.com/neovim/nvim-lspconfig/blob/master/lsp/lua_ls.lua
 --    on_init = function(client)
---        local path = client.workspace_folders[1].name
---        if not vim.loop.fs_stat(path..'/.luarc.json') and not vim.loop.fs_stat(path..'/.luarc.jsonc') then
---            client.config.settings = vim.tbl_deep_extend('force', client.config.settings, {
---                Lua = {
+--        if client.workspace_folders then
+--            local path = client.workspace_folders[1].name
+--            if not vim.uv.fs_stat(path .. '/.luarc.json') and not vim.uv.fs_stat(path .. '/.luarc.jsonc') then
+--                client.config.settings.Lua = vim.tbl_deep_extend('force', client.config.settings.Lua or {}, {
 --                    runtime = { version = 'LuaJIT' },
 --                    workspace = {
 --                        checkThirdParty = false,
 --                        library = {
---                            vim.env.VIMRUNTIME
+--                            vim.env.VIMRUNTIME,
 --                        },
---                    }
---                }
---            })
---            client.notify("workspace/didChangeConfiguration", { settings = client.config.settings })
+--                    },
+--                })
+--            end
 --        end
---        return true
---    end
+--    end,
 --})
+--vim.lsp.enable('lua_ls')
 
---lspconfig.verible.setup({ single_file_support = true })
+--vim.lsp.enable('verible')
 
---lspconfig.veridian.setup({ single_file_support = true })
+--vim.lsp.enable('veridian')
 
---lspconfig.zls.setup({})
+--vim.lsp.enable('zls')

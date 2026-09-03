@@ -1,10 +1,7 @@
 --- *mini.git* Git integration
---- *MiniGit*
 ---
 --- MIT License Copyright (c) 2024 Evgeni Chasnovski
----
---- ==============================================================================
----
+
 --- Features:
 ---
 --- - Automated tracking of Git related data: root path, status, HEAD, etc.
@@ -24,7 +21,7 @@
 ---
 --- - Replace fully featured Git client. Rule of thumb: if feature does not rely
 ---   on a state of current Neovim (opened buffers, etc.), it is out of scope.
----   For more functionality, use either |MiniDiff| or fully featured Git client.
+---   For more functionality, use either |mini.diff| or fully featured Git client.
 ---
 --- Sources with more details:
 --- - |:Git|
@@ -42,24 +39,24 @@
 ---
 --- # Comparisons ~
 ---
---- - 'tpope/vim-fugitive':
+--- - [tpope/vim-fugitive](https://github.com/tpope/vim-fugitive):
 ---     - Mostly a dedicated Git client, while this module is not (by design).
 ---     - Provides buffer-local Git data only through fixed statusline component,
 ---       while this module has richer data in the form of a Lua table.
----     - Both provide |:Git| command with 'vim-fugitive' treating some cases
+---     - Both provide |:Git| command with `vim-fugitive` treating some cases
 ---       extra specially (like `:Git blame`, etc.), while this module mostly
 ---       treats all cases the same. See |MiniGit-examples| for how they can be
 ---       manually customized.
 ---       Also this module provides slightly different (usually richer)
 ---       completion suggestions.
 ---
---- - 'NeogitOrg/neogit':
----     - Similar to 'tpope/vim-fugitive', but without `:Git` command.
+--- - [NeogitOrg/neogit](https://github.com/NeogitOrg/neogit):
+---     - Similar to `tpope/vim-fugitive`, but without `:Git` command.
 ---
---- - 'lewis6991/gitsigns.nvim':
+--- - [lewis6991/gitsigns.nvim](https://github.com/lewis6991/gitsigns.nvim):
 ---     - Provides buffer-local Git data with emphasis on granular diff status,
 ---       while this module is more oriented towards repository and file level
----       data (root, HEAD, file status, etc.). Use |MiniDiff| for diff tracking.
+---       data (root, HEAD, file status, etc.). Use |mini.diff| for diff tracking.
 ---
 --- # Disabling ~
 ---
@@ -68,6 +65,7 @@
 --- different scenarios and customization intentions, writing exact rules for
 --- disabling module's functionality is left to user.
 --- See |mini.nvim-disabling-recipes| for common recipes.
+---@tag MiniGit
 
 --- # Statusline component ~
 ---
@@ -145,7 +143,7 @@
 ---   determined automatically based on the data Git itself provides.
 ---   Split window is made current after command execution.
 ---
----   Use split-related |command-modifiers| (|:vertical|, |:horizontal|, or |:tab|)
+---   Use split-related |:command-modifiers| (|:vertical|, |:horizontal|, or |:tab|)
 ---   to force output in a particular type of split. Default split direction is
 ---   controlled by `command.split` in |MiniGit.config|.
 ---
@@ -182,7 +180,9 @@
 ---   Like `:Git commit -m Hello\ world` and not `:Git commit -m 'Hello world'`
 ---   (which treats `'Hello` and `world'` as separate arguments).
 ---
----                                                         *MiniGit-command-events*
+--- # Events ~
+--- *MiniGit-command-events*
+---
 --- There are several `User` events triggered during command execution:
 ---
 --- - `MiniGitCommandDone` - after command is done executing. For Lua callbacks it
@@ -190,23 +190,22 @@
 ---     - <cmd_input> `(table)` - structured data about executed command.
 ---       Has same structure as Lua function input in |nvim_create_user_command()|.
 ---     - <cwd> `(string)` - directory path inside which Git command was executed.
----     - `<exit_code>` `(number)` - exit code of CLI process.
----     - `<git_command>` `(table)` - array with arguments of full executed command.
----     - `<git_subcommand>` `(string)` - detected Git subcommand (like "log", etc.).
----     - `<stderr>` `(string)` - `stderr` process output.
----     - `<stdout>` `(string)` - `stdout` process output.
+---     - <exit_code> `(number)` - exit code of CLI process.
+---     - <git_command> `(table)` - array with arguments of full executed command.
+---     - <git_subcommand> `(string)` - detected Git subcommand (like "log", etc.).
+---     - <stderr> `(string)` - `stderr` process output.
+---     - <stdout> `(string)` - `stdout` process output.
 ---
 --- - `MiniGitCommandSplit` - after command showed its output in a split. Triggered
 ---   after `MiniGitCommandDone` and provides similar `data` table with extra fields:
----     - `<win_source>` `(number)` - window identifier of "source" window (current at
+---     - <win_source> `(number)` - window identifier of "source" window (current at
 ---       the moment before command execution).
----     - `<win_stdout>` `(number)` - window identifier of command output.
----@tag MiniGit-command
+---     - <win_stdout> `(number)` - window identifier of command output.
 ---@tag :Git
 
 ---@alias __git_buf_id number Target buffer identifier. Default: 0 for current buffer.
 ---@alias __git_split_field <split> `(string)` - split direction. One of "horizontal", "vertical",
----     "tab", or "auto" (default). Value "auto" uses |:vertical| if only 'mini.git'
+---     "tab", or "auto" (default). Value "auto" uses |:vertical| if only |mini.git|
 ---     buffers are shown in the tabpage and |:tab| otherwise.
 
 ---@diagnostic disable:undefined-field
@@ -234,15 +233,6 @@ local H = {}
 ---   require('mini.git').setup({}) -- replace {} with your config table
 --- <
 MiniGit.setup = function(config)
-  -- TODO: Remove after Neovim=0.8 support is dropped
-  if vim.fn.has('nvim-0.9') == 0 then
-    vim.notify(
-      '(mini.git) Neovim<0.9 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniGit = MiniGit
 
@@ -268,9 +258,7 @@ MiniGit.setup = function(config)
 end
 
 --stylua: ignore
---- Module config
----
---- Default values:
+--- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 ---@text # Job ~
 ---
@@ -287,7 +275,7 @@ end
 ---
 --- `command.split` defines default split direction for |:Git| command output. Can be
 --- one of "horizontal", "vertical", "tab", or "auto". Value "auto" uses |:vertical|
---- if only 'mini.git' buffers are shown in the tabpage and |:tab| otherwise.
+--- if only |mini.git| buffers are shown in the tabpage and |:tab| otherwise.
 --- Default: "auto".
 MiniGit.config = {
   -- General CLI execution
@@ -398,16 +386,15 @@ MiniGit.show_diff_source = function(opts)
       lines = H.git_cli_output(args, cwd)
     end
     if #lines == 0 and not is_worktree then
-      return H.notify('Can not show ' .. path .. 'at commit ' .. commit, 'WARN')
+      return H.notify('Can not show ' .. path .. ' at commit ' .. commit, 'WARN')
     end
     H.show_in_split(mods, lines, 'show', table.concat(args, ' '))
   end
 
   local has_before_shown = false
   if target ~= 'after' then
-    -- "Before" file can be absend if hunk is from newly added file
     if src.path_before == nil then
-      H.notify('Could not find "before" file', 'WARN')
+      H.notify('No "before" as file was created', 'WARN')
     else
       show(src.commit_before, src.path_before, split)
       vim.api.nvim_win_set_cursor(0, { src.lnum_before, 0 })
@@ -416,9 +403,13 @@ MiniGit.show_diff_source = function(opts)
   end
 
   if target ~= 'before' then
-    local mods_after = has_before_shown and 'belowright vertical' or split
-    show(src.commit_after, src.path_after, mods_after)
-    vim.api.nvim_win_set_cursor(0, { src.lnum_after, 0 })
+    if src.path_after == nil then
+      H.notify('No "after" as file was deleted', 'WARN')
+    else
+      local mods_after = has_before_shown and 'belowright vertical' or split
+      show(src.commit_after, src.path_after, mods_after)
+      vim.api.nvim_win_set_cursor(0, { src.lnum_after, 0 })
+    end
   end
 end
 
@@ -429,7 +420,7 @@ end
 ---
 --- Notes:
 --- - Works well with |MiniGit.diff_foldexpr()|.
---- - Does not work if there are uncommited changes, as there is no easy way to
+--- - Does not work if there are uncommitted changes, as there is no easy way to
 ---   compute effective range line numbers.
 ---
 ---@param opts table|nil Options. Possible fields:
@@ -444,7 +435,7 @@ MiniGit.show_range_history = function(opts)
   opts = vim.tbl_deep_extend('force', default_opts, opts or {})
   local line_start, line_end = H.normalize_range_lines(opts.line_start, opts.line_end)
   local log_args = opts.log_args or {}
-  if not H.islist(log_args) then H.error('`opts.log_args` should be an array.') end
+  if not vim.islist(log_args) then H.error('`opts.log_args` should be an array.') end
   local split = H.normalize_split_opt(opts.split, 'opts.split')
 
   -- Construct `:Git log` command that works both with regular files and
@@ -579,7 +570,7 @@ end
 ---@return table|nil Table with buffer Git data or `nil` if buffer is not enabled.
 ---   If the file is not part of Git repo, table will be empty.
 ---   Table has the following fields:
----   - <repo> `(string)` - full path to '.git' directory.
+---   - <repo> `(string)` - full path to `.git` directory.
 ---   - <root> `(string)` - full path to worktree root.
 ---   - <head> `(string)` - full commit of current HEAD.
 ---   - <head_name> `(string)` - short name of current HEAD (like "master").
@@ -619,7 +610,7 @@ H.cache = {}
 -- - <buffers> - map of buffers which should are part of repo.
 H.repos = {}
 
--- Termporary file used as config for `GIT_EDITOR`
+-- Temporary file used as config for `GIT_EDITOR`
 H.git_editor_config = nil
 
 -- Data about supported Git subcommands. Initialized lazily. Fields:
@@ -815,9 +806,7 @@ H.ensure_git_editor = function(mods)
     H.skip_timeout, H.skip_sync = true, true
     local cleanup = function()
       local _, channel = pcall(vim.fn.sockconnect, 'pipe', servername, { rpc = true })
-      local has_exec2 = vim.fn.has('nvim-0.9') == 1
-      local method, opts = has_exec2 and 'nvim_exec2' or 'nvim_exec', has_exec2 and {} or false
-      pcall(vim.rpcnotify, channel, method, 'quitall!', opts)
+      pcall(vim.rpcnotify, channel, 'nvim_exec2', 'quitall!', {})
       H.skip_timeout, H.skip_sync = false, false
     end
 
@@ -926,7 +915,7 @@ H.command_get_complete_candidates = function(line, col, base)
   local cwd = H.get_git_cwd()
 
   -- Determine command candidates:
-  -- - Commannd options if complete base starts with "-".
+  -- - Command options if complete base starts with "-".
   -- - Paths if after explicit "--".
   -- - Git commands if there is none fully formed yet or cursor is at the end
   --   of the command (to also suggest subcommands).
@@ -967,7 +956,7 @@ H.command_complete_option = function(command)
   if #lines == 0 then return {} end
   -- - On some systems (like Mac), output still might contain formatting
   --   sequences, like "a\ba" and "_\ba" meaning bold and italic.
-  --   See https://github.com/echasnovski/mini.nvim/issues/918
+  --   See https://github.com/nvim-mini/mini.nvim/issues/918
   lines = vim.tbl_map(function(l) return l:gsub('.\b', '') end, lines)
 
   -- Construct non-duplicating candidates by parsing lines of help page
@@ -976,15 +965,17 @@ H.command_complete_option = function(command)
   -- Options are assumed to be listed inside "OPTIONS" or "XXX OPTIONS" (like
   -- "MODE OPTIONS" of `git rebase`) section on dedicated lines. Whether a line
   -- contains only options is determined heuristically: it is assumed to start
-  -- exactly with "       -" indicating proper indent for subsection start.
+  -- with spaces ending with '-', indicating proper indent for subsection start.
+  -- The amount of spaces can differ per system.
   -- Known not parsable options:
   -- - `git reset <mode>` (--soft, --hard, etc.): not listed in "OPTIONS".
-  -- - All -<number> options, as they are not really completeable.
-  local is_in_options_section = false
+  -- - All -<number> options, as they are not really completable.
+  local is_in_options_section, prefix = false, nil
   for _, l in ipairs(lines) do
     if is_in_options_section and l:find('^%u[%u ]+$') ~= nil then is_in_options_section = false end
     if not is_in_options_section and l:find('^%u?[%u ]*OPTIONS$') ~= nil then is_in_options_section = true end
-    if is_in_options_section and l:find('^       %-') ~= nil then H.parse_options(candidates_map, l) end
+    if is_in_options_section and prefix == nil then prefix = l:match('^ +%-') end
+    if is_in_options_section and prefix ~= nil and vim.startswith(l, prefix) then H.parse_options(candidates_map, l) end
   end
 
   -- Finalize candidates. Should not contain "almost duplicates".
@@ -1242,10 +1233,10 @@ H.setup_buf_behavior = function(buf_id)
     on_reload = function()
       local buf_cache = H.cache[buf_id]
       if buf_cache == nil or buf_cache.root == nil then return end
-      -- Don't upate repo/root as it is tracked in 'BufFilePost' autocommand
+      -- Don't update repo/root as it is tracked in 'BufFilePost' autocommand
       H.update_git_head(buf_cache.root, { buf_id })
       H.update_git_in_progress(buf_cache.repo, { buf_id })
-      -- Don't upate status as it is tracked in file watcher
+      -- Don't update status as it is tracked in file watcher
     end,
 
     -- Called when buffer is unloaded from memory (`:h nvim_buf_detach_event`),
@@ -1316,7 +1307,7 @@ H.setup_repo_watch = function(buf_id, repo)
     local on_change = vim.schedule_wrap(function() H.on_repo_change(repo) end)
     local watch = function(_, filename, _)
       -- Ignore temporary changes
-      if vim.endswith(filename, 'lock') then return end
+      if vim.endswith(filename or '', 'lock') then return end
 
       -- Debounce to not overload during incremental staging (like in script)
       timer:stop()
@@ -1425,7 +1416,13 @@ H.update_git_in_progress = function(repo, bufs)
 end
 
 H.update_git_status = function(root, bufs)
-  local command = H.git_cmd({ 'status', '--verbose', '--untracked-files=all', '--ignored', '--porcelain', '-z', '--' })
+  --stylua: ignore
+  local command = H.git_cmd({
+    -- NOTE: Use `--no-optional-locks` to reduce conflicts with other Git tasks
+    '--no-optional-locks', 'status',
+    '--verbose', '--untracked-files=all', '--ignored', '--porcelain', '-z',
+    '--',
+  })
   local root_len, path_data = string.len(root), {}
   for _, buf_id in ipairs(bufs) do
     -- Use paths relative to the root as in `git status --porcelain` output
@@ -1499,7 +1496,8 @@ H.diff_pos_to_source = function()
   -- Try fall back to inferring target commits from 'mini.git' buffer name
   if res.commit_before == nil or res.commit_after == nil then H.diff_parse_bufname(res) end
 
-  local all_present = res.lnum_after and res.path_after and res.commit_after
+  local all_present = (res.lnum_before and res.path_before and res.commit_before)
+    or (res.lnum_after and res.path_after and res.commit_after)
   local is_in_order = commit_lnum <= paths_lnum and paths_lnum <= hunk_lnum
   if not (all_present and is_in_order) then return nil end
 
@@ -1507,23 +1505,35 @@ H.diff_pos_to_source = function()
 end
 
 H.diff_parse_paths = function(out, lines, lnum)
-  local pattern_before, pattern_after = '^%-%-%- a/(.*)$', '^%+%+%+ b/(.*)$'
+  -- NOTE: with `diff.mnemonicPrefix=true` source and destination prefixes can
+  -- be not only `a`/`b`, but other characters or none (if added/deleted file)
+  local pattern_before, pattern_after = '^%-%-%- ([acio]?)/(.*)$', '^%+%+%+ ([biw]?)/(.*)$'
 
   -- Allow placing cursor directly on path defining lines
   local cur_line = lines[lnum]
-  local path_before, path_after = string.match(cur_line, pattern_before), string.match(cur_line, pattern_after)
-  if path_before ~= nil or path_after ~= nil then
-    out.path_before = path_before or string.match(lines[lnum - 1] or '', pattern_before)
-    out.path_after = path_after or string.match(lines[lnum + 1] or '', pattern_after)
+  local prefix_before, path_before = string.match(cur_line, pattern_before)
+  local prefix_after, path_after = string.match(cur_line, pattern_after)
+  if path_before ~= nil then
+    out.path_before = path_before
+    prefix_after, out.path_after = string.match(lines[lnum + 1] or '', pattern_after)
+    out.lnum_before, out.lnum_after = 1, 1
+  elseif path_after ~= nil then
+    prefix_before, out.path_before = string.match(lines[lnum - 1] or '', pattern_before)
+    out.path_after = path_after
     out.lnum_before, out.lnum_after = 1, 1
   else
     -- Iterate lines upward to find path patterns
     while out.path_after == nil and lnum > 0 do
-      out.path_after = string.match(lines[lnum] or '', pattern_after)
+      prefix_after, out.path_after = string.match(lines[lnum] or '', pattern_after)
       lnum = lnum - 1
     end
-    out.path_before = string.match(lines[lnum] or '', pattern_before)
+    prefix_before, out.path_before = string.match(lines[lnum] or '', pattern_before)
   end
+
+  -- - Don't treat '--- /dev/null' and '+++ /dev/null' matches as paths
+  --   Need to check prefix to work in cases like '--- a/dev/null'
+  if prefix_before == '' then out.path_before = nil end
+  if prefix_after == '' then out.path_after = nil end
 
   return lnum
 end
@@ -1707,9 +1717,6 @@ H.expandcmd = function(x)
   local ok, res = pcall(vim.fn.expandcmd, x)
   return ok and res or x
 end
-
--- TODO: Remove after compatibility with Neovim=0.9 is dropped
-H.islist = vim.fn.has('nvim-0.10') == 1 and vim.islist or vim.tbl_islist
 
 -- Try getting buffer's full real path (after resolving symlinks)
 H.get_buf_realpath = function(buf_id) return vim.loop.fs_realpath(vim.api.nvim_buf_get_name(buf_id)) or '' end

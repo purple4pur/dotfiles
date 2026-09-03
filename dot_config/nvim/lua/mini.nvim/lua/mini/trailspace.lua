@@ -1,10 +1,7 @@
 --- *mini.trailspace* Trailspace (highlight and remove)
---- *MiniTrailspace*
 ---
 --- MIT License Copyright (c) 2021 Evgeni Chasnovski
----
---- ==============================================================================
----
+
 --- Features:
 --- - Highlighting is done only in modifiable buffer by default, only in Normal
 ---   mode, and stops in Insert mode and when leaving window.
@@ -27,10 +24,11 @@
 --- `MiniTrailspace.config`. See |mini.nvim-buffer-local-config| for more details.
 ---
 --- # Highlight groups ~
+--- *MiniTrailspace-hl-groups*
 ---
---- * `MiniTrailspace` - highlight group for trailing space.
+--- - `MiniTrailspace` - highlight group for trailing space.
 ---
---- To change any highlight group, modify it directly with |:highlight|.
+--- To change any highlight group, set it directly with |nvim_set_hl()|.
 ---
 --- # Disabling ~
 ---
@@ -40,7 +38,8 @@
 --- rules for disabling module's functionality is left to user. See
 --- |mini.nvim-disabling-recipes| for common recipes. Note: after disabling
 --- there might be highlighting left; it will be removed after next
---- highlighting update (see |events| and `MiniTrailspace` |augroup|).
+--- highlighting update (see |events| and `MiniTrailspace` |:augroup|).
+---@tag MiniTrailspace
 
 -- Module definition ==========================================================
 local MiniTrailspace = {}
@@ -56,15 +55,6 @@ local H = {}
 ---   require('mini.trailspace').setup({}) -- replace {} with your config table
 --- <
 MiniTrailspace.setup = function(config)
-  -- TODO: Remove after Neovim=0.8 support is dropped
-  if vim.fn.has('nvim-0.9') == 0 then
-    vim.notify(
-      '(mini.trailspace) Neovim<0.9 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniTrailspace = MiniTrailspace
 
@@ -84,9 +74,7 @@ MiniTrailspace.setup = function(config)
   vim.defer_fn(MiniTrailspace.highlight, 0)
 end
 
---- Module config
----
---- Default values:
+--- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 MiniTrailspace.config = {
   -- Highlight only in normal buffers (ones with empty 'buftype'). This is

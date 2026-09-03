@@ -1,10 +1,7 @@
 --- *mini.hipatterns* Highlight patterns in text
---- *MiniHipatterns*
 ---
 --- MIT License Copyright (c) 2023 Evgeni Chasnovski
----
---- ==============================================================================
----
+
 --- Features:
 --- - Highlight text with configurable patterns and highlight groups (can be
 ---   string or callable).
@@ -31,9 +28,9 @@
 ---     - Manually call |MiniHipatterns.update()|.
 ---
 --- - If you experience flicker when typing near highlighted pattern in Insert
----   mode, it might be due to `delay` configuration of 'mini.completion' or
+---   mode, it might be due to `delay` configuration of |mini.completion| or
 ---   using built-in completion.
----   For better experience with 'mini.completion', make sure that its
+---   For better experience with |mini.completion|, make sure that its
 ---   `delay.completion` is less than this module's `delay.text_change` (which
 ---   it is by default).
 ---   The reason for this is (currently unresolvable) limitations of Neovim's
@@ -48,7 +45,7 @@
 ---
 --- - Globally with `require('mini.hipatterns').setup({})` (replace `{}` with
 ---   your `config` table). This will auto-enable highlighting in "normal"
----   buffers (see 'buftype'). Use |MiniHipatterns.enable()| to manually enable
+---   buffers (see |'buftype'|). Use |MiniHipatterns.enable()| to manually enable
 ---   in other buffers.
 ---   It will also create global Lua table `MiniHipatterns` which you can use
 ---   for scripting or manually (with `:lua MiniHipatterns.*`).
@@ -62,34 +59,35 @@
 ---
 --- # Comparisons ~
 ---
---- - 'folke/todo-comments':
+--- - [folke/todo-comments](https://github.com/folke/todo-comments):
 ---     - Oriented for "TODO", "NOTE", "FIXME" like patterns, while this module
 ---       can work with any Lua patterns and computable highlight groups.
 ---     - Has functionality beyond text highlighting (sign placing,
 ---       "telescope.nvim" extension, etc.), while this module only focuses on
 ---       highlighting text.
---- - 'folke/paint.nvim':
+--- - [folke/paint.nvim](https://github.com/folke/paint.nvim):
 ---     - Mostly similar to this module, but with slightly less functionality,
 ---       such as computed pattern and highlight group, asynchronous delay, etc.
---- - 'NvChad/nvim-colorizer.lua':
+--- - [NvChad/nvim-colorizer.lua](https://github.com/NvChad/nvim-colorizer.lua):
 ---     - Oriented for color highlighting, while this module can work with any
 ---       Lua patterns and computable highlight groups.
 ---     - Has more built-in color spaces to highlight, while this module out of
 ---       the box provides only hex color highlighting
 ---       (see |MiniHipatterns.gen_highlighter.hex_color()|). Other types are
 ---       also possible to implement.
---- - 'uga-rosa/ccc.nvim':
+--- - [uga-rosa/ccc.nvim](https://github.com/uga-rosa/ccc.nvim):
 ---     - Has more than color highlighting functionality, which is compared to
----       this module in the same way as 'NvChad/nvim-colorizer.lua'.
+---       this module in the same way as `NvChad/nvim-colorizer.lua`.
 ---
 --- # Highlight groups ~
+--- *MiniHipatterns-hl-groups*
 ---
---- * `MiniHipatternsFixme` - suggested group to use for `FIXME`-like patterns.
---- * `MiniHipatternsHack` - suggested group to use for `HACK`-like patterns.
---- * `MiniHipatternsTodo` - suggested group to use for `TODO`-like patterns.
---- * `MiniHipatternsNote` - suggested group to use for `NOTE`-like patterns.
+--- - `MiniHipatternsFixme` - suggested group to use for `FIXME`-like patterns.
+--- - `MiniHipatternsHack` - suggested group to use for `HACK`-like patterns.
+--- - `MiniHipatternsTodo` - suggested group to use for `TODO`-like patterns.
+--- - `MiniHipatternsNote` - suggested group to use for `NOTE`-like patterns.
 ---
---- To change any highlight group, modify it directly with |:highlight|.
+--- To change any highlight group, set it directly with |nvim_set_hl()|.
 ---
 --- # Disabling ~
 ---
@@ -102,6 +100,7 @@
 --- Considering high number of different scenarios and customization
 --- intentions, writing exact rules for disabling module's functionality is
 --- left to user. See |mini.nvim-disabling-recipes| for common recipes.
+---@tag MiniHipatterns
 
 --- # Common configuration examples ~
 ---
@@ -118,8 +117,8 @@
 --- <
 --- - To match only when pattern appears as a standalone word, use frontier
 ---   patterns `%f`. For example, instead of `'TODO'` pattern use
----   `'%f[%w]()TODO()%f[%W]'`. In this case, for example, 'TODOING' or 'MYTODO'
----   won't match, but 'TODO' and 'TODO:' will.
+---   `'%f[%w]()TODO()%f[%W]'`. In this case, for example, `TODOING` or `MYTODO`
+---   won't match, but `TODO` and `TODO:` will.
 ---
 --- - Color hex (like `#rrggbb`) highlighting: >lua
 ---
@@ -149,7 +148,7 @@
 ---     },
 ---   })
 --- <
---- - Trailing whitespace (if don't want to use more specific 'mini.trailspace'): >lua
+--- - Trailing whitespace (if don't want to use more specific |mini.trailspace|): >lua
 ---
 ---   { pattern = '%f[%s]%s*$', group = 'Error' }
 --- <
@@ -229,15 +228,6 @@ local H = {}
 ---                                        -- needs `highlighters` field present
 --- <
 MiniHipatterns.setup = function(config)
-  -- TODO: Remove after Neovim=0.8 support is dropped
-  if vim.fn.has('nvim-0.9') == 0 then
-    vim.notify(
-      '(mini.hipatterns) Neovim<0.9 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniHipatterns = MiniHipatterns
 
@@ -257,13 +247,9 @@ MiniHipatterns.setup = function(config)
   H.create_default_hl()
 end
 
---- Module config
----
---- Default values:
+--- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
----@text # Options ~
----
---- ## Highlighters ~
+---@text # Highlighters ~
 ---
 --- `highlighters` table defines which patterns will be highlighted by placing
 --- |extmark| at the match start. It might or might not have explicitly named
@@ -276,18 +262,24 @@ end
 ---   either string, callable returning the string, or an array of those.
 ---   If string:
 ---     - It can have submatch delimited by placing `()` on start and end, NOT
----       by surrounding with it. Otherwise it will result in error containing
----       `number expected, got string`. Example: `xx()abcd()xx` will match `abcd`
----       only if `xx` is placed before and after it.
+---       by surrounding it with parenthesis (results in an error containing
+---       `number expected, got string`). Example: `xx()abcd()xx` will match
+---       `abcd` only if `xx` is placed before and after it.
 ---
 ---   If callable:
 ---     - It will be called for every enabled buffer with its identifier as input.
----
----     - It can return `nil` meaning this particular highlighter will not work
----       in this particular buffer.
+---       Should return single string pattern or `nil` (meaning this particular
+---       highlighter will not work in this particular buffer).
 ---
 ---   If array:
 ---     - Each element is matched and highlighted with the same highlight group.
+---
+---     Note: matching does not result in overlapping (sub)matches (similarly
+---     to how |cpo-c| works). For example, with line `xxxxxxx`:
+---     - Pattern `xxx` matches columns 1-3, 4-6.
+---     - Pattern `()xx()x` matches columns 1-2, 3-4, 5-6.
+---     - Pattern `x()xx()` matches columns 2-3, 5-6.
+---     - Pattern `x()x()x` matches columns 2-2, 4-4, 6-6.
 ---
 --- - <group> `(string|function)` - name of highlight group to use. Can be either
 ---   string or callable returning the string.
@@ -312,7 +304,7 @@ end
 ---
 --- See "Common use cases" section for the examples.
 ---
---- ## Delay ~
+--- # Delay ~
 ---
 --- `delay` is a table defining delays in milliseconds used for asynchronous
 --- highlighting process.
@@ -522,7 +514,7 @@ MiniHipatterns.get_matches = function(buf_id, highlighters)
 
   local all_highlighters = H.get_all_highlighters()
   highlighters = highlighters or all_highlighters
-  if not H.islist(highlighters) then H.error('`highlighters` should be an array.') end
+  if not vim.islist(highlighters) then H.error('`highlighters` should be an array.') end
   highlighters = vim.tbl_filter(function(x) return vim.tbl_contains(all_highlighters, x) end, highlighters)
 
   local position_compare = function(a, b) return a[2] < b[2] or (a[2] == b[2] and a[3] < b[3]) end
@@ -567,13 +559,13 @@ MiniHipatterns.gen_highlighter = {}
 ---       - `'#'` - highlight background of only `#`.
 ---       - `'line'` - highlight underline with that color.
 ---       - `'inline'` - highlight text of <inline_text>.
----         Note: requires Neovim>=0.10.
 ---   - <priority> `(number)` - priority of highlighting. Default: 200.
 ---   - <filter> `(function)` - callable object used to filter buffers in which
 ---     highlighting will take place. It should take buffer identifier as input
 ---     and return `false` or `nil` to not highlight inside this buffer.
 ---   - <inline_text> `(string)` - string to be placed and highlighted with color
 ---     to the right of match in case <style> is "inline". Default: "█".
+---   - <max_number> `(number)` - as in |MiniHipatterns.compute_hex_color_group()|.
 ---
 ---@return table Highlighter table ready to be used as part of `config.highlighters`.
 ---   Both `pattern` and `group` are callable.
@@ -587,14 +579,10 @@ MiniHipatterns.gen_highlighter = {}
 ---   })
 --- <
 MiniHipatterns.gen_highlighter.hex_color = function(opts)
-  local default_opts = { style = 'full', priority = 200, filter = H.always_true, inline_text = '█' }
+  local default_opts = { style = 'full', priority = 200, filter = H.always_true, inline_text = '█', max_number = nil }
   opts = vim.tbl_deep_extend('force', default_opts, opts or {})
 
   local style = opts.style
-  if style == 'inline' and vim.fn.has('nvim-0.10') == 0 then
-    H.error('Style "inline" in `gen_highlighter.hex_color()` requires Neovim>=0.10.')
-  end
-
   local pattern = style == '#' and '()#()%x%x%x%x%x%x%f[%X]' or '#%x%x%x%x%x%x%f[%X]'
   local hl_style = ({ full = 'bg', ['#'] = 'bg', line = 'line', inline = 'fg' })[style] or 'bg'
 
@@ -608,9 +596,10 @@ MiniHipatterns.gen_highlighter.hex_color = function(opts)
     end
   end
 
+  local hex_opts = { max_number = opts.max_number }
   return {
     pattern = H.wrap_pattern_with_filter(pattern, opts.filter),
-    group = function(_, _, data) return MiniHipatterns.compute_hex_color_group(data.full_match, hl_style) end,
+    group = function(_, _, data) return MiniHipatterns.compute_hex_color_group(data.full_match, hl_style, hex_opts) end,
     extmark_opts = extmark_opts,
   }
 end
@@ -618,7 +607,7 @@ end
 --- Compute and create group to highlight hex color string
 ---
 --- Notes:
---- - This works properly only with enabled |termguicolors|.
+--- - This works properly only with enabled |'termguicolors'|.
 ---
 --- - To increase performance, it caches highlight groups per `hex_color` and
 ---   `style` combination. Needs a call to |MiniHipatterns.setup()| to have
@@ -630,9 +619,14 @@ end
 ---     white (whichever is more visible). Default.
 ---   - `'fg'` - highlight foreground with `hex_color`.
 ---   - `'line'` - highlight underline with `hex_color`.
+---@param opts table|nil Options. Possible fields:
+---   - <max_number> `(number)` - maximum number of different highlight groups
+---     this function is allowed to create. Useful to avoid |E849|.
+---     Default: 10000.
 ---
----@return string Name of created highlight group appropriate to show `hex_color`.
-MiniHipatterns.compute_hex_color_group = function(hex_color, style)
+---@return string|nil Name of created highlight group appropriate to show `hex_color`
+---   or `nil` if highlighted groups was not created.
+MiniHipatterns.compute_hex_color_group = function(hex_color, style, opts)
   style = style or 'bg'
   local hex = hex_color:lower():sub(2)
   local group_name = string.format('MiniHipatterns_%s_%s', hex, style)
@@ -641,21 +635,24 @@ MiniHipatterns.compute_hex_color_group = function(hex_color, style)
   -- latter still returns true for cleared highlights
   if H.hex_color_groups[group_name] then return group_name end
 
+  -- Limit
+  opts = vim.tbl_extend('force', { max_number = 10000 }, opts or {})
+  if H.n_hex_color_groups >= opts.max_number then return nil end
+
   -- Define highlight group if it is not already defined
-  if style == 'bg' then
-    -- Compute opposite color based on Oklab lightness (for better contrast)
-    local opposite = H.compute_opposite_color(hex)
-    vim.api.nvim_set_hl(0, group_name, { fg = opposite, bg = hex_color })
-  end
+  local hl_opts
+  -- - Compute opposite color based on Oklab lightness (for better contrast)
+  if style == 'bg' then hl_opts = { fg = H.compute_opposite_color(hex), bg = hex_color } end
+  if style == 'fg' then hl_opts = { fg = hex_color } end
+  if style == 'line' then hl_opts = { sp = hex_color, underline = true } end
 
-  if style == 'fg' then vim.api.nvim_set_hl(0, group_name, { fg = hex_color }) end
-
-  if style == 'line' then vim.api.nvim_set_hl(0, group_name, { sp = hex_color, underline = true }) end
+  local ok = pcall(vim.api.nvim_set_hl, 0, group_name, hl_opts)
 
   -- Keep track of created groups to properly react on `:hi clear`
-  H.hex_color_groups[group_name] = true
+  H.hex_color_groups[group_name] = ok
+  H.n_hex_color_groups = H.n_hex_color_groups + (ok and 1 or 0)
 
-  return group_name
+  return ok and group_name or nil
 end
 
 -- Helper data ================================================================
@@ -677,6 +674,7 @@ H.cache = {}
 
 -- Data about created highlight groups for hex colors
 H.hex_color_groups = {}
+H.n_hex_color_groups = 0
 
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
@@ -709,8 +707,7 @@ end
 
 H.create_default_hl = function()
   local hi_link_bold_reverse = function(to, from)
-    local data = vim.fn.has('nvim-0.9') == 1 and vim.api.nvim_get_hl(0, { name = from, link = false })
-      or vim.api.nvim_get_hl_by_name(from, true)
+    local data = vim.api.nvim_get_hl(0, { name = from, link = false })
     data.default, data.bold, data.reverse = true, true, true
     data.cterm = { bold = true, reverse = true }
     vim.api.nvim_set_hl(0, to, data)
@@ -763,6 +760,7 @@ H.on_colorscheme = function()
   -- Reset created highlight groups for hex colors, as they are probably
   -- cleared after `:hi clear`
   H.hex_color_groups = {}
+  H.n_hex_color_groups = 0
 
   -- Reload all currently enabled buffers
   for buf_id, _ in pairs(H.cache) do
@@ -811,7 +809,7 @@ H.normalize_highlighters = function(highlighters)
     -- valid cases into array of callables.
     local pattern = type(hi.pattern) == 'string' and function() return hi.pattern end or hi.pattern
     if vim.is_callable(pattern) then pattern = { pattern } end
-    local is_pattern_ok = H.islist(pattern)
+    local is_pattern_ok = vim.islist(pattern)
     if is_pattern_ok then
       for i, pat in ipairs(pattern) do
         pattern[i] = type(pat) == 'string' and function() return pat end or pat
@@ -955,7 +953,7 @@ H.apply_highlighter_pattern = vim.schedule_wrap(function(pattern, hi, buf_id, ns
       -- `init` is more than 1
       if pattern_has_line_start then break end
 
-      from, to, sub_from, sub_to = line:find(pattern, to + 1)
+      from, to, sub_from, sub_to = line:find(pattern, sub_to + 1)
     end
   end
 end)
@@ -1023,8 +1021,5 @@ H.clear_namespace = function(...) pcall(vim.api.nvim_buf_clear_namespace, ...) e
 H.always_true = function() return true end
 
 H.cuberoot = function(x) return math.pow(x, 0.333333) end
-
--- TODO: Remove after compatibility with Neovim=0.9 is dropped
-H.islist = vim.fn.has('nvim-0.10') == 1 and vim.islist or vim.tbl_islist
 
 return MiniHipatterns

@@ -1,10 +1,7 @@
 --- *mini.bufremove* Remove buffers
---- *MiniBufremove*
 ---
 --- MIT License Copyright (c) 2021 Evgeni Chasnovski
----
---- ==============================================================================
----
+
 --- Features:
 --- - Unshow, delete, and wipeout buffer while saving window layout
 ---   (opposite to builtin Neovim's commands).
@@ -28,7 +25,7 @@
 --- 1. Which buffer to show in window(s) after its current buffer is removed is
 ---    decided by the algorithm:
 ---    - If alternate buffer (see |CTRL-^|) is listed (see |buflisted()|), use it.
----    - If previous listed buffer (see |bprevious|) is different, use it.
+---    - If previous listed buffer (see |:bprevious|) is different, use it.
 ---    - Otherwise create a new one with `nvim_create_buf(true, false)` and use it.
 ---
 --- # Disabling ~
@@ -38,6 +35,7 @@
 --- number of different scenarios and customization intentions, writing exact
 --- rules for disabling module's functionality is left to user. See
 --- |mini.nvim-disabling-recipes| for common recipes.
+---@tag MiniBufremove
 
 ---@alias __bufremove_return boolean|nil Whether operation was successful. If `nil`, no operation was done.
 ---@alias __bufremove_buf_id number|nil Buffer identifier (see |bufnr()|) to use.
@@ -60,15 +58,6 @@ local H = {}
 ---   require('mini.bufremove').setup({}) -- replace {} with your config table
 --- <
 MiniBufremove.setup = function(config)
-  -- TODO: Remove after Neovim=0.8 support is dropped
-  if vim.fn.has('nvim-0.9') == 0 then
-    vim.notify(
-      '(mini.bufremove) Neovim<0.9 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniBufremove = MiniBufremove
 
@@ -79,9 +68,7 @@ MiniBufremove.setup = function(config)
   H.apply_config(config)
 end
 
---- Module config
----
---- Default values:
+--- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 MiniBufremove.config = {
   -- Whether to disable showing non-error feedback

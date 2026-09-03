@@ -1,17 +1,14 @@
 --- *mini.visits* Track and reuse file system visits
---- *MiniVisits*
 ---
 --- MIT License Copyright (c) 2023 Evgeni Chasnovski
----
---- ==============================================================================
----
+
 --- Features:
 ---
 --- - Persistently track file system visits (both files and directories)
 ---   per project directory. Store visit index is human readable and editable.
 ---
 --- - Visit index is normalized on every write to contain relevant information.
----   Exact details can be customized. See |MiniVisits.normalize()|.
+---   Exact details can be customized. See |MiniVisits.normalize_index()|.
 ---
 --- - Built-in ability to persistently add labels to path for later use.
 ---   See |MiniVisits.add_label()| and |MiniVisits.remove_label()|.
@@ -42,7 +39,7 @@
 ---   (usually before closing current session) because it will treat previous
 ---   path as deleted and remove it from index.
 ---   There is a |MiniVisits.rename_in_index()| helper for that.
----   If rename/move is done with |MiniFiles|, index is autoupdated.
+---   If rename/move is done with |mini.files|, index is autoupdated.
 ---
 --- Sources with more details:
 --- - |MiniVisits-overview|
@@ -63,7 +60,7 @@
 ---
 --- # Comparisons ~
 ---
---- - 'nvim-telescope/telescope-frecency.nvim':
+--- - [nvim-telescope/telescope-frecency.nvim](https://github.com/nvim-telescope/telescope-frecency.nvim):
 ---     - It stores array of actual visit timestamps, while this module tracks
 ---       only total number and latest timestamp of visits. This is by design
 ---       as a different trade-off between how much data is being used/stored
@@ -73,12 +70,12 @@
 ---       in-session sorting.
 ---     - Implements an original frecency algorithm of Firefox's address bar,
 ---       while this module uses own "robust frecency" approach.
----     - Mostly designed to work with 'nvim-telescope/telescope.nvim', while
+---     - Mostly designed to work with `nvim-telescope/telescope.nvim`, while
 ---       this module provides general function to list paths and select
 ---       with |vim.ui.select()|.
 ---     - Does not allow use of custom data (like labels), while this module does.
 ---
---- - 'ThePrimeagen/harpoon':
+--- - [ThePrimeagen/harpoon](https://github.com/ThePrimeagen/harpoon):
 ---     - Has slightly different concept than general labeling, which more
 ---       resembles adding paths to an ordered stack. This module implements
 ---       a more common labeling which does not imply order with ability to
@@ -100,6 +97,7 @@
 --- number of different scenarios and customization intentions, writing exact
 --- rules for disabling module's functionality is left to user. See
 --- |mini.nvim-disabling-recipes| for common recipes.
+---@tag MiniVisits
 
 --- # Tracking visits ~
 ---
@@ -113,7 +111,7 @@
 --- - When delay time passes without any dedicated events being triggered
 ---   (meaning user is "settled" on certain buffer), |MiniVisits.register_visit()|
 ---   is called if all of the following conditions are met:
----     - Module is not disabled (see "Disabling" section in |MiniVisits|).
+---     - Module is not disabled (see "Disabling" section in |mini.visits|).
 ---     - Buffer is normal with non-empty name (used as visit path).
 ---     - Visit path does not equal to the latest tracked one. This is to allow
 ---       temporary enter of non-normal buffers (like help, terminal, etc.)
@@ -212,20 +210,19 @@
 --- # Normalization ~
 ---
 --- To ensure that visit index contains mostly relevant data, it gets normalized:
---- automatically inside |MiniVisits.write_index()| or via |MiniVisits.normalize()|.
+--- automatically inside |MiniVisits.write_index()| or
+--- via |MiniVisits.normalize_index()|.
 ---
 --- What normalization actually does can be configured in `config.store.normalize`.
 ---
 --- See |MiniVisits.gen_normalize.default()| for default normalization approach.
 ---@tag MiniVisits-index-specification
 
---- # Workflow examples ~
----
 --- This module provides a flexible framework for working with file system visits.
 --- Exact choice of how to organize workflow is left to the user.
 --- Here are some examples for inspiration which can be combined together.
 ---
---- ## Use different sorting ~
+--- # Use different sorting ~
 ---
 --- Default sorting in |MiniVisits.gen_sort.default()| allows flexible adjustment
 --- of which feature to prefer more: recency or frequency. Here is an example of
@@ -254,9 +251,9 @@
 ---   map('<Leader>vf', 'Select frequent (all)', true,  0)
 ---   map('<Leader>vF', 'Select frequent (cwd)', false, 0)
 --- <
---- Note: If you have |MiniPick|, consider using |MiniExtra.pickers.visit_paths()|.
+--- Note: If using |mini.pick|, consider |MiniExtra.pickers.visit_paths()|.
 ---
---- ## Use manual labels ~
+--- # Use manual labels ~
 ---
 --- Labels is a powerful tool to create groups of associated paths.
 --- Usual workflow consists of:
@@ -265,7 +262,7 @@
 --- - When need to use labeled groups, call |MiniVisits.select_label()| which
 ---   will then call |MiniVisits.select_path()| to select path among those
 ---   having selected label.
----   Note: If you have |MiniPick|, consider using |MiniExtra.pickers.visit_labels()|.
+---   Note: If using |mini.pick|, consider |MiniExtra.pickers.visit_labels()|.
 ---
 --- To make this workflow smoother, here is an example of keymaps: >lua
 ---
@@ -279,7 +276,7 @@
 ---   map_vis('vl', 'select_label("", "")', 'Select label (all)')
 ---   map_vis('vL', 'select_label()',       'Select label (cwd)')
 --- <
---- ## Use fixed labels ~
+--- # Use fixed labels ~
 ---
 --- During work on every project there is usually a handful of files where core
 --- activity is concentrated. This can be made easier by creating mappings
@@ -312,7 +309,7 @@
 ---   map_iterate_core(']]', 'backward', 'Core label (later)')
 ---   map_iterate_core(']}', 'first',    'Core label (latest)')
 --- <
---- ## Use automated labels ~
+--- # Use automated labels ~
 ---
 --- When using version control system (such as Git), usually there is already
 --- an identifier that groups files you are working with - branch name.
@@ -334,7 +331,7 @@
 ---@tag MiniVisits-examples
 
 ---@alias __visits_path string|nil Visit path. Can be empty string to mean "all visited
----   paths for `cwd`". Default: path of current buffer.
+---   paths for `cwd`". Default: path of current buffer if normal, error otherwise.
 ---@alias __visits_cwd string|nil Visit cwd (project directory). Can be empty string to mean
 ---   "all visited cwd". Default: |current-directory|.
 ---@alias __visits_filter - <filter> `(function)` - predicate to filter paths. For more information
@@ -343,7 +340,7 @@
 ---     as its default.
 ---@alias __visits_sort - <sort> `(function)` - path data sorter. For more information about how
 ---     it is used, see |MiniVisits.config.list|.
----     Default: value of `config.list.sort` or |MiniVisits.gen_filter.sort()|
+---     Default: value of `config.list.sort` or |MiniVisits.gen_sort.default()|
 ---     as its default.
 
 ---@diagnostic disable:undefined-field
@@ -367,15 +364,6 @@ local H = {}
 ---   require('mini.visits').setup({}) -- replace {} with your config table
 --- <
 MiniVisits.setup = function(config)
-  -- TODO: Remove after Neovim=0.8 support is dropped
-  if vim.fn.has('nvim-0.9') == 0 then
-    vim.notify(
-      '(mini.visits) Neovim<0.9 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniVisits = MiniVisits
 
@@ -389,12 +377,10 @@ MiniVisits.setup = function(config)
   H.create_autocommands(config)
 end
 
---- Module config
----
---- Default values:
+--- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
----@text                                                         *MiniVisits.config.list*
---- # List ~
+---@text # List ~
+--- *MiniVisits.config.list*
 ---
 --- `config.list` defines how visit index is converted to a path list by default.
 ---
@@ -504,7 +490,8 @@ MiniVisits.config = {
 --- - Add 1 to visit `count`.
 --- - Set `latest` visit time to equal current time.
 ---
----@param path string|nil Visit path. Default: path of current buffer.
+---@param path string|nil Visit path. Default: path of current buffer if normal,
+---   error otherwise.
 ---@param cwd string|nil Visit cwd (project directory). Default: |current-directory|.
 MiniVisits.register_visit = function(path, cwd)
   path = H.validate_path(path)
@@ -541,31 +528,33 @@ end
 --- - Ensure that there is an entry for path-cwd pair.
 --- - Add label to the entry.
 ---
----@param label string|nil Label string. Default: `nil` to ask from user.
+---@param label string|nil Label string. Default: `nil` to ask with |vim.ui.input()|.
 ---@param path __visits_path
 ---@param cwd __visits_cwd
 MiniVisits.add_label = function(label, path, cwd)
   path = H.validate_path(path)
   cwd = H.validate_cwd(cwd)
+  if label ~= nil then H.validate_string(label, 'label') end
 
-  if label == nil then
-    -- Suggest all labels from cwd in completion
-    label = H.get_label_from_user('Enter label to add', MiniVisits.list_labels('', cwd))
-    if label == nil then return end
+  local on_label = function(l)
+    if l == nil then return end
+
+    -- Add label to all target path-cwd pairs
+    local path_cwd_pairs = H.resolve_path_cwd(path, cwd)
+    for _, pair in ipairs(path_cwd_pairs) do
+      H.ensure_index_entry(pair.path, pair.cwd)
+      local path_tbl = H.index[pair.cwd][pair.path]
+      local labels = path_tbl.labels or {}
+      labels[l] = true
+      path_tbl.labels = labels
+    end
+
+    H.echo(string.format('Added %s label.', vim.inspect(l)))
   end
-  label = H.validate_string(label, 'label')
 
-  -- Add label to all target path-cwd pairs
-  local path_cwd_pairs = H.resolve_path_cwd(path, cwd)
-  for _, pair in ipairs(path_cwd_pairs) do
-    H.ensure_index_entry(pair.path, pair.cwd)
-    local path_tbl = H.index[pair.cwd][pair.path]
-    local labels = path_tbl.labels or {}
-    labels[label] = true
-    path_tbl.labels = labels
-  end
-
-  H.echo(string.format('Added %s label.', vim.inspect(label)))
+  if label ~= nil then return on_label(label) end
+  -- Suggest all labels from cwd in completion
+  H.on_label_from_user('Enter label to add', on_label, MiniVisits.list_labels('', cwd))
 end
 
 --- Remove path
@@ -602,33 +591,35 @@ end
 --- - Remove label from (one or more) index entry.
 --- - If it was last label in an entry, remove `labels` key.
 ---
----@param label string|nil Label string. Default: `nil` to ask from user.
+---@param label string|nil Label string. Default: `nil` to ask with |vim.ui.input()|.
 ---@param path __visits_path
 ---@param cwd __visits_cwd
 MiniVisits.remove_label = function(label, path, cwd)
   path = H.validate_path(path)
   cwd = H.validate_cwd(cwd)
+  if label ~= nil then H.validate_string(label, 'label') end
 
-  if label == nil then
-    -- Suggest only labels from target path-cwd pairs
-    label = H.get_label_from_user('Enter label to remove', MiniVisits.list_labels(path, cwd))
-    if label == nil then return end
-  end
-  label = H.validate_string(label, 'label')
+  local on_label = function(l)
+    if l == nil then return end
 
-  -- Remove label from all target path-cwd pairs (ignoring not present ones and
-  -- collapsing `labels` if removed last label)
-  H.ensure_read_index()
-  local path_cwd_pairs = H.resolve_path_cwd(path, cwd)
-  for _, pair in ipairs(path_cwd_pairs) do
-    local path_tbl = (H.index[pair.cwd] or {})[pair.path]
-    if type(path_tbl) == 'table' and type(path_tbl.labels) == 'table' then
-      path_tbl.labels[label] = nil
-      if vim.tbl_count(path_tbl.labels) == 0 then path_tbl.labels = nil end
+    -- Remove label from all target path-cwd pairs (ignoring not present ones and
+    -- collapsing `labels` if removed last label)
+    H.ensure_read_index()
+    local path_cwd_pairs = H.resolve_path_cwd(path, cwd)
+    for _, pair in ipairs(path_cwd_pairs) do
+      local path_tbl = (H.index[pair.cwd] or {})[pair.path]
+      if type(path_tbl) == 'table' and type(path_tbl.labels) == 'table' then
+        path_tbl.labels[l] = nil
+        if vim.tbl_count(path_tbl.labels) == 0 then path_tbl.labels = nil end
+      end
     end
+
+    H.echo(string.format('Removed %s label.', vim.inspect(l)))
   end
 
-  H.echo(string.format('Removed %s label.', vim.inspect(label)))
+  if label ~= nil then return on_label(label) end
+  -- Suggest only labels from target path-cwd pairs
+  H.on_label_from_user('Enter label to remove', on_label, MiniVisits.list_labels(path, cwd))
 end
 
 --- List visit paths
@@ -729,7 +720,8 @@ end
 --- Uses |vim.ui.select()| with an output of |MiniVisits.list_paths()| and
 --- calls |:edit| on the chosen item.
 ---
---- Note: if you have |MiniPick|, consider using |MiniExtra.pickers.visits()|.
+--- Note: if you have |mini.pick|, consider using |MiniExtra.pickers.visit_labels()|
+--- and |MiniExtra.pickers.visit_paths()|.
 ---
 --- Examples:
 ---
@@ -757,7 +749,7 @@ end
 --- Uses |vim.ui.select()| with an output of |MiniVisits.list_labels()| and
 --- calls |MiniVisits.select_path()| to get target paths with selected label.
 ---
---- Note: if you have |MiniPick|, consider using |MiniExtra.pickers.visit_labels()|.
+--- Note: if you have |mini.pick|, consider using |MiniExtra.pickers.visit_labels()|.
 ---
 --- Examples:
 ---
@@ -927,8 +919,8 @@ end
 ---@param store_path string|nil Path on the disk containing visit index data.
 ---   Default: `config.store.path`.
 ---   Notes:
----     - Can return `nil` if path is empty string or file is not readable.
----     - File is sourced with |dofile()| as a regular Lua file.
+---   - Can return `nil` if path is empty string or file is not readable.
+---   - File is sourced with |dofile()| as a regular Lua file.
 ---
 ---@return table|nil Output of the file source.
 MiniVisits.read_index = function(store_path)
@@ -1329,7 +1321,9 @@ H.resolve_path_cwd = function(path, cwd)
   local cwd_arr = cwd == '' and vim.tbl_keys(H.index) or { cwd }
 
   -- Empty path means all available paths in all target cwds
-  if path ~= '' then return vim.tbl_map(function(x) return { path = path, cwd = x } end, cwd_arr) end
+  if path ~= '' then
+    return vim.tbl_map(function(x) return { path = path, cwd = x } end, cwd_arr)
+  end
 
   local res = {}
   for _, d in ipairs(cwd_arr) do
@@ -1414,21 +1408,21 @@ H.index_decay_cwd = function(cwd_tbl, threshold, target)
   end
 end
 
-H.get_label_from_user = function(prompt, labels_complete)
+H.on_label_from_user = function(prompt, on_label, labels_complete)
   MiniVisits._complete = function(arg_lead)
     return vim.tbl_filter(function(x) return x:find(arg_lead, 1, true) ~= nil end, labels_complete)
   end
   local completion = 'customlist,v:lua.MiniVisits._complete'
-  local input_opts = { prompt = prompt .. ': ', completion = completion, cancelreturn = false }
-  local ok, res = pcall(vim.fn.input, input_opts)
-  MiniVisits._complete = nil
-  if not ok or res == false then return nil end
-  return res
+  vim.ui.input({ prompt = '(mini.visits) ' .. prompt .. ' ', completion = completion }, function(x)
+    MiniVisits._complete = nil
+    on_label(x)
+  end)
 end
 
 -- Validators -----------------------------------------------------------------
 H.validate_path = function(x)
-  x = x or H.buf_get_path(vim.api.nvim_get_current_buf()) or ''
+  x = x or H.buf_get_path(vim.api.nvim_get_current_buf())
+  if x == nil then H.error('Current buffer is not for a regular file') end
   H.validate_string(x, 'path')
   return x == '' and '' or H.full_path(x)
 end
@@ -1513,7 +1507,7 @@ H.is_valid_buf = function(buf_id) return type(buf_id) == 'number' and vim.api.nv
 
 H.buf_get_path = function(buf_id)
   -- Get path only for valid normal buffers
-  if not H.is_valid_buf(buf_id) or vim.bo[buf_id].buftype ~= '' then return nil end
+  if not (H.is_valid_buf(buf_id) and vim.bo[buf_id].buftype == '') then return nil end
   local res = H.full_path(vim.api.nvim_buf_get_name(buf_id))
   if res == '' then return end
   return res

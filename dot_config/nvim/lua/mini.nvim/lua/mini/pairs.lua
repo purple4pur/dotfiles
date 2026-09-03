@@ -1,16 +1,13 @@
 --- *mini.pairs* Autopairs
---- *MiniPairs*
 ---
 --- MIT License Copyright (c) 2021 Evgeni Chasnovski
----
---- ==============================================================================
----
+
 --- Features:
 --- - Functionality to work with two "paired" characters conditional on cursor's
 ---   neighborhood (character to its left and character to its right).
 ---
---- - Usage should be through making appropriate mappings using |MiniPairs.map|
----   or in |MiniPairs.setup| (for global mapping), |MiniPairs.map_buf| (for
+--- - Usage should be through making appropriate mappings using |MiniPairs.map()|
+---   or in |MiniPairs.setup()| (for global mapping), |MiniPairs.map_buf()| (for
 ---   buffer mapping).
 ---
 --- - Pairs get automatically registered for special <BS> (all configured modes)
@@ -19,20 +16,24 @@
 ---   Note: these mappings are autocreated if they do not override existing ones.
 ---
 --- What it doesn't do:
+--- - Provide smart behavior, like based on bracket balance. The default behavior
+---   is to almost always perform an action (insert pair, jump over). Manually
+---   press |i_CTRL-V| before a character to explicitly insert it (and only it).
+---
 --- - It doesn't support multiple characters as "open" and "close" symbols. Use
 ---   snippets for that.
 ---
 --- - It doesn't support dependency on filetype. Use |i_CTRL-V| to insert
----   single symbol or `autocmd` command or 'after/ftplugin' approach to:
+---   single symbol or `autocmd` command or `after/ftplugin` approach to:
 ---     - `:lua MiniPairs.map_buf(0, 'i', <*>, <pair_info>)` - make new mapping
----       for '<*>' in current buffer.
+---       for `<*>` in current buffer.
 ---     - `:lua MiniPairs.unmap_buf(0, 'i', <*>, <pair>)` - unmap key `<*>` while
 ---       unregistering `<pair>` pair in current buffer. Note: this reverts
----       mapping done by |MiniPairs.map_buf|. If mapping was done with
----       |MiniPairs.map|, unmap for buffer in usual Neovim manner:
+---       mapping done by |MiniPairs.map_buf()|. If mapping was done with
+---       |MiniPairs.map()|, unmap for buffer in usual Neovim manner:
 ---       `inoremap <buffer> <*> <*>` (this maps `<*>` key to do the same it
 ---       does by default).
----     - Disable module for buffer (see 'Disabling' section).
+---     - Disable module for buffer (see `# Disabling` section).
 ---
 --- # Setup ~
 ---
@@ -79,7 +80,7 @@
 ---
 --- - Make sure to make proper mapping of <CR> in order to support completion
 ---   plugin of your choice:
----     - For |MiniCompletion| see 'Helpful key mappings' section.
+---     - For |mini.completion| see its `# Helpful mappings` section.
 ---     - For current implementation of "hrsh7th/nvim-cmp" there is no need to
 ---       make custom mapping. You can use default setup, which will confirm
 ---       completion selection if popup is visible and expand pair otherwise.
@@ -94,6 +95,7 @@
 --- and customization intentions, writing exact rules for disabling module's
 --- functionality is left to user. See |mini.nvim-disabling-recipes| for common
 --- recipes.
+---@tag MiniPairs
 
 ---@alias __pairs_neigh_pattern string|nil Pattern for two neighborhood characters.
 ---   Character "\r" indicates line start, "\n" - line end.
@@ -116,15 +118,6 @@ local H = {}
 ---   require('mini.pairs').setup({}) -- replace {} with your config table
 --- <
 MiniPairs.setup = function(config)
-  -- TODO: Remove after Neovim=0.8 support is dropped
-  if vim.fn.has('nvim-0.9') == 0 then
-    vim.notify(
-      '(mini.pairs) Neovim<0.9 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniPairs = MiniPairs
 
@@ -139,34 +132,32 @@ MiniPairs.setup = function(config)
 end
 
 --stylua: ignore
---- Module config
----
---- Default values:
+--- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 MiniPairs.config = {
   -- In which modes mappings from this `config` should be created
   modes = { insert = true, command = false, terminal = false },
 
   -- Global mappings. Each right hand side should be a pair information, a
-  -- table with at least these fields (see more in |MiniPairs.map|):
+  -- table with at least these fields (see more in |MiniPairs.map()|):
   -- - <action> - one of "open", "close", "closeopen".
   -- - <pair> - two character string for pair to be used.
   -- By default pair is not inserted after `\`, quotes are not recognized by
-  -- <CR>, `'` does not insert pair after a letter.
+  -- <CR>, `'` does not insert the pair after a letter.
   -- Only parts of tables can be tweaked (others will use these defaults).
   -- Supply `false` instead of table to not map particular key.
   mappings = {
-    ['('] = { action = 'open', pair = '()', neigh_pattern = '[^\\].' },
-    ['['] = { action = 'open', pair = '[]', neigh_pattern = '[^\\].' },
-    ['{'] = { action = 'open', pair = '{}', neigh_pattern = '[^\\].' },
+    ['('] = { action = 'open', pair = '()', neigh_pattern = '^[^\\]' },
+    ['['] = { action = 'open', pair = '[]', neigh_pattern = '^[^\\]' },
+    ['{'] = { action = 'open', pair = '{}', neigh_pattern = '^[^\\]' },
 
-    [')'] = { action = 'close', pair = '()', neigh_pattern = '[^\\].' },
-    [']'] = { action = 'close', pair = '[]', neigh_pattern = '[^\\].' },
-    ['}'] = { action = 'close', pair = '{}', neigh_pattern = '[^\\].' },
+    [')'] = { action = 'close', pair = '()', neigh_pattern = '^[^\\]' },
+    [']'] = { action = 'close', pair = '[]', neigh_pattern = '^[^\\]' },
+    ['}'] = { action = 'close', pair = '{}', neigh_pattern = '^[^\\]' },
 
-    ['"'] = { action = 'closeopen', pair = '""', neigh_pattern = '[^\\].',   register = { cr = false } },
-    ["'"] = { action = 'closeopen', pair = "''", neigh_pattern = '[^%a\\].', register = { cr = false } },
-    ['`'] = { action = 'closeopen', pair = '``', neigh_pattern = '[^\\].',   register = { cr = false } },
+    ['"'] = { action = 'closeopen', pair = '""', neigh_pattern = '^[^\\]',   register = { cr = false } },
+    ["'"] = { action = 'closeopen', pair = "''", neigh_pattern = '^[^%a\\]', register = { cr = false } },
+    ['`'] = { action = 'closeopen', pair = '``', neigh_pattern = '^[^\\]',   register = { cr = false } },
   },
 }
 --minidoc_afterlines_end
@@ -184,16 +175,16 @@ MiniPairs.config = {
 ---@param mode string `mode` for |nvim_set_keymap()|.
 ---@param lhs string `lhs` for |nvim_set_keymap()|.
 ---@param pair_info table Table with pair information. Fields:
----   - <action> - one of "open" (for |MiniPairs.open|),
----     "close" (for |MiniPairs.close|), or "closeopen" (for |MiniPairs.closeopen|).
----   - <pair> - two character string to be used as argument for action function.
+---   - <action> - one of "open" for |MiniPairs.open()|,
+---     "close" for |MiniPairs.close()|, or "closeopen" for |MiniPairs.closeopen()|.
+---   - <pair> - two character string to be passed to an action function.
 ---     Can contain multibyte characters.
----   - <neigh_pattern> - optional 'two character' neighborhood pattern to be
----     used as argument for action function. Note: neighborhood might contain
----     multiple characters.
+---   - <neigh_pattern> - optional neighborhood pattern to be passed to an action
+---     function. Will be matched against two character neighborhood (might
+---     contain multibyte characters).
 ---     Default: `'..'` (no restriction from neighborhood).
 ---   - <register> - optional table with information about whether this pair will
----     be recognized by <BS> (in |MiniPairs.bs|) and/or <CR> (in |MiniPairs.cr|).
+---     be recognized by <BS> (in |MiniPairs.bs()|) and/or <CR> (in |MiniPairs.cr()|).
 ---     Should have boolean fields <bs> and <cr> (both `true` by default).
 ---@param opts table|nil Optional table `opts` for |nvim_set_keymap()|. Elements
 ---   `expr` and `noremap` won't be recognized (`true` by default).
@@ -213,7 +204,7 @@ end
 ---
 --- This is a wrapper for |nvim_buf_set_keymap()| but instead of string right
 --- hand side of mapping it expects table with pair information similar to one
---- in |MiniPairs.map|.
+--- in |MiniPairs.map()|.
 ---
 --- Using this function instead of |nvim_buf_set_keymap()| allows automatic
 --- registration of pairs which will be recognized by <BS> and <CR>.
@@ -258,8 +249,8 @@ end
 ---
 --- Wrapper for |nvim_buf_del_keymap()| which also unregisters supplied `pair`.
 ---
---- Note: this only reverts mapping done by |MiniPairs.map_buf|. If mapping was
---- done with |MiniPairs.map|, revert to default behavior for buffer: >lua
+--- Note: this only reverts mapping done by |MiniPairs.map_buf()|. If mapping was
+--- done with |MiniPairs.map()|, revert to default behavior for buffer: >lua
 ---
 ---   -- Map `X` key to do the same it does by default
 ---   vim.keymap.set('i', 'X', 'X', { buffer = true })
@@ -280,12 +271,12 @@ end
 
 --- Process "open" symbols
 ---
---- Used as |map-expr| mapping for "open" symbols in asymmetric pair ('(', '[',
+--- Used as |:map-<expr>| mapping for "open" symbols in asymmetric pair (`(`, `[`,
 --- etc.). If neighborhood doesn't match supplied pattern, function results
 --- into "open" symbol. Otherwise, it pastes whole pair and moves inside pair
 --- with |<Left>|.
 ---
---- Used inside |MiniPairs.map| and |MiniPairs.map_buf| for an actual mapping.
+--- Used inside |MiniPairs.map()| and |MiniPairs.map_buf()| for an actual mapping.
 ---
 ---@param pair __pairs_pair
 ---@param neigh_pattern __pairs_neigh_pattern
@@ -296,22 +287,21 @@ MiniPairs.open = function(pair, neigh_pattern)
 
   -- Temporarily redraw lazily for no cursor flicker due to `<Left>`.
   -- This can happen in a big file with tree-sitter highlighting enabled.
-  local cache_lazyredraw = vim.o.lazyredraw
-  vim.o.lazyredraw = true
-  H.restore_lazyredraw(cache_lazyredraw)
+  H.with_temp_option('lazyredraw', true)
 
+  -- NOTE: Do not ensure no wildmenu because by the time arrow is executed
+  -- wildmenu should already (usually) be hidden due to inserting `pair`
   return pair .. H.get_arrow_key('left')
 end
 
 --- Process "close" symbols
 ---
---- Used as |map-expr| mapping for "close" symbols in asymmetric pair (')',
---- ']', etc.). If neighborhood doesn't match supplied pattern, function
---- results into "close" symbol. Otherwise it jumps over symbol to the right of
---- cursor (with |<Right>|) if it is equal to "close" one and inserts it
---- otherwise.
+--- Used as |:map-<expr>| mapping for "close" symbols in asymmetric pair (`)`, `]`,
+--- etc.). If neighborhood doesn't match supplied pattern, function results into
+--- "close" symbol. Otherwise it jumps over symbol to the right of cursor
+--- (with |<Right>|) if it is equal to "close" one and inserts it otherwise.
 ---
---- Used inside |MiniPairs.map| and |MiniPairs.map_buf| for an actual mapping.
+--- Used inside |MiniPairs.map()| and |MiniPairs.map_buf()| for an actual mapping.
 ---
 ---@param pair __pairs_pair
 ---@param neigh_pattern __pairs_neigh_pattern
@@ -320,17 +310,17 @@ end
 MiniPairs.close = function(pair, neigh_pattern)
   local close = H.get_close_char(pair)
   local move_right = not H.is_disabled() and H.neigh_match(neigh_pattern) and H.get_neigh('right') == close
-  return move_right and H.get_arrow_key('right') or close
+  return move_right and H.get_arrow_key('right', true) or close
 end
 
 --- Process "closeopen" symbols
 ---
---- Used as |map-expr| mapping for 'symmetrical' symbols (from pairs '""',
---- '\'\'', '``').  It tries to perform 'closeopen action': move over right
---- character (with |<Right>|) if it is equal to second character from pair or
+--- Used as |:map-<expr>| mapping for "symmetrical" symbols (like `"` and `'`)
+--- It tries to perform "closeopen action": move over right character
+--- (with |<Right>|) if it is equal to second character from pair or
 --- conditionally paste pair otherwise (with |MiniPairs.open()|).
 ---
---- Used inside |MiniPairs.map| and |MiniPairs.map_buf| for an actual mapping.
+--- Used inside |MiniPairs.map()| and |MiniPairs.map_buf()| for an actual mapping.
 ---
 ---@param pair __pairs_pair
 ---@param neigh_pattern __pairs_neigh_pattern
@@ -338,18 +328,18 @@ end
 ---@return string Keys performing "closeopen" action.
 MiniPairs.closeopen = function(pair, neigh_pattern)
   local move_right = not H.is_disabled() and H.get_neigh('right') == H.get_close_char(pair)
-  return move_right and H.get_arrow_key('right') or MiniPairs.open(pair, neigh_pattern)
+  return move_right and H.get_arrow_key('right', true) or MiniPairs.open(pair, neigh_pattern)
 end
 
 --- Process |<BS>|
 ---
---- Used as |map-expr| mapping for <BS> in Insert mode. It removes whole pair
+--- Used as |:map-<expr>| mapping for <BS> in Insert mode. It removes whole pair
 --- (via executing <Del> after input key) if neighborhood is equal to a whole
 --- pair recognized for current buffer. Pair is recognized for current buffer
 --- if it is registered for global or current buffer mapping. Pair is
---- registered as a result of calling |MiniPairs.map| or |MiniPairs.map_buf|.
+--- registered as a result of calling |MiniPairs.map()| or |MiniPairs.map_buf()|.
 ---
---- Mapped by default inside |MiniPairs.setup|.
+--- Mapped by default inside |MiniPairs.setup()|.
 ---
 --- This can be used to modify other Insert mode keys to respect neighborhood
 --- pair. Examples: >lua
@@ -373,16 +363,16 @@ end
 
 --- Process |i_<CR>|
 ---
---- Used as |map-expr| mapping for <CR> in insert mode. It puts "close"
+--- Used as |:map-<expr>| mapping for <CR> in insert mode. It puts "close"
 --- symbol on next line (via `<CR><C-o>O`) if neighborhood is equal to a whole
 --- pair recognized for current buffer. Pair is recognized for current buffer
 --- if it is registered for global or current buffer mapping. Pair is
---- registered as a result of calling |MiniPairs.map| or |MiniPairs.map_buf|.
+--- registered as a result of calling |MiniPairs.map()| or |MiniPairs.map_buf()|.
 ---
 --- Note: some relevant mode changing events are temporarily ignored
---- (with |eventignore|) to counter effect of using |i_CTRL-O|.
+--- (with |'eventignore'|) to counter effect of using |i_CTRL-O|.
 ---
---- Mapped by default inside |MiniPairs.setup|.
+--- Mapped by default inside |MiniPairs.setup()|.
 ---
 ---@param key string|nil Key to use. Default: `'<CR>'`.
 ---
@@ -395,15 +385,11 @@ MiniPairs.cr = function(key)
 
   -- Temporarily ignore mode change to not trigger some common expensive
   -- autocommands (like diagnostic check, etc.)
-  local cache_eventignore = vim.o.eventignore
-  vim.o.eventignore = 'InsertLeave,InsertLeavePre,InsertEnter,TextChanged,ModeChanged'
-  H.restore_eventignore(cache_eventignore)
+  H.with_temp_option('eventignore', 'InsertLeave,InsertLeavePre,InsertEnter,TextChanged,ModeChanged')
 
   -- Temporarily redraw lazily for no cursor flicker due to `<C-o>O`.
   -- This can happen in a big file with tree-sitter highlighting enabled.
-  local cache_lazyredraw = vim.o.lazyredraw
-  vim.o.lazyredraw = true
-  H.restore_lazyredraw(cache_lazyredraw)
+  H.with_temp_option('lazyredraw', true)
 
   return res .. H.keys.above
 end
@@ -424,14 +410,14 @@ H.registered_pairs = {
 }
 
 -- Precomputed keys to increase speed
--- stylua: ignore start
 local function escape(s) return vim.api.nvim_replace_termcodes(s, true, true, true) end
+--stylua: ignore
 H.keys = {
   above      = escape('<C-o>O'),
   bs         = escape('<BS>'),
   cr         = escape('<CR>'),
   del        = escape('<Del>'),
-  keep_undo  = escape('<C-g>U'),
+  ctrl_y     = escape('<C-y>'),
   -- Using left/right keys in insert mode breaks undo sequence and, more
   -- importantly, dot-repeat. To avoid this, use 'i_CTRL-G_U' mapping.
   -- Use `H.get_arrow_key()` for keys instead of direct from this table.
@@ -440,7 +426,9 @@ H.keys = {
   left_undo  = escape('<C-g>U<Left>'),
   right_undo = escape('<C-g>U<Right>'),
 }
--- stylua: ignore end
+
+-- Cache for temporary set options
+H.options_cache = {}
 
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
@@ -610,8 +598,9 @@ H.get_neigh = function(neigh_type)
   local is_command_mode = vim.fn.mode() == 'c'
   -- Get line and add '\r' and '\n' to always return 2 characters
   local line = is_command_mode and vim.fn.getcmdline() or vim.api.nvim_get_current_line()
-  line = '\r' .. line .. '\n'
+  line = '\r' .. line:gsub('%z', ' ') .. '\n'
   -- Get start character index accounting for added '\r' at the start
+  --typos: ignore
   local start = is_command_mode and vim.fn.charidx(line, vim.fn.getcmdpos()) or vim.fn.charcol('.')
   start = start - 1
 
@@ -623,9 +612,17 @@ H.neigh_match = function(pattern) return H.get_neigh('whole'):find(pattern or ''
 H.get_open_char = function(x) return vim.fn.strcharpart(x, 0, 1) end
 H.get_close_char = function(x) return vim.fn.strcharpart(x, 1, 1) end
 
-H.get_arrow_key = function(key)
-  return vim.fn.mode() == 'i' and (key == 'right' and H.keys.right_undo or H.keys.left_undo)
-    or (key == 'right' and H.keys.right or H.keys.left)
+H.get_arrow_key = function(key, ensure_no_wildmenu)
+  if vim.fn.mode() == 'i' then
+    -- Take into account that `virtualedit=all` can go into inline virtual text
+    H.with_temp_option('virtualedit', 'none')
+    return key == 'right' and H.keys.right_undo or H.keys.left_undo
+  end
+  local prefix = ''
+  -- In Command-line mode <Left> / <Right> act like <C-p> / <C-n> if wildmenu
+  -- is shown. Make sure that arrow key moves cursor.
+  if vim.fn.mode() == 'c' and ensure_no_wildmenu then prefix = vim.fn.wildmenumode() == 1 and H.keys.ctrl_y or '' end
+  return prefix .. (key == 'right' and H.keys.right or H.keys.left)
 end
 
 H.map = function(mode, lhs, rhs, opts)
@@ -634,7 +631,18 @@ H.map = function(mode, lhs, rhs, opts)
   vim.keymap.set(mode, lhs, rhs, opts)
 end
 
-H.restore_eventignore = vim.schedule_wrap(function(val) vim.o.eventignore = val end)
-H.restore_lazyredraw = vim.schedule_wrap(function(val) vim.o.lazyredraw = val end)
+H.with_temp_option = function(name, value)
+  -- Cache option only once to not override it later with temporary set value
+  -- Like in case of `nvim_feedkeys('(\r(\r')`
+  if H.options_cache[name] == nil then H.options_cache[name] = vim.o[name] end
+  vim.o[name] = value
+  H.restore_option_later(name)
+end
+
+H.restore_option_later = vim.schedule_wrap(function(name)
+  if H.options_cache[name] == nil then return end
+  vim.o[name] = H.options_cache[name]
+  H.options_cache[name] = nil
+end)
 
 return MiniPairs

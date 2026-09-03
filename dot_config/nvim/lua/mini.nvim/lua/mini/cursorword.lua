@@ -1,10 +1,7 @@
 --- *mini.cursorword* Autohighlight word under cursor
---- *MiniCursorword*
 ---
 --- MIT License Copyright (c) 2021 Evgeni Chasnovski
----
---- ==============================================================================
----
+
 --- Features:
 --- - Autohighlight word under cursor with customizable delay.
 ---
@@ -15,7 +12,7 @@
 --- - Highlighting stops in insert and terminal modes.
 ---
 --- - "Word under cursor" is meant as in Vim's |<cword>|: something user would
----   get as 'iw' text object.
+---   get as |iw| text object.
 ---
 --- # Setup ~
 ---
@@ -31,18 +28,19 @@
 --- `MiniCursorword.config`. See |mini.nvim-buffer-local-config| for more details.
 ---
 --- # Highlight groups ~
+--- *MiniCursorword-hl-groups*
 ---
---- * `MiniCursorword` - highlight group of a non-current cursor word.
+--- - `MiniCursorword` - highlight group of a non-current cursor word.
 ---   Default: plain underline.
 ---
---- * `MiniCursorwordCurrent` - highlight group of a current word under cursor.
+--- - `MiniCursorwordCurrent` - highlight group of a current word under cursor.
 ---   Default: links to `MiniCursorword` (so `:hi clear MiniCursorwordCurrent`
 ---   will lead to showing `MiniCursorword` highlight group).
 ---   Note: To not highlight it, use the following Lua code: >lua
 ---
 ---   vim.api.nvim_set_hl(0, 'MiniCursorwordCurrent', {})
 --- <
---- To change any highlight group, modify it directly with |:highlight|.
+--- To change any highlight group, set it directly with |nvim_set_hl()|.
 ---
 --- # Disabling ~
 ---
@@ -77,6 +75,7 @@
 ---   -- Make sure to add this autocommand *before* calling module's `setup()`.
 ---   vim.cmd('au CursorMoved * lua _G.cursorword_blocklist()')
 --- <
+---@tag MiniCursorword
 
 -- Module definition ==========================================================
 local MiniCursorword = {}
@@ -92,15 +91,6 @@ local H = {}
 ---   require('mini.cursorword').setup({}) -- replace {} with your config table
 --- <
 MiniCursorword.setup = function(config)
-  -- TODO: Remove after Neovim=0.8 support is dropped
-  if vim.fn.has('nvim-0.9') == 0 then
-    vim.notify(
-      '(mini.cursorword) Neovim<0.9 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniCursorword = MiniCursorword
 
@@ -117,9 +107,7 @@ MiniCursorword.setup = function(config)
   H.create_default_hl()
 end
 
---- Module config
----
---- Default values:
+--- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 MiniCursorword.config = {
   -- Delay (in ms) between when cursor moved and when highlighting appeared

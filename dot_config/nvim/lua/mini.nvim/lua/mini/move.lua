@@ -1,10 +1,7 @@
 --- *mini.move* Move any selection in any direction
---- *MiniMove*
 ---
 --- MIT License Copyright (c) 2023 Evgeni Chasnovski
----
---- ==============================================================================
----
+
 --- Features:
 --- - Works in two modes:
 ---     - Visual mode. Select text (charwise with |v|, linewise with |V|, and
@@ -46,20 +43,20 @@
 ---
 --- # Comparisons ~
 ---
---- - 'matze/vim-move':
+--- - [matze/vim-move](https://github.com/matze/vim-move):
 ---     - Doesn't support vertical movement of charwise and blockwise selections.
----       While 'mini.move' does.
+---       While |mini.move| does.
 ---     - Doesn't support horizontal movement of current line in favor of
----       horizontal movement of current character. While 'mini.move' supports
+---       horizontal movement of current character. While |mini.move| supports
 ---       horizontal movement of current line and doesn't support such movement
 ---       of current character.
 ---     - Has extra functionality for certain moves (like move by half page).
----       While 'mini.move' does not (by design).
---- - 'booperlv/nvim-gomove':
+---       While |mini.move| does not (by design).
+--- - [booperlv/nvim-gomove](https://github.com/booperlv/nvim-gomove):
 ---     - Doesn't support movement in charwise visual selection.
----       While 'mini.move' does.
+---       While |mini.move| does.
 ---     - Has extra functionality beyond moving text, like duplication.
----       While 'mini.move' concentrates only on moving functionality.
+---       While |mini.move| concentrates only on moving functionality.
 ---
 --- # Disabling ~
 ---
@@ -68,6 +65,7 @@
 --- and customization intentions, writing exact rules for disabling module's
 --- functionality is left to user. See |mini.nvim-disabling-recipes| for common
 --- recipes.
+---@tag MiniMove
 
 ---@alias __move_direction string One of "left", "down", "up", "right".
 ---@alias __move_opts table|nil Options. Same structure as `options` in |MiniMove.config|
@@ -91,15 +89,6 @@ local H = {}
 ---   require('mini.move').setup({}) -- replace {} with your config table
 --- <
 MiniMove.setup = function(config)
-  -- TODO: Remove after Neovim=0.8 support is dropped
-  if vim.fn.has('nvim-0.9') == 0 then
-    vim.notify(
-      '(mini.move) Neovim<0.9 is soft deprecated (module works but not supported).'
-        .. ' It will be deprecated after next "mini.nvim" release (module might not work).'
-        .. ' Please update your Neovim version.'
-    )
-  end
-
   -- Export module
   _G.MiniMove = MiniMove
 
@@ -110,9 +99,7 @@ MiniMove.setup = function(config)
   H.apply_config(config)
 end
 
---- Module config
----
---- Default values:
+--- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 ---@text # Mappings ~
 ---

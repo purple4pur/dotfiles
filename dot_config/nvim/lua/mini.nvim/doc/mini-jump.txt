@@ -1,10 +1,9 @@
 *mini.jump* Jump to next/previous single character
-*MiniJump*
 
 MIT License Copyright (c) 2021 Evgeni Chasnovski, Adam Blažek
 
-==============================================================================
-
+------------------------------------------------------------------------------
+                                                                      *MiniJump*
 Features:
 - Extend f, F, t, T to work on multiple lines.
 
@@ -15,12 +14,12 @@ Features:
 - Highlight (after customizable delay) all possible target characters and
   stop it after some (customizable) idle time.
 
-- Normal, Visual, and Operator-pending (with full dot-repeat) modes are
-  supported.
+- Normal, Visual, and Operator-pending (with dot-repeat as in clean Neovim)
+  modes are supported.
 
-This module follows vim's 'ignorecase' and 'smartcase' options. When
-'ignorecase' is set, f, F, t, T will match case-insensitively. When
-'smartcase' is also set, f, F, t, T will only match lowercase
+This module follows vim's |'ignorecase'| and |'smartcase'| options. When
+|'ignorecase'| is set, f, F, t, T will match case-insensitively. When
+|'smartcase'| is also set, f, F, t, T will only match lowercase
 characters case-insensitively.
 
 # Setup ~
@@ -39,10 +38,11 @@ You can override runtime config settings locally to buffer inside
 To stop module from showing non-error feedback, set `config.silent = true`.
 
 # Highlight groups ~
+*MiniJump-hl-groups*
 
-* `MiniJump` - all possible cursor positions.
+- `MiniJump` - all possible cursor positions.
 
-To change any highlight group, modify it directly with |:highlight|.
+To change any highlight group, set it directly with |nvim_set_hl()|.
 
 # Disabling ~
 
@@ -51,6 +51,17 @@ To disable core functionality, set `vim.g.minijump_disable` (globally) or
 different scenarios and customization intentions, writing exact rules for
 disabling module's functionality is left to user. See
 |mini.nvim-disabling-recipes| for common recipes.
+
+------------------------------------------------------------------------------
+                                                               *MiniJump-events*
+To allow user customization and integration of external tools, certain |User|
+autocommand events are triggered under common circumstances:
+
+- `MiniJumpGetTarget` - before asking user for the target. Use |MiniJump.state|
+  for more information about the upcoming jump.
+- `MiniJumpStart` - after jumping has started.
+- `MiniJumpJump` - after performing a jump.
+- `MiniJumpStop` - after jumping is stopped.
 
 ------------------------------------------------------------------------------
                                                               *MiniJump.setup()*
@@ -69,9 +80,7 @@ Usage ~
 ------------------------------------------------------------------------------
                                                                *MiniJump.config*
                                `MiniJump.config`
-Module config
-
-Default values:
+Defaults ~
 >lua
   MiniJump.config = {
     -- Module mappings. Use `''` (empty string) to disable one.
@@ -133,7 +142,7 @@ Fields ~
 {n_times} `(number|nil)` Number of times to perform consecutive jumps.
 {mode} `(string)` Mode of latest jump (output of |mode()| with non-zero argument).
 {jumping} `(boolean)` Whether module is currently in "jumping mode": usage of
-  |MiniJump.smart_jump| and all mappings won't require target.
+  |MiniJump.smart_jump()| and all mappings won't require target.
 
 Initial values:
 >lua
