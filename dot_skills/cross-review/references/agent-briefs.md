@@ -61,9 +61,11 @@ Discover commands from manifests. Run ONE build + ONE test command per side. Rep
 
 Owns the deleted/replaced lines — they exist only in the diff, the current tree carries no trace. For each removal ask: what invariant did it enforce, and where is it re-established? Specifically: removed/renamed exports (compare against the replacement as BEHAVIOR, not names — a flipped default, a narrowed scope, an error that stopped propagating), changed literals that distant consumers match by shape (marker strings, keys, codes, regex text), and rename/format/schema changes against data that already exists (migration / split-brain). Read the post-change files to check re-establishment; when the re-establishment would live outside the diff, report at `Confidence: low` and say the check could not be completed — do not assert it is missing.
 
-## ponytail-review lens
+## Over-engineering lens (ponytail-audit / ponytail-review)
 
-Over-engineering only; correctness/security/performance out of scope. One line per finding: `<file>:L<line>: <tag> <what>. <replacement>.` Tags: `delete:` (dead code, speculative feature — replacement: nothing), `stdlib:` (hand-rolled, standard library ships it), `native:` (dependency doing what the platform does), `yagni:` (one-implementation abstraction, config nobody sets), `shrink:` (same logic, fewer lines — show the form). Grep for usages before calling anything dead — check tests and e2e too. End with `net: -<N> lines possible.` If nothing: `Lean already. Ship.` Do not flag a single smoke test as bloat.
+Round mode picks the shape. Whole-state rounds: ponytail-audit semantics — ranked scan of the scope map, biggest cut first, end `net: -<N> lines, -<M> deps possible.` Diff rounds: ponytail-review semantics — findings in diff order, end `net: -<N> lines possible.` Shared rules:
+
+Over-engineering only; correctness/security/performance out of scope. One line per finding: `<file>:L<line>: <tag> <what>. <replacement>.` (audit rounds may cite `[path]` without a line when the finding spans a file). Tags: `delete:` (dead code, speculative feature — replacement: nothing), `stdlib:` (hand-rolled, standard library ships it), `native:` (dependency doing what the platform does), `yagni:` (one-implementation abstraction, config nobody sets), `shrink:` (same logic, fewer lines — show the form). Grep for usages before calling anything dead — check tests and e2e too. If nothing: `Lean already. Ship.` Do not flag a single smoke test as bloat.
 
 ## interface-kit lens (UI rounds only)
 

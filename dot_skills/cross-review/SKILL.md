@@ -1,6 +1,6 @@
 ---
 name: cross-review
-description: Multi-reviewer audit with consensus fixing. Runs 9 dimension agents + ponytail-review (+ interface-kit when UI exists) as parallel subagents over a review scope — whole repo by default, or a file, directory, or function/class the user names ("cross review", "cross review src/api.ts", "cross review the reorder function", "全仓审查", "交叉审查 src/api.ts"). Cross-checks all findings, fixes only what everyone agrees on, holds contested items for the user.
+description: Multi-reviewer audit with consensus fixing. Runs 9 dimension agents + the over-engineering lens (+ interface-kit when UI exists) as parallel subagents over a review scope — whole repo by default, or a file, directory, or function/class the user names ("cross review", "cross review src/api.ts", "cross review the reorder function", "全仓审查", "交叉审查 src/api.ts"). Cross-checks all findings, fixes only what everyone agrees on, holds contested items for the user.
 ---
 
 # Cross Review
@@ -17,7 +17,7 @@ Independent lenses, cross-checked truth, consensus-only fixes.
 
 **Must never do:** fix a contested item without explicit user decision; batch unrelated fixes into one commit; accept a bare "No issues found." without walked-evidence; claim verified without running build/tests; write to remotes/PRs.
 
-**Needs:** subagent capability (`review-agent` type), `ponytail-review` skill, `interface-kit` skill (only when UI detected), project build/test commands.
+**Needs:** subagent capability (`review-agent` type), `ponytail-review` + `ponytail-audit` skills (over-engineering lens), `interface-kit` skill (only when UI detected), project build/test commands.
 
 **Done when:** matrix delivered, fixes landed, verification green, held items listed.
 
@@ -40,7 +40,7 @@ Whole-state rounds (the default) have no diff, so row 10 has no object there —
 
 Plus:
 
-- `ponytail-review` — over-engineering lens (tags: delete/stdlib/native/yagni/shrink). Always runs.
+- Over-engineering lens (tags: delete/stdlib/native/yagni/shrink). Always runs; brief from agent-briefs.md — `ponytail-audit` variant on whole-state rounds, `ponytail-review` variant on diff rounds.
 - `interface-kit` — UI lens (contrast ratios computed, touch targets, keyboard, ARIA, motion). Runs **only when Step 1 detects UI**.
 
 Launch rules shared by all finder agents (1-8, ponytail, interface-kit; build-test exempt — it runs commands, not review):
