@@ -33,9 +33,22 @@ Two directions. Consumer: for every export/endpoint, find call sites, check each
 
 SQL injection (query construction, string interpolation), SSRF (user input reaching external URLs/params), secrets (hardcoded, logged, committed; JS-bundle exposure of server-side keys), CORS wildcards, input validation gaps (length, NaN/Inf, negative ids), log forging, unbounded writes. Exclusions: no "add auth/rate limiting" unless the design doc does not declare the boundary AND a concrete exposure exists. Read the domain doc's non-goals first.
 
-## 4. reuse
+## 4. reuse (dead-weight lens)
 
-Duplicated logic across files (name the existing helper or name the helper to extract — a duplication finding naming nothing is not a finding), repeated literal blocks (field lists, error strings, SQL fragments) spelled multiple ways, dead code (functions/branches/imports/classes nothing reaches — grep before claiming).
+Owns every "this code should not exist as-is" defect — the over-engineering lens merged in here (ponytail semantics; the standalone `ponytail*` skills are lineage, not invoked). Over-engineering only; correctness/security/performance out of scope. Whole-state rounds: ranked scan of the scope map, biggest cut first. Diff rounds: findings in diff order.
+
+Each finding uses the shared format plus a tag line:
+
+- `delete` — dead code: functions/branches/imports/classes nothing reaches; speculative feature. Replacement: nothing. Grep for usages, tests and e2e included, before calling anything dead.
+- `dedupe` — duplicated logic across files, repeated literal blocks (field lists, error strings, SQL fragments) spelled multiple ways. Name the existing helper or the remedy under the precedence rule — a dedupe finding with no named remedy is not a finding.
+- `yagni` — one-implementation abstraction, config nobody sets.
+- `stdlib` — hand-rolled, standard library ships it.
+- `native` — dependency doing what the platform does.
+- `shrink` — same logic, fewer lines — show the form.
+
+Remedy precedence: `delete > shrink > extract`. New helpers only when ≥3 real call sites survive the cleanup; with fewer, inline. Resolve extract-vs-inline here — never emit both.
+
+End the report with `net: -<N> lines, -<M> deps possible.` Empty return: the shared format. Do not flag a single smoke test as bloat.
 
 ## 5. altitude
 
@@ -61,12 +74,6 @@ Discover commands from manifests. Run ONE build + ONE test command per side. Rep
 
 Owns the deleted/replaced lines — they exist only in the diff, the current tree carries no trace. For each removal ask: what invariant did it enforce, and where is it re-established? Specifically: removed/renamed exports (compare against the replacement as BEHAVIOR, not names — a flipped default, a narrowed scope, an error that stopped propagating), changed literals that distant consumers match by shape (marker strings, keys, codes, regex text), and rename/format/schema changes against data that already exists (migration / split-brain). Read the post-change files to check re-establishment; when the re-establishment would live outside the diff, report at `Confidence: low` and say the check could not be completed — do not assert it is missing.
 
-## Over-engineering lens (ponytail-audit / ponytail-review)
-
-Round mode picks the shape. Whole-state rounds: ponytail-audit semantics — ranked scan of the scope map, biggest cut first, end `net: -<N> lines, -<M> deps possible.` Diff rounds: ponytail-review semantics — findings in diff order, end `net: -<N> lines possible.` Shared rules:
-
-Over-engineering only; correctness/security/performance out of scope. One line per finding: `<file>:L<line>: <tag> <what>. <replacement>.` (audit rounds may cite `[path]` without a line when the finding spans a file). Tags: `delete:` (dead code, speculative feature — replacement: nothing), `stdlib:` (hand-rolled, standard library ships it), `native:` (dependency doing what the platform does), `yagni:` (one-implementation abstraction, config nobody sets), `shrink:` (same logic, fewer lines — show the form). Grep for usages before calling anything dead — check tests and e2e too. If nothing: `Lean already. Ship.` Do not flag a single smoke test as bloat.
-
 ## interface-kit lens (UI rounds only)
 
 Audit against the priority stack: accessibility (computed WCAG contrast ratios for the actual token pairs — show the numbers, ≥4.5:1 text / 3:1 large+non-text; keyboard operability of every interactive element; focus trap/restore in modals; aria-label on icon-only buttons; live regions; 44×44px touch targets) → typography (font smoothing, tabular-nums on dynamic numbers) → spatial (4/8px grid, concentric radius, layered shadows) → color/motion (semantic tokens not hardcoded hex, frequency-matched animation, no `transition: all`, reduced-motion respected including JS scrolls, press feedback). Also flag any native alert/confirm/prompt if the project bans them. Format: `[CRITICAL|HIGH|MEDIUM|LOW] <file>:<line> — <what> → <fix>`. Compute, don't eyeball. Clean areas get no padding findings.
@@ -74,6 +81,7 @@ Audit against the priority stack: accessibility (computed WCAG contrast ratios f
 ## Orchestrator cross-check reminders (Step 3)
 
 - Dedup: same defect + location + root cause keeps one entry, highest severity, list all lenses that flagged it.
+- Row 4 owns the over-engineering zones alone: its grep-backed dead-code/dedupe findings are single-lens WITH executed evidence — rule on the grep output, don't demand a second vote.
 - Probe runnable claims before ruling (the NaN case: reading pydantic's actual output killed the "reads 500 forever" mechanism).
 - Domain doc is the design-intent judge: lens says dead, doc says planned → contested, held for user.
 - Severity honesty: pathological input without data loss is Suggestion even when it 500s in prod (verified max_length case).

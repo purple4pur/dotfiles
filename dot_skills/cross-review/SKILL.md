@@ -1,6 +1,6 @@
 ---
 name: cross-review
-description: Multi-reviewer audit with consensus fixing. Runs 9 dimension agents + the over-engineering lens (+ interface-kit when UI exists) as parallel subagents over a review scope — whole repo by default, or a file, directory, or function/class the user names ("cross review", "cross review src/api.ts", "cross review the reorder function", "全仓审查", "交叉审查 src/api.ts"). Cross-checks all findings, fixes only what everyone agrees on, holds contested items for the user.
+description: Multi-reviewer audit with consensus fixing. Runs 9 dimension agents (row 4 reuse carries the over-engineering dead-weight lens) (+ interface-kit when UI exists) as parallel subagents over a review scope — whole repo by default, or a file, directory, or function/class the user names ("cross review", "cross review src/api.ts", "cross review the reorder function", "全仓审查", "交叉审查 src/api.ts"). Cross-checks all findings, fixes only what everyone agrees on, holds contested items for the user.
 ---
 
 # Cross Review
@@ -17,7 +17,7 @@ Independent lenses, cross-checked truth, consensus-only fixes.
 
 **Must never do:** fix a contested item without explicit user decision; batch unrelated fixes into one commit; accept a bare "No issues found." without walked-evidence; claim verified without running build/tests; write to remotes/PRs.
 
-**Needs:** subagent capability (`review-agent` type), `ponytail-review` + `ponytail-audit` skills (over-engineering lens), `interface-kit` skill (only when UI detected), project build/test commands.
+**Needs:** subagent capability (`review-agent` type), `interface-kit` skill (only when UI detected), project build/test commands.
 
 **Done when:** matrix delivered, fixes landed, verification green, held items listed.
 
@@ -30,7 +30,7 @@ Whole-state rounds (the default) have no diff, so row 10 has no object there —
 | 1 | `correctness` | line-by-line correctness: inverted conditions, missing await, None/null on reachable paths, race conditions, async blocking |
 | 2 | `cross-file` | contract tracing: backend↔frontend schemas, dead exports/endpoints/columns, fields read-but-never-written |
 | 3 | `security` | injection, SSRF, secrets, CORS, input validation, log forging; no boilerplate "add auth" without concrete exposure |
-| 4 | `reuse` | duplication (name the helper), dead code, repeated literal blocks |
+| 4 | `reuse` | dead weight (tags delete/dedupe/yagni/stdlib/native/shrink): duplication, dead code, speculative abstraction, hand-rolled stdlib |
 | 5 | `altitude` | wrong-layer logic, bandaids, enumeration traps (unguarded external-response shapes) |
 | 6 | `consistency` | sibling drift between parallel routers/components, misleading comments, asymmetric guards |
 | 7 | `performance` | N+1, blocking I/O in async, missing indexes, rebuild-on-selection UI patterns, uncompressed payloads |
@@ -40,10 +40,10 @@ Whole-state rounds (the default) have no diff, so row 10 has no object there —
 
 Plus:
 
-- Over-engineering lens (tags: delete/stdlib/native/yagni/shrink). Always runs; brief from agent-briefs.md — `ponytail-audit` variant on whole-state rounds, `ponytail-review` variant on diff rounds.
 - `interface-kit` — UI lens (contrast ratios computed, touch targets, keyboard, ARIA, motion). Runs **only when Step 1 detects UI**.
+- Over-engineering is not a separate agent: row 4 (`reuse`) owns the ponytail dead-weight lens end to end (agent-briefs.md row 4). The standalone `ponytail*` skills are upstream lineage only — not invoked.
 
-Launch rules shared by all finder agents (1-8, ponytail, interface-kit; build-test exempt — it runs commands, not review):
+Launch rules shared by all finder agents (1-8, interface-kit; build-test exempt — it runs commands, not review):
 
 - Read the full files in scope; small repos read everything, large repos get a scope map from Step 1.
 - Every finding carries: `file:line`, severity (Critical / Suggestion / Nice to have), what's wrong, **concrete failure scenario** (trigger → wrong outcome, or concrete cost), suggested fix, confidence. A Suggestion without a scenario is dropped by the agent itself.
@@ -72,7 +72,7 @@ Then collect round inputs: mode (whole-state default; a diff target adds `remove
 
 **Checkpoint: `review-plan`**
 
-Written plan: roster list (rows 1-9 + ponytail + interface-kit? + row 10 on diff rounds), scope map for large repos, test commands, domain doc path.
+Written plan: roster list (rows 1-9 + interface-kit? + row 10 on diff rounds), scope map for large repos, test commands, domain doc path.
 
 **Gate**
 
@@ -85,7 +85,7 @@ Written plan: roster list (rows 1-9 + ponytail + interface-kit? + row 10 on diff
 
 **Step**
 
-Launch ALL rostered agents (rows 1-9, plus row 10 on diff rounds, plus ponytail and interface-kit if planned) in ONE response as parallel subagents — no sequencing. Each gets: its dimension brief (from [references/agent-briefs.md](references/agent-briefs.md) plus the shared launch rules), the scope map, the repo root. build-test additionally gets: run commands, report outcomes verbatim, tag findings `[build]`/`[test]`, do not fix anything.
+Launch ALL rostered agents (rows 1-9, plus row 10 on diff rounds, plus interface-kit if planned) in ONE response as parallel subagents — no sequencing. Each gets: its dimension brief (from [references/agent-briefs.md](references/agent-briefs.md) plus the shared launch rules), the scope map, the repo root. build-test additionally gets: run commands, report outcomes verbatim, tag findings `[build]`/`[test]`, do not fix anything.
 
 **Checkpoint: `finder-results`**
 
