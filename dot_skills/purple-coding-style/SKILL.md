@@ -12,8 +12,10 @@ Apply style to every new or edited source region. Preserve intended behavior.
 - Inputs: requested change, target source, applicable project instructions,
   language/toolchain, formatter configuration, and surrounding code.
 - Output: requested source change with verified style and concise check results.
-- Scope: style accompanies authorized implementation. Keep unrelated code and
-  user edits intact. Repository-wide cleanup requires that scope in the task.
+- Scope: style accompanies authorized implementation, including whitespace
+  realignment of neighboring statements in the same affected logical block.
+  Preserve their content and behavior, unrelated code, and user edits.
+  Repository-wide cleanup requires that scope in the task.
 - Dependencies: existing language tools and project checks. This skill needs no
   additional package or custom formatter.
 - Respect explicit user instructions and applicable repository requirements.
@@ -64,6 +66,15 @@ Apply style to every new or edited source region. Preserve intended behavior.
 
 ### Alignment and logical blocks
 
+- When adding or editing variable definitions, assignments, or other aligned
+  statements, recompute alignment across the whole affected logical block.
+  Adjust neighboring statements' padding too, including lines whose content
+  stays unchanged. Use the widest participating field in that block to choose
+  the shared column; verify the entire group after insertion, rename, or edit.
+- Bound an alignment block by a blank line, a section-heading comment, a
+  control-flow or scope boundary, or a change of logical purpose. Keep nested
+  blocks independent. When boundaries are unclear, use the smallest contiguous
+  group of related statements at the same nesting level.
 - Within one contiguous logical group, align variable definitions at matching
   structural columns, especially initializer operators.
 - Align repeated operators across consecutive related statements, such as
@@ -106,10 +117,11 @@ files are unnecessary.
 ### 1. Discover scope
 
 **Step:** Read target regions and applicable instructions. Identify languages,
-existing indentation, new files, and the authorized change boundary.
+existing indentation, new files, and the authorized change boundary. Include
+the complete affected alignment blocks and their neighboring statements.
 
 **Checkpoint: `scope`** — Target files, language per region, instruction paths,
-surrounding indentation evidence, and intended change.
+surrounding indentation evidence, alignment block boundaries, and intended change.
 
 **Gate:** Scope known: **CONTINUE Step 2**. Missing target or ambiguous intent
 prevents a safe edit: **STOP** and request the missing detail.
@@ -132,12 +144,14 @@ when available, scoped command, effective rules, and any unavailable evidence.
 ### 3. Edit source
 
 **Step:** Implement the requested change using `style_plan`. Group related
-logic, align locally, and add affirmative explanations where reasoning needs
-support. Run the formatter on the smallest supported authorized scope. Inspect
+logic, realign each affected block in full, and add affirmative explanations
+where reasoning needs support. Run the formatter on the smallest supported
+authorized scope. Inspect
 whole-file output when range formatting is unavailable; preserve user edits.
 
 **Checkpoint: `source_diff`** — Requested change and formatter output, with
-unrelated changes excluded or a required whole-file effect identified.
+neighboring alignment-only edits identified, unrelated changes excluded, or a
+required whole-file effect identified.
 
 **Gate:** Diff within authorized scope: **CONTINUE Step 4**. Style needs repair:
 **RETURN Step 3**. Formatter necessarily changes beyond authorized scope:
@@ -146,14 +160,19 @@ unrelated changes excluded or a required whole-file effect identified.
 ### 4. Verify result
 
 **Step:** Review the diff against effective indentation, wrap thresholds,
-alignment groups, and comment rules. Check formatter stability using its check
+alignment groups, and comment rules. Inspect all participating statements in
+each affected block, including unchanged-content neighbors; confirm shared
+columns follow the controlling style and padding changes stay within recorded
+boundaries. Check formatter stability using its check
 mode or a second pass. Run relevant existing syntax/build/test checks for the
 implementation; scale checks to behavior changed.
 
 **Checkpoint: `checks`** — Commands/results, manual style findings, formatter
-stability result, applicable exceptions, and skipped checks with reasons.
+stability result, whole-block alignment findings, applicable exceptions, and
+skipped checks with reasons.
 
 **Gate:** Checks pass: **CONTINUE Step 5**. Source defect: **RETURN Step 3**.
+Incomplete block alignment or padding outside its boundary: **RETURN Step 3**.
 Wrong style authority: **RETURN Step 2**. Tool unavailable:
 **ENTER Formatter evidence lane**. Other check blocked: record exact limit and
 **CONTINUE Step 5** with validation explicitly incomplete.
