@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # https://github.com/QwenLM/qwen-code/releases/latest
-QWEN_VER=0.22
+QWEN_VER=0.23
 
 if [[ ! -d ./.qwen ]]; then
     mkdir -pv ./.qwen
