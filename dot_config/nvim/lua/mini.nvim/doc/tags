@@ -816,7 +816,6 @@ MiniVisits.select_path()	mini-visits.txt	/*MiniVisits.select_path()*
 MiniVisits.set_index()	mini-visits.txt	/*MiniVisits.set_index()*
 MiniVisits.setup()	mini-visits.txt	/*MiniVisits.setup()*
 MiniVisits.write_index()	mini-visits.txt	/*MiniVisits.write_index()*
-before	mini-cursorword.txt	/*before*
 mini.ai	mini-ai.txt	/*mini.ai*
 mini.align	mini-align.txt	/*mini.align*
 mini.animate	mini-animate.txt	/*mini.animate*
@@ -878,4 +877,3 @@ minispring	mini-hues.txt	/*minispring*
 minisummer	mini-hues.txt	/*minisummer*
 miniwinter	mini-hues.txt	/*miniwinter*
 randomhue	mini-hues.txt	/*randomhue*
-very	mini-jump2d.txt	/*very*

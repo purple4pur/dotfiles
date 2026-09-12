@@ -4,8 +4,8 @@ vim.diagnostic.config({
     signs = false,
     update_in_insert = true,
 })
-vim.keymap.set('n', '[d', vim.diagnostic.goto_prev)
-vim.keymap.set('n', ']d', vim.diagnostic.goto_next)
+vim.keymap.set('n', '[d', function() vim.diagnostic.jump({ count = -1, float = true }) end)
+vim.keymap.set('n', ']d', function() vim.diagnostic.jump({ count = 1, float = true }) end)
 vim.keymap.set('n', '<tab>d', vim.diagnostic.open_float)
 vim.keymap.set('n', '<tab>q', vim.diagnostic.setloclist)
 vim.api.nvim_create_autocmd('LspAttach', {

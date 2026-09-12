@@ -18,7 +18,7 @@ submodules, no nested .git. Nothing pins versions; diff decides everything.
 
 | Category | Rule |
 |------------|--------------------------------------------------------------|
-| skills | Fully pick upstream, include new skills, drop local edits. Skip monorepo build infra (`generated/`, `registry.json`, `compile.mjs`, `*.mjs` at skills root). Never touch user-owned skills (cross-review, record-each-step, session-performance-report, stronger-skill). |
+| skills | Fully pick upstream within repository scope below; include new skills only where scope permits; drop local edits in selected skills. Skip monorepo build infra (`generated/`, `registry.json`, `compile.mjs`, `*.mjs` at skills root). Never touch user-owned skills (cross-review, record-each-step, session-performance-report, stronger-skill). |
 | breaking | Migrate carefully. Upgrade deprecated references/usages elsewhere in config too. Assume latest nvim — new APIs directly, no version guards, no deprecated APIs even in comments. |
 | small fix | Straight copy of upstream file. |
 | optional | Do NOT introduce unnecessary deps. New assets (shaders, colorschemes, modules) copied only if config references them. |
@@ -26,6 +26,19 @@ submodules, no nested .git. Nothing pins versions; diff decides everything.
 Intentional local mods stay unless user says otherwise for that dep:
 glow.nvim (no auto-install line), onehalfdark (Diff* reverse), dot_vimrc
 tabline rewrite, PaperColor (whitespace).
+
+### Repository scope (user-confirmed 2026-09-13)
+
+- `JuliusBrussee/caveman`: exact allowlist `skills/caveman` and
+  `skills/caveman-commit`, mapped to same-named `dot_skills/` directories.
+  Exclude every other skill, including other `caveman*` names and independent
+  skills. New upstream skills never expand this allowlist automatically.
+- This allowlist overrides the generic skills rule and README globs. Use two
+  explicit README bullets with deep links; no `caveman*` manifest entry.
+- Remove previously vendored extras only with confirmed repository provenance
+  and no user-owned content or unresolved local edits. Record exact removal
+  paths before applying; preserve unrelated skills.
+- Other repositories retain their existing category rules and README scope.
 
 ## Environment constraints
 
@@ -43,6 +56,8 @@ tabline rewrite, PaperColor (whitespace).
 
 ## Main line
 
+Inventory and scope → fetch → classify → decide → apply → docs → verify → commit.
+
 ### 1. Qualify: build dep inventory
 
 **Step**
@@ -50,15 +65,21 @@ tabline rewrite, PaperColor (whitespace).
 Read README "External resources" section. For each dep record: repo, vendored
 path(s), shape (dir-copy / single-file / embedded-in-file), marked notes
 (Active, w/ modification, will-not-update-often).
+Apply repository scope before selecting upstream skills. Record excluded
+upstream skills and any previously vendored extras separately.
 
 **Checkpoint: `dep_inventory`**
 
 Table: repo | vendored path | shape | note. Embedded (e.g. tabline in
 dot_vimrc) marked for manual compare only.
+For scoped skill repositories, record selected paths, exclusions, and removal
+candidates with provenance and local-edit status.
 
 **Gate**
 
-- Every README dep classified: **CONTINUE Step 2**.
+- Every README dep classified and repository scope resolved: **CONTINUE Step 2**.
+- Extra skill provenance or local edits unresolved: **STOP**, name exact paths
+  and request the missing ownership or preservation decision.
 - Vendored path missing on disk: **STOP**, report drift between README and repo.
 
 ### 2. Pull upstream latest to /tmp/deps
@@ -76,6 +97,8 @@ file (curl). Record HEAD date per clone.
 **Gate**
 
 - All present and valid: **CONTINUE Step 3**.
+- Required allowlisted skill missing upstream: **STOP**, report missing path;
+  never substitute a sibling skill.
 - Clone fails: **ENTER lane-network**.
 - Repo huge, only subset needed: **ENTER lane-partial-fetch**.
 
@@ -113,7 +136,7 @@ diff summary.
 
 Decision per dep. Standing rules auto-decide SAME/BEHIND/small/optional.
 DIVERGED needs user choice unless standing rule covers it (skills = full
-upstream).
+upstream within repository scope). Include exact authorized removal paths.
 
 **Gate**
 
@@ -128,7 +151,8 @@ upstream).
 
 Per decision:
 
-- skills: replace dir wholesale (`rm -rf` + `cp -r`), add new skill dirs.
+- skills: replace selected dirs wholesale (`rm -rf` + `cp -r`); add new skill
+  dirs only within repository scope. Remove only extras recorded in Step 4.
   Verify no vendor-only files lost first (`diff -rq | grep "^Only in"`).
 - breaking: replace vendor with upstream runtime files only (exclude .git,
   .github, tests, Makefile, CI/dev configs; keep LICENSE/README/doc/lua/plugin
@@ -142,10 +166,13 @@ Per decision:
 
 Every applied dep passes `cmp`/`diff -rq` vs its upstream source (excluding
 deliberate exclusions).
+Scoped skill set equals allowlist; authorized extras absent.
 
 **Gate**
 
 - All applied deps match source: **CONTINUE Step 6**.
+- Skill set violates repository scope: **RETURN Step 4**, correct selection
+  and removal plan before proceeding.
 - Vendor-only file would be lost: **RETURN Step 4**, name the file.
 - Breaking migration needs config change beyond mechanical edit:
   **ENTER lane-breaking**.
@@ -166,6 +193,7 @@ nvim --headless -u NONE -i NONE --cmd "set rtp^=VENDOR_DIR" \
 "External resources": bullet per dep, glob `name*` only if multiple vendored
 dirs, upstream link deep-targets the actual skill/subpath when repo is
 monorepo, notes (Active, w/ modification) reflect reality.
+Repository-specific explicit-entry rules override the glob convention.
 
 **Checkpoint: `docs_current`**
 
@@ -192,7 +220,9 @@ Never claim done on static review. Run, per change type:
   (e.g. `vim.lsp.config['server']` resolves through runtimepath append).
 - lua touched: `assert(loadfile(f))` per file (via --headless nvim or luac).
 - skills touched: vendor matches upstream source (`diff -rq`), SKILL.md
-  frontmatter intact.
+  frontmatter intact. For `JuliusBrussee/caveman`, assert exactly `caveman`
+  and `caveman-commit` remain from that repository; README names both
+  explicitly. Confirm unrelated and user-owned skills unchanged.
 - mpv scripts: `cmp` vs upstream.
 - No nvim/luac obtainable: state exactly which checks did not run. Do not
   report validated.
@@ -241,6 +271,7 @@ delete partial, restart or switch source. Raw-file path: list files via
 retry 2.
 Exit: checkpoint `upstream_pulled` satisfied. Record which source succeeded
 per repo (future runs start there).
+Return Step 2 to validate fetched sources.
 
 ### lane-partial-fetch (from Step 2)
 
@@ -249,6 +280,7 @@ needed files flat by basename. If upstream reorganized into subdirs, resolve
 each vendored basename to its upstream path via tree API before fetching.
 Exit: subset complete; note unreferenced upstream files were skipped, not
 missing.
+Return Step 2 to validate the fetched subset.
 
 ### lane-breaking (from Step 5)
 
@@ -258,6 +290,7 @@ repo config (`grep -rn OLD_API config/`). Migrate usage sites, keep commented
 examples working in new API. Prove with Step 7 probe (new API resolves,
 deprecated symbol absent from live code path).
 Exit: Step 5 checkpoint satisfiable with migrated config.
+Return Step 5 to validate applied files and migration.
 
 ## Non-goals
 

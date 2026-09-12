@@ -12,16 +12,18 @@ For vim/nvim plugin common usages, please refer to [`~/.vimrc`](dot_vimrc) and [
 ## External resources
 
 * [**`dot_vimrc`**](./dot_vimrc) - [mkitt/tabline.vim](https://github.com/mkitt/tabline.vim) w/ modification
-* [**`dot_vim/colors/PaperColor.vim`**](./dot_vim/colors/PaperColor.vim) - [NLKNguyen/papercolor-theme](https://github.com/NLKNguyen/papercolor-theme)
+* [**`dot_vim/colors/PaperColor.vim`**](./dot_vim/colors/PaperColor.vim) - [NLKNguyen/papercolor-theme](https://github.com/NLKNguyen/papercolor-theme) w/ whitespace modification
 * [**`dot_vim/colors/onehalfdark.vim (onehalflight)`**](./dot_vim/colors/onehalfdark.vim) - [sonph/onehalf](https://github.com/sonph/onehalf) w/ modification
 * [**`dot_vim/pack/plugins/start/vim-visual-multi`**](./dot_vim/pack/plugins/start/vim-visual-multi) - [mg979/vim-visual-multi](https://github.com/mg979/vim-visual-multi)
-* [**`dot_config/nvim/lua/glow.nvim`**](./dot_config/nvim/lua/glow.nvim) - [ellisonleao/glow.nvim](https://github.com/ellisonleao/glow.nvim) w/ modification
+* [**`dot_config/nvim/lua/glow.nvim`**](./dot_config/nvim/lua/glow.nvim) - [ellisonleao/glow.nvim](https://github.com/ellisonleao/glow.nvim) w/ modification **(Archived upstream)**
 * [**`dot_config/nvim/lua/mini.nvim`**](./dot_config/nvim/lua/mini.nvim) - [nvim-mini/mini.nvim](https://github.com/nvim-mini/mini.nvim) **(Active)**
 * [**`dot_config/nvim/lua/nvim-lspconfig`**](./dot_config/nvim/lua/nvim-lspconfig) - [neovim/nvim-lspconfig](https://github.com/neovim/nvim-lspconfig) **(Active, but here will not update often)**
 * [**`dot_config/mpv/exact_scripts/autoload.lua`**](./dot_config/mpv/exact_scripts/autoload.lua) - [mpv-player/mpv/.../autoload.lua](https://github.com/mpv-player/mpv/blob/master/TOOLS/lua/autoload.lua)
 * [**`dot_config/mpv/exact_scripts/modernz.lua`**](./dot_config/mpv/exact_scripts/modernz.lua) - [Samillion/ModernZ](https://github.com/Samillion/ModernZ) **(Active)**
+* [**`dot_config/mpv/fonts/modernz-icons.ttf`**](./dot_config/mpv/fonts/modernz-icons.ttf) - [Samillion/ModernZ icon font](https://github.com/Samillion/ModernZ/blob/main/modernz-icons.ttf)
 * [**`dot_config/mpv/exact_scripts/thumbfast.lua`**](./dot_config/mpv/exact_scripts/thumbfast.lua) - [po5/thumbfast](https://github.com/po5/thumbfast)
 * [**`dot_config/mpv/shaders`**](./dot_config/mpv/shaders) - [bloc97/Anime4K](https://github.com/bloc97/Anime4K)
-* [**`dot_skills/ponytail*`**](./dot_skills/ponytail) - [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail)
-* [**`dot_skills/caveman*`**](./dot_skills/caveman) - [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman)
+* [**`dot_skills/ponytail*`**](./dot_skills/ponytail) - [DietrichGebert/ponytail skills](https://github.com/DietrichGebert/ponytail/tree/main/skills)
+* [**`dot_skills/caveman`**](./dot_skills/caveman) - [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman/tree/main/skills/caveman)
+* [**`dot_skills/caveman-commit`**](./dot_skills/caveman-commit) - [JuliusBrussee/caveman caveman-commit](https://github.com/JuliusBrussee/caveman/tree/main/skills/caveman-commit)
 * [**`dot_skills/interface-kit`**](./dot_skills/interface-kit) - [JuliusBrussee/skills](https://github.com/JuliusBrussee/skills/tree/main/skills/interface-kit)

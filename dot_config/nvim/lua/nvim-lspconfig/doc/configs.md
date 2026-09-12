@@ -52,6 +52,7 @@ Nvim by running `:help lspconfig-all`.
 - [circom-lsp](#circom-lsp)
 - [clangd](#clangd)
 - [clarinet](#clarinet)
+- [clice](#clice)
 - [clojure_lsp](#clojure_lsp)
 - [cmake](#cmake)
 - [cobol_ls](#cobol_ls)
@@ -166,6 +167,7 @@ Nvim by running `:help lspconfig-all`.
 - [java_language_server](#java_language_server)
 - [jdtls](#jdtls)
 - [jedi_language_server](#jedi_language_server)
+- [jetls](#jetls)
 - [jinja_lsp](#jinja_lsp)
 - [jls](#jls)
 - [jqls](#jqls)
@@ -181,6 +183,7 @@ Nvim by running `:help lspconfig-all`.
 - [kotlin_lsp](#kotlin_lsp)
 - [kulala_ls](#kulala_ls)
 - [laravel_ls](#laravel_ls)
+- [laravel_lsp](#laravel_lsp)
 - [lean3ls](#lean3ls)
 - [lelwel_ls](#lelwel_ls)
 - [lemminx](#lemminx)
@@ -2356,6 +2359,43 @@ Default config:
 - `root_markers` :
   ```lua
   { "Clarinet.toml" }
+  ```
+
+---
+
+## clice
+
+https://github.com/clice-io/clice
+Clice is a next-generation language server for modern C++, focused on performance and code intelligence
+
+Snippet to enable the language server:
+```lua
+vim.lsp.enable('clice')
+```
+
+Default config:
+- `capabilities` :
+  ```lua
+  {
+    offsetEncoding = { "utf-8" },
+    textDocument = {
+      completion = {
+        editsNearCursor = true
+      }
+    }
+  }
+  ```
+- `cmd` :
+  ```lua
+  { "clice", "serve" }
+  ```
+- `filetypes` :
+  ```lua
+  { "c", "cpp" }
+  ```
+- `root_markers` :
+  ```lua
+  { "clice.toml", ".clang-tidy", ".clang-format", "compile_commands.json", "compile_flags.txt", "configure.ac", ".git" }
   ```
 
 ---
@@ -6720,6 +6760,37 @@ Default config:
 
 ---
 
+## jetls
+
+https://github.com/aviatesk/JETLS.jl
+
+For JETLS installation: Use the Julia Apps helper:
+```sh
+julia -e 'using Pkg; Pkg.Apps.add(; url="https://github.com/aviatesk/JETLS.jl", rev="release")'
+```
+To update it, run the same command again
+
+Snippet to enable the language server:
+```lua
+vim.lsp.enable('jetls')
+```
+
+Default config:
+- `cmd` :
+  ```lua
+  { "jetls", "serve" }
+  ```
+- `filetypes` :
+  ```lua
+  { "julia" }
+  ```
+- `root_markers` :
+  ```lua
+  { "Project.toml" }
+  ```
+
+---
+
 ## jinja_lsp
 
 jinja-lsp enhances minijinja development experience by providing Helix/Nvim users with advanced features such as autocomplete, syntax highlighting, hover, goto definition, code actions and linting.
@@ -7253,6 +7324,38 @@ Default config:
   ```lua
   { "artisan" }
   ```
+
+---
+
+## laravel_lsp
+
+https://github.com/laravel/lsp
+
+Laravel LSP provides framework-aware editor features for Laravel applications.
+
+Install Laravel LSP globally with Composer:
+
+```sh
+composer global require laravel/lsp
+```
+
+Ensure Composer's global bin directory is on `$PATH`.
+
+Snippet to enable the language server:
+```lua
+vim.lsp.enable('laravel_lsp')
+```
+
+Default config:
+- `cmd` :
+  ```lua
+  { "laravel-lsp" }
+  ```
+- `filetypes` :
+  ```lua
+  { "php", "blade" }
+  ```
+- `root_dir`: [../lsp/laravel_lsp.lua:16](../lsp/laravel_lsp.lua#L16)
 
 ---
 
@@ -9684,7 +9787,7 @@ Default config:
   ```
 - `filetypes` :
   ```lua
-  { "php" }
+  { "php", "blade" }
   ```
 - `root_markers` :
   ```lua
@@ -11004,7 +11107,7 @@ Default config:
   ```
 - `filetypes` :
   ```lua
-  { "robot", "resource" }
+  { "robot" }
   ```
 - `get_language_id`: [../lsp/robotcode.lua:10](../lsp/robotcode.lua#L10)
 - `root_markers` :
@@ -14214,7 +14317,8 @@ for TypeScript, `typescript-language-server` may still be useful for features su
 
 `typescript-language-server` depends on `typescript`. Both packages can be installed via `npm`:
 ```sh
-npm install -g typescript typescript-language-server
+# if you are using `ts_ls` you will need to install a `typescript` version < 7 for now
+npm install -g typescript@<version> typescript-language-server
 ```
 
 To configure typescript language server, add a
@@ -14237,6 +14341,9 @@ Here's an example that disables type checking in JavaScript files.
 }
 ```
 
+If you also have a `deno.json` or a `deno.jsonc` in your project, the `ts_ls` may not start (depending where the
+deno.json is)
+
 Use the `:LspTypescriptSourceAction` command to see "whole file" ("source") code-actions such as:
 - organize imports
 - remove unused code
@@ -14256,7 +14363,7 @@ Commands:
 - editor.action.showReferences
 
 Default config:
-- `cmd`: [../lsp/ts_ls.lua:46](../lsp/ts_ls.lua#L46)
+- `cmd`: [../lsp/ts_ls.lua:50](../lsp/ts_ls.lua#L50)
 - `commands` :
   ```lua
   {
@@ -14279,8 +14386,8 @@ Default config:
     hostInfo = "neovim"
   }
   ```
-- `on_attach`: [../lsp/ts_ls.lua:46](../lsp/ts_ls.lua#L46)
-- `root_dir`: [../lsp/ts_ls.lua:46](../lsp/ts_ls.lua#L46)
+- `on_attach`: [../lsp/ts_ls.lua:50](../lsp/ts_ls.lua#L50)
+- `root_dir`: [../lsp/ts_ls.lua:50](../lsp/ts_ls.lua#L50)
 
 ---
 

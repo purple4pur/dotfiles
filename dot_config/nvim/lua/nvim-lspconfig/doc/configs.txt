@@ -1518,6 +1518,34 @@ Default config:
 <
 
 ------------------------------------------------------------------------------
+clice
+
+https://github.com/clice-io/clice
+Clice is a next-generation language server for modern C++, focused on performance and code intelligence
+
+Snippet to enable the language server: >lua
+  vim.lsp.enable('clice')
+
+
+Default config:
+- capabilities: >lua
+  {
+    offsetEncoding = { "utf-8" },
+    textDocument = {
+      completion = {
+        editsNearCursor = true
+      }
+    }
+  }
+- cmd: >lua
+  { "clice", "serve" }
+- filetypes: >lua
+  { "c", "cpp" }
+- root_markers: >lua
+  { "clice.toml", ".clang-tidy", ".clang-format", "compile_commands.json", "compile_flags.txt", "configure.ac", ".git" }
+<
+
+------------------------------------------------------------------------------
 clojure_lsp
 
 https://github.com/clojure-lsp/clojure-lsp
@@ -4884,6 +4912,28 @@ Default config:
 <
 
 ------------------------------------------------------------------------------
+jetls
+
+https://github.com/aviatesk/JETLS.jl
+
+For JETLS installation: Use the Julia Apps helper >sh
+  julia -e 'using Pkg; Pkg.Apps.add(; url="https://github.com/aviatesk/JETLS.jl", rev="release")'
+To update it, run the same command again
+
+Snippet to enable the language server: >lua
+  vim.lsp.enable('jetls')
+
+
+Default config:
+- cmd: >lua
+  { "jetls", "serve" }
+- filetypes: >lua
+  { "julia" }
+- root_markers: >lua
+  { "Project.toml" }
+<
+
+------------------------------------------------------------------------------
 jinja_lsp
 
 jinja-lsp enhances minijinja development experience by providing Helix/Nvim users with advanced features such as autocomplete, syntax highlighting, hover, goto definition, code actions and linting.
@@ -5288,6 +5338,31 @@ Default config:
   { "php", "blade" }
 - root_markers: >lua
   { "artisan" }
+<
+
+------------------------------------------------------------------------------
+laravel_lsp
+
+https://github.com/laravel/lsp
+
+Laravel LSP provides framework-aware editor features for Laravel applications.
+
+Install Laravel LSP globally with Composer:
+>sh
+  composer global require laravel/lsp
+
+Ensure Composer's global bin directory is on `$PATH`.
+
+Snippet to enable the language server: >lua
+  vim.lsp.enable('laravel_lsp')
+
+
+Default config:
+- cmd: >lua
+  { "laravel-lsp" }
+- filetypes: >lua
+  { "php", "blade" }
+- root_dir (use "gF" to view): ../lsp/laravel_lsp.lua:16
 <
 
 ------------------------------------------------------------------------------
@@ -7159,7 +7234,7 @@ Default config:
 - cmd: >lua
   { "phpantom_lsp" }
 - filetypes: >lua
-  { "php" }
+  { "php", "blade" }
 - root_markers: >lua
   { ".phpantom.toml", ".git", "composer.json" }
 <
@@ -8165,7 +8240,7 @@ Default config:
 - cmd: >lua
   { "robotcode", "language-server" }
 - filetypes: >lua
-  { "robot", "resource" }
+  { "robot" }
 - get_language_id (use "gF" to view): ../lsp/robotcode.lua:10
 - root_markers: >lua
   { "robot.toml", "pyproject.toml", "Pipfile", ".git" }
@@ -10651,7 +10726,8 @@ While `typescript-language-server` will likely eventually be replaced by [tsc](#
 for TypeScript, `typescript-language-server` may still be useful for features such as es5 support.
 
 `typescript-language-server` depends on `typescript`. Both packages can be installed via `npm` >sh
-  npm install -g typescript typescript-language-server
+  # if you are using `ts_ls` you will need to install a `typescript` version < 7 for now
+  npm install -g typescript@<version> typescript-language-server
 
 To configure typescript language server, add a
 [`tsconfig.json`](https://www.typescriptlang.org/docs/handbook/tsconfig-json.html) or
@@ -10671,6 +10747,9 @@ Here's an example that disables type checking in JavaScript files.
     ]
   }
 
+If you also have a `deno.json` or a `deno.jsonc` in your project, the `ts_ls` may not start (depending where the
+deno.json is)
+
 Use the `:LspTypescriptSourceAction` command to see "whole file" ("source") code-actions such as:
 - organize imports
 - remove unused code
@@ -10689,7 +10768,7 @@ Commands:
 - editor.action.showReferences
 
 Default config:
-- cmd (use "gF" to view): ../lsp/ts_ls.lua:46
+- cmd (use "gF" to view): ../lsp/ts_ls.lua:50
 - commands: >lua
   {
     ["editor.action.showReferences"] = <function 1>
@@ -10704,8 +10783,8 @@ Default config:
   {
     hostInfo = "neovim"
   }
-- on_attach (use "gF" to view): ../lsp/ts_ls.lua:46
-- root_dir (use "gF" to view): ../lsp/ts_ls.lua:46
+- on_attach (use "gF" to view): ../lsp/ts_ls.lua:50
+- root_dir (use "gF" to view): ../lsp/ts_ls.lua:50
 <
 
 ------------------------------------------------------------------------------
