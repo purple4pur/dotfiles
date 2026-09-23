@@ -26,8 +26,48 @@ file_no_ext="${file%.*}"
 # Build an output path that mirrors any input subdirectories.
 target_dir="video2av1_output"
 target_file="${target_dir}/${file_no_ext}.av1.mp4"
+report_file="${target_file}.report.txt"
+
+target_dir_abs=$(realpath -m "$target_dir")
+target_file_abs=$(realpath -m "$target_file")
+case "$target_file_abs" in
+    "$target_dir_abs"/*) ;;
+    *)
+        echo "Error: Video path must resolve within the current directory" >&2
+        exit 1
+        ;;
+esac
 
 mkdir -p "$(dirname "$target_file")"
+
+# Report container-average bitrate so input and output are measured the same way.
+write_report() {
+    local input_size output_size input_duration output_duration
+
+    input_size=$(stat -c%s "$file") || return 1
+    output_size=$(stat -c%s "$target_file") || return 1
+    input_duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$file") || return 1
+    output_duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$target_file") || return 1
+
+    awk -v input_size="$input_size" -v output_size="$output_size" -v input_duration="$input_duration" -v output_duration="$output_duration" '
+        function format_size(bytes, units, unit_index, negative, result) {
+            negative = bytes < 0
+            if (negative) bytes = -bytes
+            split("B KiB MiB GiB TiB", units, " ")
+            for (unit_index = 1; bytes >= 1024 && unit_index < 5; unit_index++) bytes /= 1024
+            result = sprintf(bytes < 10 && unit_index > 1 ? "%.2f %s" : "%.0f %s", bytes, units[unit_index])
+            return negative ? "-" result : result
+        }
+        BEGIN {
+            if (input_duration <= 0 || output_duration <= 0) exit 1
+            input_rate = input_size * 8 / input_duration / 1000000
+            output_rate = output_size * 8 / output_duration / 1000000
+            printf "Input:  %s | %.1f Mb/s\n", format_size(input_size), input_rate
+            printf "Output: %s | %.1f Mb/s\n", format_size(output_size), output_rate
+            printf "Saved:  %s (%.1f%%) | %.1f Mb/s (%.1f%%)\n", format_size(input_size - output_size), (input_size - output_size) * 100 / input_size, input_rate - output_rate, (input_rate - output_rate) * 100 / input_rate
+        }
+    ' > "$report_file"
+}
 
 # Re-encode every input, retaining only the first video and audio streams.
 if [ -f "$target_file" ]; then
@@ -49,4 +89,12 @@ ffmpeg -hide_banner -nostdin \
     "$target_file" -y
 
 echo "Conversion completed! Output file: $target_file"
+if write_report; then
+    echo "Report: $report_file"
+else
+    if ! rm -f "$report_file"; then
+        echo "Warning: Could not remove partial report: $report_file" >&2
+    fi
+    echo "Warning: Could not write conversion report" >&2
+fi
 echo "[Finish] $(date '+%Y-%m-%dT%H:%M%z')"
