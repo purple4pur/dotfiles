@@ -17,9 +17,19 @@ Independent lenses, cross-checked truth, consensus-only fixes.
 
 **Must never do:** fix a contested item without explicit user decision; batch unrelated fixes into one commit; accept a bare "No issues found." without walked-evidence; claim verified without running build/tests; write to remotes/PRs.
 
-**Needs:** subagent capability (`review-agent` type), `interface-kit` skill (only when UI detected), project build/test commands.
+**Needs:** subagent capability (`review-agent` type), `interface-kit` skill (only when UI detected), `record-each-step` skill, `purple-coding-style` skill, project build/test commands.
 
 **Done when:** matrix delivered, fixes landed, verification green, held items listed.
+
+## Change execution
+
+Enable `record-each-step` by default before making any agreed fix or other
+review-driven change. Commit each logical change immediately on its managed
+branch.
+
+Apply `purple-coding-style` to every edited source region. Resolve the
+project's formatter and run the smallest relevant formatting and verification
+commands before committing.
 
 ## Agent roster (fixed names)
 
@@ -124,7 +134,11 @@ Matrix with four sections, each entry carrying lenses-that-flagged, evidence, an
 
 **Step**
 
-Apply agreed fixes only. One logical fix = one commit (`fix(scope): ...` conventional message) so record-each-step stays clean and any single fix is revertible. Skip nothing silently: a finding you decline to fix despite agreement gets outcome `skipped` + reason in the report.
+Apply agreed fixes only. Enable `record-each-step` before the first edit, then
+apply `purple-coding-style` to each affected source region. One logical fix =
+one commit (`fix(scope): ...` conventional message) so each fix is revertible.
+Skip nothing silently: a finding you decline to fix despite agreement gets
+outcome `skipped` + reason in the report.
 
 **Checkpoint: `fix-log`**
 
