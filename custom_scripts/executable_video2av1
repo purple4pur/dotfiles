@@ -83,7 +83,7 @@ ffmpeg -hide_banner -nostdin \
     -i "$file" \
     -map 0:v:0? -map 0:a:0? \
     -c:v libsvtav1 -preset 8 \
-    -vf "scale=w='min(iw\\,1440)':h='min(ih\\,810)':force_original_aspect_ratio=decrease:force_divisible_by=2,fps=min(source_fps\\,30)" \
+    -vf "scale=w='if(gte(iw\\,ih)\\,min(iw\\,1440)\\,min(iw\\,810))':h='if(gte(iw\\,ih)\\,min(ih\\,810)\\,min(ih\\,1440))':force_original_aspect_ratio=decrease:force_divisible_by=2,fps=min(source_fps\\,30)" \
     -c:a aac -b:a 128k \
     -movflags faststart \
     "$target_file" -y
