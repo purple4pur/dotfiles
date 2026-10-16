@@ -871,8 +871,9 @@ mini.test	mini-test.txt	/*mini.test*
 mini.trailspace	mini-trailspace.txt	/*mini.trailspace*
 mini.visits	mini-visits.txt	/*mini.visits*
 miniautumn	mini-hues.txt	/*miniautumn*
+miniblue	mini-base16.txt	/*miniblue*
 minicyan	mini-base16.txt	/*minicyan*
-minischeme	mini-base16.txt	/*minischeme*
+minischeme	mini-hues.txt	/*minischeme*
 minispring	mini-hues.txt	/*minispring*
 minisummer	mini-hues.txt	/*minisummer*
 miniwinter	mini-hues.txt	/*miniwinter*

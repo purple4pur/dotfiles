@@ -175,7 +175,7 @@
 ---   local now, later = MiniDeps.now, MiniDeps.later
 ---
 ---   -- Safely execute immediately
----   now(function() vim.cmd('colorscheme miniwinter') end)
+---   now(function() vim.cmd('colorscheme minischeme') end)
 ---   now(function() require('mini.statusline').setup() end)
 ---
 ---   -- Safely execute later
@@ -1422,6 +1422,7 @@ H.show_confirm_buf = function(lines, opts)
   -- Show buffer
   local buf_id = vim.api.nvim_create_buf(true, true)
   H.set_buf_name(buf_id, opts.name)
+  vim.bo[buf_id].modifiable = true
   vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)
   vim.cmd('tab sbuffer ' .. buf_id)
   local tab_num, win_id = vim.api.nvim_tabpage_get_number(0), vim.api.nvim_get_current_win()

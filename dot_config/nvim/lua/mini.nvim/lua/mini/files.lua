@@ -1990,8 +1990,10 @@ H.explorer_show_help = function(explorer, explorer_buf_id, explorer_win_id)
 
   -- Create buffer
   local buf_id = vim.api.nvim_create_buf(false, true)
-  H.set_buflines(buf_id, lines)
   H.set_buf_name(buf_id, 'help')
+  vim.bo[buf_id].modifiable = true
+  H.set_buflines(buf_id, lines)
+  vim.bo[buf_id].modifiable = false
 
   vim.keymap.set('n', 'q', '<Cmd>close<CR>', { buffer = buf_id, desc = 'Close this window' })
 
@@ -2190,6 +2192,7 @@ H.buffer_create = function(path, mappings)
   -- Create buffer
   local buf_id = vim.api.nvim_create_buf(false, true)
   H.set_buf_name(buf_id, path)
+  vim.bo[buf_id].modifiable = true
 
   -- Register buffer
   H.opened_buffers[buf_id] = { path = path }
@@ -2370,10 +2373,10 @@ H.buffer_update_directory = function(buf_id, path, opts, is_preview)
     local icon_start, name_start = l:match('^/%d+/().-()/')
 
     -- NOTE: Use `right_gravity = false` for persistent highlights during edit
-    local icon_opts = { hl_group = icon_hl[i], end_col = name_start - 1, right_gravity = false }
+    local icon_opts = { hl_group = icon_hl[i], end_col = name_start - 1, right_gravity = false, priority = 101 }
     set_hl(i - 1, icon_start - 1, icon_opts)
 
-    local name_opts = { hl_group = name_hl[i], end_row = i, end_col = 0, right_gravity = false }
+    local name_opts = { hl_group = name_hl[i], end_row = i, end_col = 0, right_gravity = false, priority = 102 }
     set_hl(i - 1, name_start - 1, name_opts)
   end
 end

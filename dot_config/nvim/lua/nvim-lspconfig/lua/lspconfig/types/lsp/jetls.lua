@@ -18,6 +18,8 @@
 ---default = "null"
 ---```
 ---@field configuration_section? string
+---Serve the `JETLS/live` diagnostics of open files through [`textDocument/diagnostic`](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocument_diagnostic) (pull diagnostics) instead of pushing them ([`textDocument/publishDiagnostics`](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocument_publishDiagnostics)). Meant for clients that manage pulled diagnostics by their editor state (e.g. the VSCode extension clears them when a tab closes), which the server cannot tell from [`textDocument/didClose`](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocument_didClose). This is normally set programmatically by client extensions rather than by users. See [`pull_diagnostics`](https://aviatesk.github.io/JETLS.jl/release/launching/#init-options/pull_diagnostics).
+---@field pull_diagnostics? boolean
 ---Reuse results from Julia's native inference cache for calls to methods defined outside the modules being analyzed, instead of analyzing them recursively. This can substantially speed up analysis of packages with large dependency surfaces, but analysis results may change slightly, which can change the diagnostics that are reported. See [`reuse_native_inference`](https://aviatesk.github.io/JETLS.jl/release/launching/#init-options/reuse_native_inference). Note: This is an experimental feature that may be removed or changed in future versions.
 ---@field reuse_native_inference? boolean
 
@@ -25,7 +27,7 @@
 ---@class _.lspconfig.settings.jetls.JetlsClient.Settings.CodeLens
 ---Show reference counts above top-level symbols (functions, structs, constants, etc.). Click to open references panel.
 ---@field references? boolean
----Show `Run`/`Debug` code lenses above `@testset` blocks. Some editors (e.g., Zed) show these as code actions, causing duplication; zed-julia defaults to false.
+---Show `Run`/`Debug` code lenses above `@testset` blocks. Some editors (e.g., Zed) show these as code actions, causing duplication.
 ---
 ---```lua
 ---default = true
@@ -76,13 +78,19 @@
 ---```lua
 ---default = "prompt"
 ---```
----@field auto_instantiate? "always" | "prompt" | "never"
+---@field auto_instantiate? "always"|"prompt"|"never"
 ---Additional JET top-level concretization patterns. Each entry requires a Julia expression `pattern` and can use an optional `path` glob to restrict it to specific source files.
 ---
 ---```lua
 ---default = {}
 ---```
 ---@field concretization_patterns? table[]
+---Time limit in seconds for concrete execution of each top-level statement during script and package full analysis (default: 10 seconds), not for the overall analysis. Accepts a positive finite number or the exact string `"inf"` to disable the timeout (risks hangs). Checks cover recursively interpreted callees, including code passed to `Core.eval` (e.g. by `@eval`), but pattern-selected blocks (including package source analysis) run calls natively, with checks only at interpreted top-level statement boundaries. Native calls, including `ccall`, builtins, and the `__init__` functions of modules evaluated by `Core.eval`, cannot be interrupted. Time in `include`s and module-loading statements handled by JET is excluded from the caller's limit. See [`concretization_timeout`](https://aviatesk.github.io/JETLS.jl/release/configuration/#config/full_analysis/concretization_timeout).
+---
+---```lua
+---default = 10
+---```
+---@field concretization_timeout? number|"inf"
 ---Debounce time in seconds before triggering full analysis after a file save. Higher values reduce analysis frequency but may delay diagnostic updates.
 ---
 ---```lua
@@ -123,12 +131,18 @@
 
 ---TestRunner integration configuration. See [TestRunner integration](https://aviatesk.github.io/JETLS.jl/release/configuration/#config/testrunner).
 ---@class _.lspconfig.settings.jetls.JetlsClient.Settings.Testrunner
----Path to the TestRunner.jl executable. Defaults to `testrunner` (or `testrunner.bat` on Windows).
+---Environment variables for the TestRunner.jl process. `JULIA_APPS_JULIA_CMD` selects the Julia executable to run tests with, and `JULIAUP_CHANNEL` selects a [juliaup](https://github.com/JuliaLang/juliaup) channel of the `julia` command; tests run with the Julia running JETLS otherwise. `JULIA_DEPOT_PATH`, `JULIA_LOAD_PATH`, and `JULIA_PROJECT` cannot be set. See [`testrunner.env`](https://aviatesk.github.io/JETLS.jl/release/configuration/#config/testrunner/env).
 ---
 ---```lua
----default = "testrunner"
+---default = {}
 ---```
----@field executable? string
+---@field env? table
+---Additional command-line options for the Julia process that runs tests (e.g. `["--threads=4"]`). See [`testrunner.julia_args`](https://aviatesk.github.io/JETLS.jl/release/configuration/#config/testrunner/julia_args).
+---
+---```lua
+---default = {}
+---```
+---@field julia_args? string[]
 
 ---JETLS server configuration settings. See [Configuration documentation](https://aviatesk.github.io/JETLS.jl/release/configuration/) for detailed information.
 ---
@@ -147,7 +161,7 @@
 ---```lua
 ---default = "Runic"
 ---```
----@field formatter? any
+---@field formatter? "Runic"|"JuliaFormatter"|table
 ---Configuration for full JET analysis. See [Full analysis configuration](https://aviatesk.github.io/JETLS.jl/release/configuration/#config/full_analysis).
 ---@field full_analysis? _.lspconfig.settings.jetls.JetlsClient.Settings.FullAnalysis
 ---Inlay hint configuration. See [Inlay hint configuration](https://aviatesk.github.io/JETLS.jl/release/configuration/#config/inlay_hint).
@@ -167,7 +181,7 @@
 ---```lua
 ---default = "auto"
 ---```
----@field communicationChannel? "auto" | "pipe" | "stdio" | "socket"
+---@field communicationChannel? "auto"|"pipe"|"stdio"|"socket"
 ---JETLS executable configuration. Most users should omit `path` and use the managed installation.
 ---
 ---Use object form `{threads, env}` for managed JETLS. Set `env.JULIAUP_CHANNEL` to select a [juliaup](https://github.com/JuliaLang/juliaup) channel, or `env.JULIA_APPS_JULIA_CMD` to select a Julia executable directly. Add `path` to use a custom executable and bypass managed installation.
@@ -177,13 +191,23 @@
 ---```lua
 ---default = {}
 ---```
----@field executable? any
+---@field executable? table|string[]
 ---Static initialization options that are set once at server startup and require a server restart to take effect. See [Initialization options](https://aviatesk.github.io/JETLS.jl/release/launching/#init-options).
 ---
 ---```lua
 ---default = {}
 ---```
 ---@field initializationOptions? _.lspconfig.settings.jetls.JetlsClient.InitializationOptions
+---Optional parent directory for managed JETLS storage. Leave empty to use the extension's VS Code global storage directory on all platforms, including portable installations. If installation fails with a Windows path-length error, choose a short, writable absolute path such as `C:/jetls`.
+---
+---Use a literal path on the extension host; environment variables and `~` are not expanded. Paths must not contain Julia's path-list separator (`;` on Windows, `:` elsewhere). The extension adds a short storage-specific subdirectory to keep separate VS Code installations isolated.
+---
+---A new location requires a fresh installation; existing depots are not moved or deleted. Ignored when using a custom executable.
+---
+---```lua
+---default = ""
+---```
+---@field managedStoragePath? string
 ---JETLS server configuration settings. See [Configuration documentation](https://aviatesk.github.io/JETLS.jl/release/configuration/) for detailed information.
 ---
 ---```lua

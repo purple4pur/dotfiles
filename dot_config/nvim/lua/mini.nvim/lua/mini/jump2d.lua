@@ -489,15 +489,6 @@ MiniJump2d.gen_spotter.pattern = function(pattern, side)
   end
 end
 
--- TODO: Remove after releasing 'mini.nvim' 0.17.0
-MiniJump2d.gen_pattern_spotter = function(pattern, side)
-  local msg = '`gen_pattern_spotter` is moved to `gen_spotter.pattern` for consistency with other modules.'
-    .. ' It still works for now, but will stop working after the next release.'
-    .. ' Sorry for the inconvenience.'
-  H.notify(msg, 'WARN')
-  return MiniJump2d.gen_spotter.pattern(pattern, side)
-end
-
 --- Generate spotter for Vimscript pattern
 ---
 ---@param pattern string|nil Vimscript |pattern|. Default: `\k\+` to match group
@@ -564,15 +555,6 @@ MiniJump2d.gen_spotter.union = function(...)
     end
     return res
   end
-end
-
--- TODO: Remove after releasing 'mini.nvim' 0.17.0
-MiniJump2d.gen_union_spotter = function(...)
-  local msg = '`gen_union_spotter` is moved to `gen_spotter.union` for consistency with other modules.'
-    .. ' It still works for now, but will stop working after the next release.'
-    .. ' Sorry for the inconvenience.'
-  H.notify(msg, 'WARN')
-  return MiniJump2d.gen_spotter.union(...)
 end
 
 --- Default spotter function
@@ -903,8 +885,8 @@ H.spots_show = function(spots, opts)
   for _, extmark in ipairs(H.spots_to_extmarks(spots, opts)) do
     local extmark_opts = {
       hl_mode = 'combine',
-      -- Use very high priority
-      priority = 1000,
+      -- Use very high priority, at least a bit higher than default 4096
+      priority = 4098,
       virt_text = extmark.virt_text,
       virt_text_pos = 'overlay',
     }
@@ -919,7 +901,7 @@ H.spots_show = function(spots, opts)
 
   -- Possibly dim used lines
   if opts.view.dim then
-    local extmark_opts = { end_col = 0, hl_eol = true, hl_group = opts.hl_group_dim, priority = 999 }
+    local extmark_opts = { end_col = 0, hl_eol = true, hl_group = opts.hl_group_dim, priority = 4097 }
     for buf_id, lines in pairs(dim_buf_lines) do
       for _, l_num in ipairs(vim.tbl_keys(lines)) do
         extmark_opts.end_line = l_num + 1

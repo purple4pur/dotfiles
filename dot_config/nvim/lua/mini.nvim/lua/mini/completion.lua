@@ -89,7 +89,8 @@
 ---   also adding "nosort" flag to preserve initial order when filtering.
 --- - |'shortmess'| is appended with "c" flag for silent <C-n> fallback.
 --- - |'complete'| gets removed "t" flag (if fallback action is default), as it
----   leads to visible lags.
+---   leads to visible lags. The recommended full value of |'complete'| that
+---   achieves the best combination of performance and sources is `.,w,b,kspell`.
 ---
 --- # Snippets ~
 ---
@@ -1770,6 +1771,7 @@ H.ensure_buffer = function(cache, name)
   local buf_id = vim.api.nvim_create_buf(false, true)
   cache.bufnr = buf_id
   H.set_buf_name(buf_id, name)
+  vim.bo[buf_id].modifiable = true
   vim.bo[buf_id].buftype = 'nofile'
 end
 

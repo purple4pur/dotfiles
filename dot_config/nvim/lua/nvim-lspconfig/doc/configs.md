@@ -16,11 +16,13 @@ Nvim by running `:help lspconfig-all`.
 - [antlersls](#antlersls)
 - [apex_ls](#apex_ls)
 - [arduino_language_server](#arduino_language_server)
+- [armls](#armls)
 - [asm_lsp](#asm_lsp)
 - [ast_grep](#ast_grep)
 - [astro](#astro)
 - [atlas](#atlas)
 - [atopile](#atopile)
+- [autocorrect](#autocorrect)
 - [autohotkey_lsp](#autohotkey_lsp)
 - [autotools_ls](#autotools_ls)
 - [awk_ls](#awk_ls)
@@ -226,6 +228,7 @@ Nvim by running `:help lspconfig-all`.
 - [nim_langserver](#nim_langserver)
 - [nimls](#nimls)
 - [nixd](#nixd)
+- [nlpplus_ls](#nlpplus_ls)
 - [nomad_lsp](#nomad_lsp)
 - [ntt](#ntt)
 - [nushell](#nushell)
@@ -347,6 +350,7 @@ Nvim by running `:help lspconfig-all`.
 - [swift_mesonls](#swift_mesonls)
 - [symfony_lsp](#symfony_lsp)
 - [syntax_tree](#syntax_tree)
+- [sysml_lsp](#sysml_lsp)
 - [systemd_ls](#systemd_ls)
 - [systemd_lsp](#systemd_lsp)
 - [tabby_ml](#tabby_ml)
@@ -932,6 +936,51 @@ Default config:
 
 ---
 
+## armls
+
+https://github.com/arm/armls
+
+ArmLS is a language server for Arm Assembly.
+
+It supports A32 and A64 assembly and provides hover documentation,
+completion, diagnostics, document symbols, go-to-definition, and
+semantic highlighting.
+
+ArmLS can be installed from the Arm Assembly Support extension on
+Open VSX or the Visual Studio Marketplace.
+
+The internal diagnostics engine is currently alpha quality. Arm
+recommends disabling some operand diagnostics by default and using
+clang-powered diagnostics when appropriate.
+
+Snippet to enable the language server:
+```lua
+vim.lsp.enable('armls')
+```
+
+Default config:
+- `cmd` :
+  ```lua
+  { "armls" }
+  ```
+- `filetypes` :
+  ```lua
+  { "asm" }
+  ```
+- `settings` :
+  ```lua
+  {
+    armls = {
+      diagnostics = {
+        disableCategories = { "invalidOperand", "tooManyOperands", "tooFewOperands" },
+        enable = true
+      }
+    }
+  }
+  ```
+
+---
+
 ## asm_lsp
 
 https://github.com/bergercookie/asm-lsp
@@ -1201,6 +1250,37 @@ Default config:
 - `root_markers` :
   ```lua
   { "ato.yaml", ".ato", ".git" }
+  ```
+
+---
+
+## autocorrect
+
+https://github.com/huacnlee/autocorrect
+
+AutoCorrect checks and fixes spacing, punctuation, and spelling between CJK (Chinese, Japanese, Korean) and English
+text. It checks the strings and comments of source files, and the full text of Markdown and plain text files.
+
+`autocorrect` can be installed with Homebrew:
+```sh
+brew install autocorrect
+```
+
+Or downloaded from the [GitHub releases page](https://github.com/huacnlee/autocorrect/releases).
+
+Snippet to enable the language server:
+```lua
+vim.lsp.enable('autocorrect')
+```
+
+Default config:
+- `cmd` :
+  ```lua
+  { "autocorrect", "server" }
+  ```
+- `root_markers` :
+  ```lua
+  { ".autocorrectrc", ".autocorrectignore", ".git" }
   ```
 
 ---
@@ -2368,34 +2448,31 @@ Default config:
 https://github.com/clice-io/clice
 Clice is a next-generation language server for modern C++, focused on performance and code intelligence
 
+Commands:
+- `:LspCliceShowContext`, `:LspCliceSwitchContext`, `:LspCliceResetContext`: show, choose or
+  reset the compilation context of the buffer: the source file a header compiles in, or the
+  compile command of a source file listed with several.
+- `:LspCliceSwitchConfiguration`: select the build configuration (the `configuration` tags of
+  the `clice.toml` rules) clice runs from its next start.
+
 Snippet to enable the language server:
 ```lua
 vim.lsp.enable('clice')
 ```
 
 Default config:
-- `capabilities` :
-  ```lua
-  {
-    offsetEncoding = { "utf-8" },
-    textDocument = {
-      completion = {
-        editsNearCursor = true
-      }
-    }
-  }
-  ```
 - `cmd` :
   ```lua
   { "clice", "serve" }
   ```
 - `filetypes` :
   ```lua
-  { "c", "cpp" }
+  { "c", "cpp", "cuda" }
   ```
+- `on_attach`: [../lsp/clice.lua:163](../lsp/clice.lua#L163)
 - `root_markers` :
   ```lua
-  { "clice.toml", ".clang-tidy", ".clang-format", "compile_commands.json", "compile_flags.txt", "configure.ac", ".git" }
+  { "clice.toml", "compile_commands.json", ".git" }
   ```
 
 ---
@@ -3705,7 +3782,7 @@ Default config:
   ```
 - `filetypes` :
   ```lua
-  { "dockerfile", "yaml.docker-compose" }
+  { "dockerfile", "yaml.docker-compose", "hcl.docker-bake" }
   ```
 - `get_language_id`: [../lsp/docker_language_server.lua:11](../lsp/docker_language_server.lua#L11)
 - `root_markers` :
@@ -6014,7 +6091,7 @@ Default config:
   ```
 - `filetypes` :
   ```lua
-  { "asciidoc", "c", "cpp", "cs", "gitcommit", "go", "html", "java", "javascript", "lua", "markdown", "nix", "python", "ruby", "rust", "swift", "tex", "toml", "typescript", "typescriptreact", "haskell", "cmake", "typst", "php", "dart", "clojure", "sh" }
+  { "asciidoc", "c", "cpp", "cs", "gitcommit", "go", "html", "java", "javascript", "jjdescription", "lua", "markdown", "nix", "python", "ruby", "rust", "swift", "tex", "toml", "typescript", "typescriptreact", "haskell", "cmake", "typst", "php", "dart", "clojure", "sh" }
   ```
 - `root_markers` :
   ```lua
@@ -8332,7 +8409,7 @@ Default config:
   ```
 - `root_markers` :
   ```lua
-  { ".git" }
+  { { "pixi.toml", "pixi.lock" }, { ".git" } }
   ```
 
 ---
@@ -8942,6 +9019,44 @@ Default config:
 
 ---
 
+## nlpplus_ls
+
+https://github.com/VisualText/vscode-nlp/tree/master/language-server
+
+`nlpplus-language-server`, the language server for NLP++, the programming language for natural
+language processing (https://visualtext.org/nlp/). It can be installed via `npm`:
+```sh
+npm i -g nlpplus-language-server
+```
+
+Open the analyzer folder (the one that contains `spec/`) so cross-pass navigation finds every pass.
+
+Until Neovim detects NLP++ pass files on its own, register the filetype:
+```lua
+vim.filetype.add({ extension = { nlp = 'nlp' } })
+```
+
+Snippet to enable the language server:
+```lua
+vim.lsp.enable('nlpplus_ls')
+```
+
+Default config:
+- `cmd` :
+  ```lua
+  { "nlpplus-language-server", "--stdio" }
+  ```
+- `filetypes` :
+  ```lua
+  { "nlp" }
+  ```
+- `root_markers` :
+  ```lua
+  { "spec", ".git" }
+  ```
+
+---
+
 ## nomad_lsp
 
 https://github.com/juliosueiras/nomad-lsp
@@ -9375,6 +9490,8 @@ npm i -g oxlint
 ```
 
 or used as a part of Vite+ through `lint` field in vite.config.ts: https://github.com/oxc-project/oxc/pull/20214
+The config looks for project-local `oxlint` or `vp` first, then checks PATH.
+When using `vp`, the server starts with `vp lint --lsp`.
 
 Type-aware linting will automatically be enabled if `tsgolint` exists in your
 path and your `.oxlintrc.json` contains the string "typescript".
@@ -9389,14 +9506,14 @@ vim.lsp.enable('oxlint')
 ```
 
 Default config:
-- `before_init`: [../lsp/oxlint.lua:35](../lsp/oxlint.lua#L35)
-- `cmd`: [../lsp/oxlint.lua:35](../lsp/oxlint.lua#L35)
+- `before_init`: [../lsp/oxlint.lua:37](../lsp/oxlint.lua#L37)
+- `cmd`: [../lsp/oxlint.lua:37](../lsp/oxlint.lua#L37)
 - `filetypes` :
   ```lua
   { "javascript", "javascriptreact", "typescript", "typescriptreact", "vue", "svelte", "astro" }
   ```
-- `on_attach`: [../lsp/oxlint.lua:35](../lsp/oxlint.lua#L35)
-- `root_dir`: [../lsp/oxlint.lua:35](../lsp/oxlint.lua#L35)
+- `on_attach`: [../lsp/oxlint.lua:37](../lsp/oxlint.lua#L37)
+- `root_dir`: [../lsp/oxlint.lua:37](../lsp/oxlint.lua#L37)
 - `settings` :
   ```lua
   {}
@@ -10097,11 +10214,11 @@ Language server for PowerShell.
 To install, download and extract PowerShellEditorServices.zip
 from the [releases](https://github.com/PowerShell/PowerShellEditorServices/releases).
 To configure the language server, set the property `bundle_path` to the root
-of the extracted PowerShellEditorServices.zip.
+of the extracted PowerShellEditorServices.zip, e.g. `c:/w/modules`
 
 ```lua
 vim.lsp.config('powershell_es', {
-  bundle_path = 'c:/w/PowerShellEditorServices',
+  bundle_path = 'c:/w/modules',
 })
 ```
 
@@ -10109,7 +10226,7 @@ By default the language server is started in `pwsh` (PowerShell Core). This can 
 
 ```lua
 vim.lsp.config('powershell_es', {
-  bundle_path = 'c:/w/PowerShellEditorServices',
+  bundle_path = 'c:/w/modules',
   shell = 'powershell.exe',
 })
 ```
@@ -10142,7 +10259,7 @@ vim.lsp.enable('powershell_es')
 ```
 
 Default config:
-- `cmd`: [../lsp/powershell_es.lua:91](../lsp/powershell_es.lua#L91)
+- `cmd`: [../lsp/powershell_es.lua:95](../lsp/powershell_es.lua#L95)
 - `filetypes` :
   ```lua
   { "ps1" }
@@ -13491,6 +13608,40 @@ Default config:
   ```lua
   { ".streerc", "Gemfile", ".git" }
   ```
+
+---
+
+## sysml_lsp
+
+https://github.com/Open-MBEE/OpenSysML
+
+SysML v2 and KerML language server from OpenSysML.
+
+Install from the release archives, or with Go:
+
+```sh
+go install github.com/Open-MBEE/OpenSysML/cmd/sysml-lsp@latest
+```
+
+Snippet to enable the language server:
+```lua
+vim.lsp.enable('sysml_lsp')
+```
+
+Default config:
+- `cmd` :
+  ```lua
+  { "sysml-lsp", "--stdio" }
+  ```
+- `filetypes` :
+  ```lua
+  { "sysml", "kerml" }
+  ```
+- `root_markers` :
+  ```lua
+  { ".git" }
+  ```
+- `workspace_required` : `false`
 
 ---
 
