@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+
+# Shared implementation for nvim-{kitty,gnome,xfce4}. Install the entry points
+# and this script together. Link an entry point as ~/bin/nvim and put
+# nvim.appimage on PATH. Use nvim -g to open a separate terminal window.
+# GUI stdin is a finite snapshot; live streams wait for EOF before launch.
+
+backend=$1
+shift
+
+new_window=0
+parse_flags=1
+operand=0
+has_stdin=0
+args=()
+for arg in "$@"; do
+    if [[ $operand -eq 1 || $parse_flags -eq 0 ]]; then
+        operand=0
+        args+=("$arg")
+        continue
+    fi
+    case "$arg" in
+        -g) new_window=1; continue ;;
+        --) parse_flags=0 ;;
+        -) has_stdin=1 ;;
+        -c|--cmd|-u|-i|-s|-w|-W|-t|-q|--startuptime|--listen|--server) operand=1 ;;
+    esac
+    args+=("$arg")
+done
+
+if ! nvim=$(command -v nvim.appimage); then
+    printf 'nvim: nvim.appimage is required on PATH\n' >&2
+    exit 127
+fi
+
+if [[ $new_window -eq 0 ]]; then
+    exec "$nvim" "${args[@]}"
+fi
+
+case "$backend" in
+    kitty) terminal=kitty ;;
+    gnome) terminal=gnome-terminal ;;
+    xfce4) terminal=xfce4-terminal ;;
+    *) printf 'nvim: unknown terminal: %s\n' "$backend" >&2; exit 2 ;;
+esac
+if ! term=$(command -v "$terminal"); then
+    printf 'nvim: %s is required for -g\n' "$terminal" >&2
+    exit 127
+fi
+
+temp_dir=""
+cleanup() {
+    if [[ -n "$temp_dir" ]]; then
+        rm -rf -- "$temp_dir"
+    fi
+}
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+command=(env "PATH=$PATH" "$nvim" "${args[@]}")
+if [[ ! -t 0 && ( -p /dev/stdin || -f /dev/stdin ) ]]; then
+    if ! temp_dir=$(mktemp -d "${TMPDIR:-/tmp}/nvim-stdin.XXXXXXXXXX"); then
+        printf 'nvim: could not create stdin storage\n' >&2
+        exit 1
+    fi
+    if ! (umask 077; cat > "$temp_dir/input"); then
+        printf 'nvim: could not capture stdin\n' >&2
+        exit 1
+    fi
+
+    # Neovim reads the snapshot through its native stdin path, then uses the
+    # terminal's /dev/tty for interactive input.
+    if [[ $has_stdin -eq 0 ]]; then
+        args=(- "${args[@]}")
+    fi
+
+    # Configure only the stdin buffer; other supplied files stay editable.
+    stdin_setup='lua vim.api.nvim_create_autocmd("StdinReadPost", { once = true, callback = function(event) vim.bo[event.buf].buftype = "nofile"; vim.bo[event.buf].bufhidden = "hide"; vim.bo[event.buf].swapfile = false; vim.bo[event.buf].readonly = true end })'
+
+    # The shell inside the terminal owns cleanup for the editor's lifetime.
+    supervisor='temp_dir=$1; shift; trap '\''rm -rf -- "$temp_dir"'\'' EXIT; trap '\''exit 129'\'' HUP; trap '\''exit 130'\'' INT; trap '\''exit 143'\'' TERM; "$@" < "$temp_dir/input"; exit $?'
+    command=(env "PATH=$PATH" bash -c "$supervisor" nvim-stdin "$temp_dir" "$nvim" --cmd "$stdin_setup" "${args[@]}")
+fi
+
+case "$backend" in
+    kitty)
+        "$term" --detach --directory "$PWD" -o initial_window_width=120c -o initial_window_height=46c "${command[@]}"
+        ;;
+    gnome)
+        unset GNOME_TERMINAL_SCREEN
+        "$term" --window --working-directory="$PWD" --geometry=120x46 --hide-menubar --title=NVIM -- "${command[@]}"
+        ;;
+    xfce4)
+        "$term" --disable-server --window --working-directory="$PWD" --geometry=120x46 --hide-menubar --hide-scrollbar --initial-title=NVIM --dynamic-title-mode=replace -x "${command[@]}"
+        ;;
+esac
+status=$?
+
+# A successful launch transfers ownership to the shell inside the new terminal.
+if [[ $status -eq 0 ]]; then
+    temp_dir=""
+fi
+exit "$status"
