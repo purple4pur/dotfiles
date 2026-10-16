@@ -2,10 +2,8 @@
 
 All files are managed by [chezmoi](https://www.chezmoi.io/) .
 
-* **[Using dotfiles on Windows](docs/using-dotfiles-on-windows.md)**
 * **[Using dotfiles on Linux](docs/using-dotfiles-on-linux.md)**
-
-Read more in [Wiki](https://github.com/purple4pur/dotfiles/wiki) !
+* **[Using dotfiles on Windows](docs/using-dotfiles-on-windows.md)**
 
 For vim/nvim plugin common usages, please refer to [`~/.vimrc`](dot_vimrc) and [`~/.config/nvim/lua/init.lua`](dot_config/nvim/lua/init.lua) .
 

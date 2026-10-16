@@ -124,6 +124,3 @@ Keep changes in your own fork if you want to share them across machines.
   to source `~/.bashrc`.
 - **Unexpected file changes:** inspect `chezmoi diff` before applying. Restore
   your backup or adjust the chezmoi source if a setting should be kept.
-
-Adapted from [Using dotfiles on Linux](https://github.com/purple4pur/dotfiles/wiki/Using-dotfiles-on-Linux).
-For native Windows setup, see [Using dotfiles on Windows](using-dotfiles-on-windows.md).

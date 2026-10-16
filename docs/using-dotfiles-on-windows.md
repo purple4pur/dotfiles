@@ -210,5 +210,3 @@ steps; repeat them on a new machine.
   `XDG_CONFIG_HOME` or `NVIM_APPNAME` can change it.
 - **mpv settings are missing:** check the Scoop root and junction target, then
   restart mpv.
-
-Adapted from [Using dotfiles on Windows](https://github.com/purple4pur/dotfiles/wiki/Using-dotfiles-on-Windows).
