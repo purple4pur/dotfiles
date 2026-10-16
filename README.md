@@ -2,8 +2,8 @@
 
 All files are managed by [chezmoi](https://www.chezmoi.io/) .
 
-* **[Using dotfiles on Windows](https://github.com/purple4pur/dotfiles/wiki/Using-dotfiles-on-Windows)**
-* **[Using dotfiles on Linux](https://github.com/purple4pur/dotfiles/wiki/Using-dotfiles-on-Linux)**
+* **[Using dotfiles on Windows](docs/using-dotfiles-on-windows.md)**
+* **[Using dotfiles on Linux](docs/using-dotfiles-on-linux.md)**
 
 Read more in [Wiki](https://github.com/purple4pur/dotfiles/wiki) !
 
