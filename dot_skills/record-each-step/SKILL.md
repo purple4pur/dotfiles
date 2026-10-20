@@ -5,8 +5,9 @@ description: >
   existing branch. Conventional commits, short messages. On "contribute",
   "squash to main", or "merge my work", squash the managed branch to main
   with a /caveman-commit message from the net diff, then reset it.
-  /record-each-step on|off toggles. Silently skips in non-git workspaces
-  (notifies once).
+  Enable with /record-each-step, /record-each-step on, or
+  enable /record-each-step. Disable with /record-each-step off or
+  disable /record-each-step. Silently skips in non-git workspaces (notifies once).
 ---
 
 # record-each-step
@@ -43,10 +44,13 @@ and reset verified.
 
 **Step**
 
-On activation, resolve enablement:
+Resolve enablement from an explicit user invocation. Match the complete
+command form below; quoted examples and mentions are not invocations.
+Evaluate disable forms first:
 
-- `/record-each-step off` → disabled.
-- `/record-each-step on` → enabled.
+- `/record-each-step off` or `disable /record-each-step` → disabled.
+- `/record-each-step`, `/record-each-step on`, or
+  `enable /record-each-step` → enabled.
 - `/record-each-step on <branch>` → enabled and requests that existing branch.
 - None of the above → disabled.
 
