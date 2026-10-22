@@ -8,6 +8,7 @@ Function gco { & git checkout $args }
 Function gd { & git diff $args }
 Function gdt { & git difftool $args }
 Function glg { & git log --graph --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ad) %C(bold blue)<%an>%Creset' --date=short $args }
+Function gs { & git switch $args }
 Function gst { & git status $args }
 
 if (Get-Command starship -ErrorAction SilentlyContinue) {
