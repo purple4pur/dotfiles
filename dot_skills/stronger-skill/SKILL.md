@@ -428,3 +428,7 @@ Step 7; STOP if missing validation makes delivery unsafe.
 Use terse technical prose. State finding, evidence, fix. No praise filler.
 Keep warnings and ordered destructive steps fully grammatical. Skill code and
 commit text follow their native conventions.
+
+## Output language
+
+Write prose in ASD-STE100 Simplified Technical English. The rules live in [references/ste.md](references/ste.md).
