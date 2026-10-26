@@ -179,11 +179,11 @@ Wrong style authority: **RETURN Step 2**. Tool unavailable:
 
 ### 5. Report completion
 
-**Step:** Summarize the change and checks. Name the controlling formatter or
-fallback rules only when useful; disclose material exceptions and limits.
+**Step:** Check the output against the STE rules below. Summarize the change and checks.
+Name the controlling formatter or fallback rules only when useful. Disclose material exceptions and limits.
 
 **Checkpoint: `handoff`** — Changed paths, verification result, and any
-remaining blocker. Claim verified style only for checks actually completed.
+remaining blocker and output review. Claim verified style only for checks actually completed.
 
 **Gate:** Requested change complete and checks pass: **COMPLETE**. Required
 validation blocked: **STOP** with the partial result and exact blocker.
@@ -203,3 +203,14 @@ resolved authority if available, and checks still possible.
 **Gate:** Evidence/tool restored: **RETURN Step 2**. Still unavailable: perform
 remaining safe checks, then **STOP** with partial work and the unverified
 formatter claim. Never report manual inspection as a formatter pass.
+
+## Output language and validation
+
+Read [STE rules](../stronger-skill/references/ste.md) before you write English prose.
+This shared reference belongs to the local skill bundle. It does not invoke the `stronger-skill` workflow.
+Use concise, grammatical sentences in status updates, explanations, and the final report.
+Keep the user's requested language. Preserve exact evidence, technical terms, paths, commands, code, and required formats.
+Keep native commit syntax. Apply STE to explanatory comments where source conventions permit it.
+STE takes precedence over caveman fragments within the remaining style choices.
+Before each delivery, check sentence length, articles, voice, stable terms, conditions, and negations.
+If prose fails the check, revise it before delivery. Report material validation limits. Claim only checks that ran.

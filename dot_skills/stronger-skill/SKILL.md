@@ -1,11 +1,11 @@
 ---
 name: stronger-skill
-description: "Create, review, or harden agent skills from a high-level systems view, then express each workflow through explicit Step, Checkpoint, and Gate contracts. Use when designing a new skill; auditing or restructuring SKILL.md; improving trigger metadata, progressive disclosure, resources, validation, or exception handling; converting loose instructions into an executable main line; or deciding whether a skill is strong enough to ship. Writes in terse caveman style while preserving technical precision."
+description: "Create, review, or update agent skills through Step, Checkpoint, and Gate contracts. Use for skill design, SKILL.md audits, workflow restructuring, trigger repair, resource organization, validation, and output rules. Preserve domain behavior. Use Simplified Technical English for prose."
 ---
 
 # Stronger Skill
 
-Make skill executable, compact, hard to misuse.
+Make the skill executable, compact, and hard to misuse.
 
 ```text
 intent
@@ -18,14 +18,14 @@ then implementation
 then validation
 ```
 
-High-level first. Detail only where failure costly.
+Define the system contract first. Add detail where a failure has a high cost.
 
 ## Operating rules
 
 - Follow host platform skill-authoring rules. Use official scaffold, metadata,
   resource, and validation tools when available.
-- Write user-facing analysis and skill prose in terse caveman style. Keep exact
-  terms, paths, commands, code, and errors unchanged.
+- Read [STE rules](references/ste.md) before you write prose. Use concise,
+  grammatical sentences. Preserve exact terms, paths, commands, code, and errors.
 - Review only when user asks review. Edit only when user asks create, apply,
   fix, rewrite, or update.
 - Preserve target domain behavior. Structure serves semantics, never replaces
@@ -41,7 +41,8 @@ High-level first. Detail only where failure costly.
 
 ## Model
 
-Every main-line step owns one proof object.
+Each main-line step produces one proof object: facts or an artifact that the next gate can check.
+Keep evidence in task notes or the deliverable. Create separate files only when the task needs them.
 
 - **Step:** bounded action. One purpose.
 - **Checkpoint:** durable evidence produced by step.
@@ -52,7 +53,7 @@ Every main-line step owns one proof object.
 - **STOP:** blocker or review-only handoff.
 - **COMPLETE:** output and validation contracts pass.
 
-Gate must name route. “Continue as needed” is not gate.
+Each gate must name its route. Replace vague routes with a named step, lane, blocker, or completion condition.
 
 For non-sequential skills, model decision lifecycle, not artificial domain
 sequence:
@@ -83,6 +84,8 @@ Strong skill passes every hard gate:
 No score can override failed hard gate.
 
 ## Main line
+
+Frame authority → define contract → audit package → design workflow → attach gates → implement → validate → hand off.
 
 ### 1. Frame task and authority
 
@@ -147,8 +150,7 @@ Done when:
 **Gate**
 
 - Contract concrete and testable: **CONTINUE Step 3**.
-- Trigger broad but behavior narrow: repair contract before structure;
-  **RETURN Step 2**.
+- Trigger broad but behavior narrow: **ENTER Trigger repair lane**.
 - User intent conflicts with existing hard rule: **STOP** and expose conflict.
 - Missing domain fact changes correctness: **STOP** for fact or mark review
   limit.
@@ -296,7 +298,7 @@ Author in this order:
 6. direct references, scripts, or assets;
 7. aligned optional host metadata.
 
-Use imperative wording. Caveman compression: remove filler, not constraints.
+Use imperative wording. Remove filler. Keep grammatical sentences and every constraint.
 Keep exact tool names and failure text. Never invent dependencies.
 
 **Checkpoint: `implementation`**
@@ -308,18 +310,18 @@ changes.
 **Gate**
 
 - Coherent package complete: **CONTINUE Step 7**.
-- Detail pushes main file near 500 lines: move conditional detail to direct
-  reference; **RETURN Step 6**.
+- Detail pushes the main file near 500 lines: **ENTER Progressive disclosure lane**.
 - Script repeats fragile logic: add deterministic script and test it;
   **RETURN Step 6**.
 - New resource has no caller: delete it; **RETURN Step 6**.
 - Semantic safeguard lost: restore before validation; **RETURN Step 6**.
+- A deletion or relocation has no preservation proof: **ENTER Semantic preservation lane**.
 
 ### 7. Validate structure and behavior
 
 **Step**
 
-Run official skill validator. Then check:
+Run the official skill validator when it is available. Then check:
 
 - frontmatter only allowed fields;
 - folder/name match;
@@ -330,7 +332,8 @@ Run official skill validator. Then check:
 - every lane returns;
 - scripts execute on representative input;
 - optional metadata prompt describes intended skill use;
-- diff contains only intended files.
+- diff contains only intended files;
+- prose follows the STE output rules, with required exceptions identified.
 
 Build at least three mental or executable scenarios:
 
@@ -351,10 +354,9 @@ with reason.
 - Validator and scenarios pass: **CONTINUE Step 8**.
 - Structural validation fails: **RETURN Step 6**.
 - Scenario takes wrong route: **RETURN Step 4 or 5**, whichever owns flaw.
-- Test blocked by permission or unavailable dependency: report limit; do not
-  claim pass.
-- Forward test leaks intended solution: discard result; rerun clean or mark
-  untested.
+- Test blocked by permission or unavailable dependency: **ENTER Blocked validation lane**.
+- Forward test reveals the intended solution: discard the result; **RETURN Step 7** for a test without that context.
+  If a repeat is unavailable, **ENTER Blocked validation lane** and record the test as untested.
 
 ### 8. Audit strength and hand off
 
@@ -382,22 +384,30 @@ remaining risk.
 **Gate**
 
 - All hard gates pass; requested work complete: **COMPLETE**.
-- Package works but hard gate remains: label not strong; **RETURN** to owning
-  step or report blocker.
-- Validation incomplete: report exact limit. Never say validated.
+- Contract or trigger gate fails: **RETURN Step 2**.
+- Workflow gate fails: **RETURN Step 4**. Route gate fails: **RETURN Step 5**.
+- Implementation or output gate fails: **RETURN Step 6**.
+- Validation incomplete: **ENTER Blocked validation lane**. Report the exact limit.
 - User requested review only: **COMPLETE** without mutation.
 
 ## Exception lanes
 
 ### Trigger repair
 
-Enter when frontmatter invokes too broadly, narrowly, or ambiguously. Rewrite
-description with what skill does plus concrete use contexts. Test against one
-positive, one adjacent-negative, and one ambiguous prompt. Return Step 2.
+**Entry:** The description invokes the skill too broadly, narrowly, or ambiguously.
+
+**Step:** State the capability and concrete use contexts in the description.
+Check one positive prompt, one adjacent prompt outside scope, and one ambiguous prompt.
+
+**Checkpoint: `trigger_cases`** — Each prompt has a route consistent with the skill contract.
+
+**Gate:** Cases pass: **RETURN Step 2**. A route is incorrect: **RETURN Trigger repair lane**.
 
 ### Semantic preservation
 
-Enter when restructuring existing skill. Build before/after invariant list:
+**Entry:** An existing skill has a deletion or relocation without preservation proof.
+
+**Step:** Compare the original and proposed invariants:
 
 ```text
 required behavior
@@ -407,28 +417,44 @@ fallback
 output contract
 ```
 
-Resolve every deletion or relocation. Unexplained loss blocks apply. Return
-Step 5 or 6.
+Resolve every deletion or relocation. Preserve the behavior or record an explicit user-authorized change.
+
+**Checkpoint: `invariant_comparison`** — Each original invariant has its preserved location or an authorized change.
+
+**Gate:** A gate needs repair: **RETURN Step 5**. Implementation proof is complete: **RETURN Step 6**.
+Domain meaning remains unresolved: **STOP** with the exact conflict.
 
 ### Progressive disclosure
 
-Enter when main file too large or multiple variants coexist. Keep core
-workflow and selection rules in `SKILL.md`. Move deep conditional detail to
-one-level references. Put deterministic repeated logic in scripts. Return
-Step 6.
+**Entry:** The main file is too large, or substantial mode-specific detail hides the common workflow.
+
+**Step:** Keep the core workflow and selection rules in `SKILL.md`.
+Move conditional detail to direct references. Use scripts for repeated deterministic work.
+
+**Checkpoint: `resource_map`** — Each resource has a caller. Required rules remain visible. Links resolve without deep reference chains.
+
+**Gate:** Resource map passes: **RETURN Step 6**. A required rule is hidden: **RETURN Progressive disclosure lane**.
 
 ### Blocked validation
 
-Enter when validator, dependency, permission, or realistic test unavailable.
-Run safe remaining checks. Record exact blocker and unverified claims. Return
-Step 7; STOP if missing validation makes delivery unsafe.
+**Entry:** A validator, dependency, permission, or realistic test is unavailable.
+
+**Step:** Run the remaining safe checks. Record the exact blocker and unverified claims.
+
+**Checkpoint: `validation_limit`** — Completed checks have results. Each skipped check has a reason and a claim it cannot support.
+
+**Gate:** Blocker clears: **RETURN Step 7**. Blocker remains: **STOP** with the partial result and validation limit.
 
 ## Output style
 
-Use terse technical prose. State finding, evidence, fix. No praise filler.
+Use concise technical prose. State the finding, evidence, and fix.
 Keep warnings and ordered destructive steps fully grammatical. Skill code and
 commit text follow their native conventions.
 
 ## Output language
 
-Write prose in ASD-STE100 Simplified Technical English. The rules live in [references/ste.md](references/ste.md).
+Apply [STE rules](references/ste.md) to English prose, including status updates, skill resources, and the final handoff.
+Keep the user's requested language. Preserve exact evidence and native syntax.
+STE takes precedence over caveman fragments within the remaining style choices.
+Before delivery, check sentence length, grammar, stable terms, and preserved conditions.
+If prose fails the check, **RETURN Step 6** for skill text or revise the handoff before **COMPLETE**.

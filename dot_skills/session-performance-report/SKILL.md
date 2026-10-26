@@ -5,13 +5,13 @@ description: "Measure and report AI session performance from local session logs 
 
 # Session Performance Report
 
-Build traceable performance report from logs. Exact facts stay exact. Derived
-facts carry labels. Fluff die.
+Build a traceable performance report from logs. Preserve exact facts. Label derived facts.
 
 ## Output
 
 Write requested path. Default: `session_performance_report.md` under current workspace.
-If target file exists, ask user or pick a new name — never silently overwrite.
+Use the requested path. An explicit request to update that report permits replacement.
+Otherwise, choose a new name if the file exists. Report the chosen path.
 Use [report template](assets/session_performance_report.md). Keep section order
 unless user requests otherwise.
 
@@ -22,10 +22,10 @@ unless user requests otherwise.
 - no code changes or fixes;
 - no cross-agent format mixing in one report.
 
-Use caveman full style throughout report:
+Use concise STE prose throughout the report:
 
 - terse technical prose;
-- fragments allowed;
+- keep grammatical sentences, including subjects and articles;
 - no filler, praise, decorative text, or repeated conclusions;
 - exact identifiers, model names, paths, timestamps, formulas preserved;
 - human-readable Markdown tables preferred.
@@ -58,7 +58,7 @@ Use `⨽` for nested table rows. Example:
 ## Tables
 
 Every Markdown table monospace-aligned for plain-text view (`cat`, terminal).
-Rendered Markdown ignores padding — alignment costs nothing, reads well raw.
+Markdown ignores table padding. Align the raw text so the user can read it in a terminal.
 
 Rules:
 
@@ -71,8 +71,8 @@ Rules:
 - mixed cell formats (`0`, `0.000s`, `31.505s apiMs`) pad as plain cells — no
   truncation, no normalization;
 - empty cells stay empty, same width;
-- cell containing a literal `|` breaks row parsing — escape it or keep such
-  rows out of tables;
+- The helper splits cells at `|`, including escaped pipes. Keep those values outside tables when you use the helper.
+  If required table cells contain pipes, escape them and align the table manually. Verify the rendered and raw results.
 - verify before finish: `cat` the report — pipe columns line up vertically in
   every row; numeric columns flush right, text columns flush left.
 
@@ -111,7 +111,11 @@ path (expect clean error).
 
 Scope selection, phase attribution, findings, optimizations: model work, §4-§5.
 
-## 1. Set scope
+## Main line
+
+Set scope → discover evidence → calculate → attribute → explain → validate.
+
+### 1. Set scope
 
 **Step**
 
@@ -131,7 +135,7 @@ Session id, start/end timestamps, exclusions, idle-gap policy stated.
 - mixed sessions or ambiguous boundaries: **ENTER ask-lane** (state selection
   rule or ask user).
 
-## 2. Discover evidence
+### 2. Discover evidence
 
 **Step**
 
@@ -140,7 +144,7 @@ guess, do not ask. Report detected agent, session id, and log paths in Scope.
 Never mix agent formats. Keep logs read-only. Collect raw evidence per 2.1.
 Cross-check script digest against raw logs before trusting.
 
-### 2.0 Detect agent (automatic)
+#### 2.0 Detect agent (automatic)
 
 1. **Qwen Code** — skill args file lives under `.qwen/tmp/s-<uuid>/` (e.g.
    `.qwen/tmp/s-00000000-0000-4000-8000-000000000000/qwen-skill-args-*.txt`);
@@ -159,10 +163,10 @@ Cross-check script digest against raw logs before trusting.
    `.codex/sessions/**/rollout-*.jsonl` in cwd, then home. Include only
    subagents linked by `sub_agent_activity.agent_thread_id`; never select
    neighboring rollouts by timestamp alone.
-3. **Fallback** — probe both glob families; pick newest matching session; if
-   ambiguous, ask user for log path.
+3. **Fallback** — probe both glob families. Match the session to workspace and task evidence.
+   If the match is ambiguous, **ENTER ask-lane**. A recent timestamp alone does not establish identity.
 
-### 2.1 Collect
+#### 2.1 Collect
 
 - `task_started` / `task_complete` timestamps and durations;
 - per-response token usage — Codex: `token_count.last_token_usage`, restricted
@@ -187,13 +191,13 @@ when scripts used.
   §2.1).
 - undetectable: **STOP** ask user for log path.
 
-## 3. Calculate totals
+### 3. Calculate totals
 
 **Step**
 
 Sum raw per-response records into totals. Never use cumulative snapshots.
 
-### Time
+#### Time
 
 ```text
 end-to-end span = last completed timestamp - first task timestamp
@@ -207,7 +211,7 @@ Call `API/agent time` derived unless complete provider request spans prove pure
 API latency. Explain it includes model latency, reasoning, response generation,
 and local orchestration.
 
-### Tokens
+#### Tokens
 
 Sum per-response usage, never final cumulative snapshots:
 
@@ -232,24 +236,24 @@ Raw per-response sums. Reconciliation figures.
 - totals reconcile: **CONTINUE Step 4**.
 - mismatch: **RETURN Step 2**.
 
-## 4. Attribute performance
+### 4. Attribute performance
 
 **Step**
 
 Attribute measured spans and tokens by macro stage, workflow phase, skill,
 tool, and model. Rows must reconcile with totals.
 
-### Macro stages
+#### Macro stages
 
 Group by user turn or major task segment. Totals must reconcile.
 
-### Workflow phases
+#### Workflow phases
 
 Use timestamps from commentary milestones, tool events, artifacts, and commits.
 Follow actual execution order even when numbered phases ran out of order.
 Label attribution approximate when logs lack explicit phase IDs.
 
-### Skills
+#### Skills
 
 Provide both:
 
@@ -260,7 +264,7 @@ Provide both:
 Use `⨽` under parent skills. Do not invent independent token cost for style or
 reference skills when attribution cannot be isolated.
 
-### Tools
+#### Tools
 
 Separate:
 
@@ -271,7 +275,7 @@ Separate:
 Mark overlapping rows. Async utility continuation often appears under wait or
 poll tools; do not present launch-call duration as complete process lifetime.
 
-### Models and agents
+#### Models and agents
 
 Report model, provider, reasoning effort, agent count, API usage count, wall
 time, and tokens. State whether subagents ran.
@@ -283,9 +287,10 @@ Rows reconcile with totals. Overlaps and derived labels marked.
 **Gate**
 
 - attribution reconciles: **CONTINUE Step 5**.
-- cost cannot be isolated: label derived, **CONTINUE Step 5**.
+- Cost cannot be isolated: mark it unavailable or approximate with its evidence basis; **CONTINUE Step 5**.
+- Exclusive rows do not reconcile: **RETURN Step 3** to repair totals or **RETURN Step 4** to repair attribution.
 
-## 5. Explain performance
+### 5. Explain performance
 
 **Step**
 
@@ -303,11 +308,13 @@ Ranked costs with concrete, measurable fixes.
 - findings concrete: **CONTINUE Step 6**.
 - generic or unsupported: **RETURN Step 5**.
 
-## 6. Validate
+### 6. Write and validate the report
 
 **Step**
 
-Check every item below before finish:
+Write the report from `scope`, `evidence`, `totals`, `attribution`, and `findings`. Use the requested path and the report template.
+Replace every template field with evidence or an explicit unavailable value. Align the tables with `scripts/align_tables.py`.
+If the helper fails, align the tables manually. Check every item below before delivery:
 
 - report exists and is non-empty;
 - detected agent + session id + log paths stated in Scope;
@@ -322,7 +329,8 @@ Check every item below before finish:
 - derived API-time caveat present;
 - current report turn excluded;
 - nested rows use `⨽`;
-- no secrets or raw proprietary log payload copied.
+- no secrets or raw proprietary log payload copied;
+- STE output review complete; required exceptions identified.
 
 Report limitations. Never claim unavailable gateway-only latency or exact
 nested-skill cost.
@@ -335,4 +343,42 @@ excluded.
 **Gate**
 
 - all checks pass: **COMPLETE**.
-- any check fails: **RETURN** owning step (2-6 by failure kind).
+- Scope or cutoff fails: **RETURN Step 1**. Evidence fails: **RETURN Step 2**.
+- Totals fail: **RETURN Step 3**. Attribution fails: **RETURN Step 4**.
+- Findings lack evidence: **RETURN Step 5**. File, table, or prose fails: **RETURN Step 6**.
+- Required evidence remains unavailable: **STOP** with the partial report and exact limit.
+
+## Exception lanes
+
+### ask-lane
+
+**Entry:** The session, task boundary, or requested output is ambiguous.
+
+**Step:** Use available task evidence to state a selection rule. Ask for the log path or boundary if evidence cannot resolve it.
+
+**Checkpoint: `scope_selection`** — The selected session and boundaries have an evidence basis or a user decision.
+
+**Gate:** Scope resolved: **RETURN Step 1**. Required answer absent: **STOP** with the exact missing input.
+
+### manual-lane
+
+**Entry:** A parser fails, or the log format has no supported parser.
+
+**Step:** Read the relevant raw records under Step 2.1. Preserve the scope, token, privacy, and overlap rules.
+Record the parser error. Distinguish absent data from zero values.
+
+**Checkpoint: `manual_evidence`** — Required raw records exist, with source paths and unresolved data limits.
+
+**Gate:** Evidence complete: **RETURN Step 2** to validate it without the failed parser.
+Required records absent: **STOP** with the exact limit. Do not invent metrics.
+
+## Output language and validation
+
+Read [STE rules](../stronger-skill/references/ste.md) before you write English prose.
+This shared reference belongs to the local skill bundle. It does not invoke the `stronger-skill` workflow.
+Use concise, grammatical sentences in status updates, explanations, and the final report.
+Keep the user's requested language. Preserve exact evidence, technical terms, paths, commands, code, and required formats.
+Keep native commit syntax. Apply STE to explanatory comments where source conventions permit it.
+STE takes precedence over caveman fragments within the remaining style choices.
+Before each delivery, check sentence length, articles, voice, stable terms, conditions, and negations.
+If prose fails the check, revise it before delivery. Report material validation limits. Claim only checks that ran.

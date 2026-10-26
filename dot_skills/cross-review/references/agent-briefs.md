@@ -1,87 +1,137 @@
-# Agent briefs — cross-review
+# Agent briefs for cross-review
 
-Prompt skeletons per agent. The orchestrator copies the skeleton, appends repo root + scope map, and launches all agents in one parallel response. Shared launch rules live in SKILL.md; they apply to every brief below except `build-test`.
+Use the brief for each planned dimension. Append the repository root, scope map, and shared rules from `SKILL.md`.
+Keep reviewers read-only. Run independent reviewers in parallel within the host slot limit. Collect every result before cross-check.
+Read the shared [STE rules](../../stronger-skill/references/ste.md) before you write findings. Preserve exact code and quoted evidence.
 
-## Shared finding format (all finder agents)
+## Shared finding format
 
-```
+Each finder reports these fields:
+
+```text
 - file:line
 - severity: Critical | Suggestion | Nice to have
-- what's wrong
-- failure scenario: concrete trigger → wrong outcome (or concrete cost). No scenario = do not report the Suggestion.
+- defect
+- failure scenario: concrete trigger -> wrong outcome or measured cost
 - suggested fix
 - confidence: high | low
 ```
 
-Empty return: `No issues found — <what you examined>` with evidence of the walk.
+Drop a Suggestion if it has no concrete failure scenario. Report an uncertain Critical with low confidence and the evidence limit.
+Use `No issues found — <what you examined>` for an empty result. Include the files, paths, or checks that support it.
 
-## Shared scope rules (all finder agents)
+## Shared scope rules
 
-- The Step 1 scope map is your territory: read exactly those files fully. Do not wander outside scope (greps for call sites may reach anywhere — reads stay in scope).
-- A file over ~25,000 characters comes back truncated from one read (`isTruncated`): keep paging with offset/limit until you have all of it. Reviewing from the first screenful is a whiff.
-- On a diff round, read the diff from the file path the orchestrator hands you — NEVER run `git diff` yourself. An agent-chosen base produces two-dot phantom regressions (main's fixes appearing as your branch's regressions), and shell output truncates large diffs silently.
+Read all files in the Step 1 scope map. Searches for call sites can reach outside that map. Keep file reads within scope.
+If a read is truncated, read successive ranges until the complete file is available. Never infer the rest of a file.
+On diff rounds, use the supplied diff file and pinned base. The orchestrator owns diff capture. Reviewers must not choose another base.
+Verify usage claims with `rg`. Compute every cited metric. Record the command and result that support the finding.
 
 ## 1. correctness
 
-Read every source file in scope. For each line ask: what input, state, timing, or platform makes this wrong? Hunt: inverted conditions, off-by-one, missing await, swallowed errors, None/null on rare-but-reachable paths, falsy-zero treated as missing, copy-paste variable mistakes, race conditions, sync blocking calls inside async handlers, naive datetime pitfalls. Read the enclosing function before judging a line.
+Read each source file in scope. Read the complete function before you judge a line.
+Identify the input, state, timing, or platform that causes an incorrect result.
+Check inverted conditions, boundary errors, missing `await`, swallowed errors, reachable null values, and valid zero values that code treats as absent.
+Check copied variables, races, synchronous calls in async handlers, and datetime assumptions.
 
 ## 2. cross-file
 
-Two directions. Consumer: for every export/endpoint, find call sites, check each against the contract. Producer: for every field the data model adds, find read sites — a field read but never written (or written but never read) is a finding. Compare backend schemas ↔ frontend types ↔ DB columns field by field (names, nullability, types). Dead endpoints, dead exports, dead columns.
+Trace exports and endpoints to their consumers. Check each call against the producer contract.
+Trace each data field to its write and read sites. Check fields with missing producers or consumers.
+Compare backend schemas, frontend types, and database columns for names, nullability, and types.
+Verify usage evidence before you report an endpoint, export, or column as unused.
 
 ## 3. security
 
-SQL injection (query construction, string interpolation), SSRF (user input reaching external URLs/params), secrets (hardcoded, logged, committed; JS-bundle exposure of server-side keys), CORS wildcards, input validation gaps (length, NaN/Inf, negative ids), log forging, unbounded writes. Exclusions: no "add auth/rate limiting" unless the design doc does not declare the boundary AND a concrete exposure exists. Read the domain doc's non-goals first.
+Read the domain document's non-goals and trust boundary first.
+Check SQL injection, server-side request forgery (SSRF), secret exposure, cross-origin resource sharing (CORS), and input validation.
+Check log forgery and unbounded writes. Trace untrusted inputs to the exposed operation.
+Report missing authentication or rate limits only when a concrete exposure exists outside the declared boundary.
 
-## 4. reuse (dead-weight lens)
+## 4. reuse
 
-Owns every "this code should not exist as-is" defect — the over-engineering lens merged in here (ponytail semantics; the standalone `ponytail*` skills are lineage, not invoked). Over-engineering only; correctness/security/performance out of scope. Whole-state rounds: ranked scan of the scope map, biggest cut first. Diff rounds: findings in diff order.
+Review unnecessary code and dependencies. This dimension owns the over-engineering review. Do not invoke the standalone `ponytail*` skills.
+Keep correctness, security, and performance defects with their own dimensions.
+Rank whole-state findings by the largest useful reduction. Keep diff findings in diff order.
 
-Each finding uses the shared format plus a tag line:
+Add one tag to each finding:
 
-- `delete` — dead code: functions/branches/imports/classes nothing reaches; speculative feature. Replacement: nothing. Grep for usages, tests and e2e included, before calling anything dead.
-- `dedupe` — duplicated logic across files, repeated literal blocks (field lists, error strings, SQL fragments) spelled multiple ways. Name the existing helper or the remedy under the precedence rule — a dedupe finding with no named remedy is not a finding.
-- `yagni` — one-implementation abstraction, config nobody sets.
-- `stdlib` — hand-rolled, standard library ships it.
-- `native` — dependency doing what the platform does.
-- `shrink` — same logic, fewer lines — show the form.
+- `delete`: code or a speculative feature has no reachable use. Search production code and tests before this verdict.
+- `dedupe`: repeated logic has a named existing helper or a specific remedy.
+- `yagni`: an abstraction has one implementation, or a configuration option has no user.
+- `stdlib`: an established standard library operation can replace custom code.
+- `native`: a platform operation can replace a dependency.
+- `shrink`: the same behavior needs fewer lines. Show the replacement form.
 
-Remedy precedence: `delete > shrink > extract`. New helpers only when ≥3 real call sites survive the cleanup; with fewer, inline. Resolve extract-vs-inline here — never emit both.
-
-End the report with `net: -<N> lines, -<M> deps possible.` Empty return: the shared format. Do not flag a single smoke test as bloat.
+Choose remedies in this order: `delete > shrink > extract`.
+Create a helper only when at least three real call sites remain after the cleanup. Otherwise, keep the code inline.
+Select one remedy. Do not report both extraction and inline replacement for the same finding.
+A single smoke test is not unnecessary code without specific evidence.
+End with `net: -<N> lines, -<M> deps possible.` Label estimates and their basis. Do not invent totals.
 
 ## 5. altitude
 
-Is each piece at the right layer? Business logic in routers, DB access outside the data layer, HTTP details leaking upward, bandaids compensating for an upstream bug, single-caller abstractions. Enumeration traps: hand-rolled parsing of external API responses where an unexpected shape silently yields wrong data instead of a loud domain error.
+Check whether each operation belongs at its current layer.
+Check business logic in routers, database access outside the data layer, and HTTP details in higher layers.
+Identify local workarounds for upstream defects and abstractions with one caller.
+Check custom external-response parsers. Identify unexpected shapes that cause silent incorrect data instead of a clear domain error.
 
 ## 6. consistency
 
-Parallel families (routers per resource, sibling components): does one member have a guard/validation/error shape its siblings lack? Asymmetric failure between siblings; if the missing guard is on untrusted input, say it may be Critical. Convention drift measured against a cited local example. Comments contradicting code.
+Compare related routers and components. Cite the local example that establishes the convention.
+Check asymmetric guards, validation, and error shapes. Explain the different outcome between related paths.
+A missing guard on untrusted input can be Critical. Check comments against current behavior.
 
 ## 7. performance
 
-N+1 queries, missing indexes vs actual WHERE/JOIN patterns, blocking I/O in async handlers, uncached repeated external calls, missing response compression for large payloads, frontend rebuild-everything-on-selection patterns, unbounded accumulation. No micro-opts on cold paths; state the scale at which each finding bites.
+Check N+1 queries, missing indexes against actual queries, and synchronous work in async handlers.
+Check repeated external calls, large uncompressed responses, full UI rebuilds after selection, and unbounded memory growth.
+State the input size or request load that causes the cost. Keep cold-path micro-optimizations outside the findings.
 
 ## 8. test-coverage
 
-Inventory existing tests first. Name specific untested critical paths (never "coverage is low"). Mutation-think: if this code had bug X, would the existing suite go red? Tests that assert string presence instead of behavior are weak — name what they would miss. Missing test = Suggestion; a test asserting the WRONG thing or weakened to let bugs pass = Critical.
+Inventory the existing tests first. Name the specific critical path without a test.
+Describe a plausible code defect and whether the existing test would fail.
+For tests that check strings, state the behavior those assertions cannot verify.
+Use Suggestion for a missing test. Use Critical for a test that asserts incorrect behavior or permits a known defect.
 
-## 9. build-test (deterministic, no review)
+## 9. build-test
 
-Discover commands from manifests. Run ONE build + ONE test command per side. Report verbatim: exact command line, working dir, exit code, pass/fail counts, full text of any failure (do not summarize). Distinguish code-caused failures from environment failures (informational only). If a side has no build/test command, state that explicitly — it is a deterministic fact. Do not fix anything. Source tag every result `[build]` or `[test]`.
+Use the Step 1 commands. If a command is absent, inspect the manifests and report the absence explicitly.
+Run one build command and one test command per side. Keep this dimension deterministic and read-only.
+Report the command, working directory, exit code, counts, and complete failure text. Preserve failure text exactly.
+Separate code failures from environment failures. Tag each result `[build]` or `[test]`.
 
-## 10. removed-behavior (diff rounds only)
+## 10. removed-behavior
 
-Owns the deleted/replaced lines — they exist only in the diff, the current tree carries no trace. For each removal ask: what invariant did it enforce, and where is it re-established? Specifically: removed/renamed exports (compare against the replacement as BEHAVIOR, not names — a flipped default, a narrowed scope, an error that stopped propagating), changed literals that distant consumers match by shape (marker strings, keys, codes, regex text), and rename/format/schema changes against data that already exists (migration / split-brain). Read the post-change files to check re-establishment; when the re-establishment would live outside the diff, report at `Confidence: low` and say the check could not be completed — do not assert it is missing.
+Run this dimension only on diff rounds. Review each deleted or replaced behavior.
+State the invariant each removal enforced and where the replacement preserves it.
+Compare renamed exports by behavior, including defaults, scope, and error propagation.
+Trace consumers of changed literals, marker strings, keys, codes, and regular expressions.
+Check format and schema changes against existing data. Identify migration and compatibility requirements.
+Read the post-change files within scope. If proof requires a file outside scope, report low confidence and the missing check.
+Do not claim an invariant is absent when the required evidence is unavailable.
 
-## interface-kit lens (UI rounds only)
+## interface-kit
 
-Audit against the priority stack: accessibility (computed WCAG contrast ratios for the actual token pairs — show the numbers, ≥4.5:1 text / 3:1 large+non-text; keyboard operability of every interactive element; focus trap/restore in modals; aria-label on icon-only buttons; live regions; 44×44px touch targets) → typography (font smoothing, tabular-nums on dynamic numbers) → spatial (4/8px grid, concentric radius, layered shadows) → color/motion (semantic tokens not hardcoded hex, frequency-matched animation, no `transition: all`, reduced-motion respected including JS scrolls, press feedback). Also flag any native alert/confirm/prompt if the project bans them. Format: `[CRITICAL|HIGH|MEDIUM|LOW] <file>:<line> — <what> → <fix>`. Compute, don't eyeball. Clean areas get no padding findings.
+Run this dimension only when Step 1 detects UI. Read the installed `interface-kit` skill.
+Use the shared finding fields. Keep its native priority as an additional field when useful.
 
-## Orchestrator cross-check reminders (Step 3)
+Check these properties in priority order:
 
-- Dedup: same defect + location + root cause keeps one entry, highest severity, list all lenses that flagged it.
-- Row 4 owns the over-engineering zones alone: its grep-backed dead-code/dedupe findings are single-lens WITH executed evidence — rule on the grep output, don't demand a second vote.
-- Probe runnable claims before ruling (the NaN case: reading pydantic's actual output killed the "reads 500 forever" mechanism).
-- Domain doc is the design-intent judge: lens says dead, doc says planned → contested, held for user.
-- Severity honesty: pathological input without data loss is Suggestion even when it 500s in prod (verified max_length case).
+1. Accessibility: compute contrast for actual token pairs. Use 4.5:1 for ordinary text and 3:1 for large text or non-text elements.
+   Check keyboard access, modal focus capture and restoration, icon-button labels, live regions, and 44×44px touch targets.
+2. Typography: check font smoothing and tabular numbers for dynamic values.
+3. Layout: check the 4/8px grid, concentric radii, and layered shadows.
+4. Color and motion: check semantic tokens, animation frequency, reduced motion, JavaScript scrolls, and press feedback.
+   Flag `transition: all` where it causes unintended animation.
+
+Check native `alert`, `confirm`, and `prompt` calls when the project forbids them.
+Compute cited metrics. Keep areas without defects out of the findings.
+
+## Orchestrator checks
+
+Merge entries only when the defect, location, and cause match. Keep the highest severity and every reporting dimension.
+A single reuse finding can have executed evidence from usage searches. Evaluate that evidence without an automatic second-vote requirement.
+Executed counter-evidence takes precedence over votes. Domain design claims make incompatible removals contested until the user decides.
+Choose severity from the concrete impact. A pathological input with no data loss does not become Critical only because it returns HTTP 500.

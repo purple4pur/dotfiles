@@ -18,7 +18,7 @@ submodules, no nested .git. Nothing pins versions; diff decides everything.
 
 | Category | Rule |
 |------------|--------------------------------------------------------------|
-| skills | Fully pick upstream within repository scope below; include new skills only where scope permits; drop local edits in selected skills. Skip monorepo build infra (`generated/`, `registry.json`, `compile.mjs`, `*.mjs` at skills root). Never touch user-owned skills (cross-review, record-each-step, session-performance-report, stronger-skill). |
+| skills | Fully pick upstream within repository scope below; include new skills only where scope permits; drop local edits in selected skills. Skip monorepo build infra (`generated/`, `registry.json`, `compile.mjs`, `*.mjs` at skills root). Preserve every skill outside README external-resource entries, including this skill and purple-coding-style. Derive ownership from the manifest, not a fixed name list. |
 | breaking | Migrate carefully. Upgrade deprecated references/usages elsewhere in config too. Assume latest nvim — new APIs directly, no version guards, no deprecated APIs even in comments. |
 | small fix | Straight copy of upstream file. |
 | optional | Do NOT introduce unnecessary deps. New assets (shaders, colorschemes, modules) copied only if config references them. |
@@ -44,7 +44,8 @@ tabline rewrite, PaperColor (whitespace).
 
 - Sandbox: uid 1000, no root/sudo. `~/.local/state` not writable — always set
   `XDG_CACHE_HOME XDG_DATA_HOME XDG_STATE_HOME` to /tmp paths for headless nvim.
-- Network: assume github reachable. If slow/unreachable, fallback ladder:
+- Network: use the host permission rules. A fallback source requires the same network authority.
+  If GitHub is slow or unreachable, use this fallback ladder:
   1. plain clone/fetch
   2. release tarball via `https://ghfast.top/https://github.com/...` prefix
   3. codeload tarball `https://codeload.github.com/O/R/tar.gz/refs/heads/BR` — NO byte-range resume
@@ -65,12 +66,14 @@ Inventory and scope → fetch → classify → decide → apply → docs → ver
 Read README "External resources" section. For each dep record: repo, vendored
 path(s), shape (dir-copy / single-file / embedded-in-file), marked notes
 (Active, w/ modification, will-not-update-often).
+Resolve the requested mode. A check or report request permits inspection and temporary source fetches, with no repository changes.
+An upgrade or sync request permits the selected changes under the standing rules.
 Apply repository scope before selecting upstream skills. Record excluded
 upstream skills and any previously vendored extras separately.
 
 **Checkpoint: `dep_inventory`**
 
-Table: repo | vendored path | shape | note. Embedded (e.g. tabline in
+Record the requested mode and initial user changes. Table: repo | vendored path | shape | note. Embedded (e.g. tabline in
 dot_vimrc) marked for manual compare only.
 For scoped skill repositories, record selected paths, exclusions, and removal
 candidates with provenance and local-edit status.
@@ -92,11 +95,14 @@ file (curl). Record HEAD date per clone.
 
 **Checkpoint: `upstream_pulled`**
 
-/tmp/deps populated; every repo passes `git rev-parse HEAD`; raw files exist.
+/tmp/deps contains validated sources. Clones have a recorded commit ID.
+Archives and raw files have their source URL, revision when available, file checks, and source type recorded.
+Do not run `git rev-parse` as an archive validation check.
 
 **Gate**
 
 - All present and valid: **CONTINUE Step 3**.
+- Network authority unavailable: **STOP** with the exact fetch and permission limit.
 - Required allowlisted skill missing upstream: **STOP**, report missing path;
   never substitute a sibling skill.
 - Clone fails: **ENTER lane-network**.
@@ -121,8 +127,7 @@ and lines per dep.
 **Gate**
 
 - Classification complete for all deps: **CONTINUE Step 4**.
-- Ambiguous direction (can't tell local mod from staleness): mark DIVERGED,
-  decide at Step 4.
+- Ambiguous direction: record DIVERGED with the uncertainty; **CONTINUE Step 4**.
 
 ### 4. Report and decide
 
@@ -140,10 +145,11 @@ upstream within repository scope). Include exact authorized removal paths.
 
 **Gate**
 
+- Check-only mode: deliver the classification, source evidence, exclusions, and validation limits under the output contract; **COMPLETE** without repository edits.
 - Every dep has decision: **CONTINUE Step 5**.
 - DIVERGED non-skill dep unresolved: **STOP**, ask user (keep mods vs pick
   upstream vs merge).
-- Optional new assets undecided: default skip; note in report.
+- Optional new assets undecided: default to skip, record the decision, and **CONTINUE Step 5**.
 
 ### 5. Apply
 
@@ -151,7 +157,8 @@ upstream within repository scope). Include exact authorized removal paths.
 
 Per decision:
 
-- skills: replace selected dirs wholesale (`rm -rf` + `cp -r`); add new skill
+- skills: validate the complete selected source before replacement. Inventory vendor-only files before deletion.
+  Replace only the authorized selected dirs; add new skill
   dirs only within repository scope. Remove only extras recorded in Step 4.
   Verify no vendor-only files lost first (`diff -rq | grep "^Only in"`).
 - breaking: replace vendor with upstream runtime files only (exclude .git,
@@ -242,7 +249,9 @@ List: check | command | result. Include skipped checks with reason.
 
 **Step**
 
-Offer to commit; commit only on explicit user approval. On approval:
+Commit only when the user requests it or an active session workflow already authorizes it.
+Otherwise, leave the reviewed changes in the working tree and report their state.
+When authorized:
 `git status`, review diff by area, stage explicit paths (never -A bare).
 Conventional subject ≤50 chars, body only when why non-obvious. Logical split
 allowed: dep upgrades vs trim vs docs. Confirm clean tree after.
@@ -256,8 +265,8 @@ in tree, reported.
 **Gate**
 
 - User approved + clean tree: **COMPLETE**.
-- User declined or no answer: leave changes in working tree, **COMPLETE**
-  with state note (what changed, what is uncommitted).
+- Commit not requested: leave changes in the working tree; **COMPLETE** with the paths and uncommitted state.
+- Commit fails: repair the cause; **RETURN Step 8**. Permission remains unavailable: **STOP** with the exact limit.
 
 ## Lanes
 
@@ -292,9 +301,27 @@ deprecated symbol absent from live code path).
 Exit: Step 5 checkpoint satisfiable with migrated config.
 Return Step 5 to validate applied files and migration.
 
+## Output contract
+
+Report the selected and excluded dependencies, source revisions, classification, applied decisions, and exact removal paths.
+Include configuration migrations, README status, verification commands and outcomes, skipped checks, and commit state.
+Check the report against the STE rules below before completion.
+Preserve all skills that README does not list as external resources.
+
 ## Non-goals
 
 - No submodule conversion, no dep manager introduction.
 - No updating user-owned skills, dot_vimrc-embedded code, or unrelated files.
 - No pinning/lockfile creation.
 - No speculative upgrade of deps user did not ask about beyond the report.
+
+## Output language and validation
+
+Read [STE rules](../stronger-skill/references/ste.md) before you write English prose.
+This shared reference belongs to the local skill bundle. It does not invoke the `stronger-skill` workflow.
+Use concise, grammatical sentences in status updates, explanations, and the final report.
+Keep the user's requested language. Preserve exact evidence, technical terms, paths, commands, code, and required formats.
+Keep native commit syntax. Apply STE to explanatory comments where source conventions permit it.
+STE takes precedence over caveman fragments within the remaining style choices.
+Before each delivery, check sentence length, articles, voice, stable terms, conditions, and negations.
+If prose fails the check, revise it before delivery. Report material validation limits. Claim only checks that ran.

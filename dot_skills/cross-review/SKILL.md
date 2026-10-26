@@ -1,15 +1,15 @@
 ---
 name: cross-review
-description: Multi-reviewer audit with consensus fixing. Runs 9 dimension agents (row 4 reuse carries the over-engineering dead-weight lens) (+ interface-kit when UI exists) as parallel subagents over a review scope — whole repo by default, or a file, directory, or function/class the user names ("cross review", "cross review src/api.ts", "cross review the reorder function", "全仓审查", "交叉审查 src/api.ts"). Cross-checks all findings, fixes only what everyone agrees on, holds contested items for the user.
+description: "Audit a repository, file, directory, or symbol with independent reviewers and agreed fixes. Use for cross review, cross review src/api.ts, cross review the reorder function, 全仓审查, or 交叉审查. Use nine review dimensions, plus a UI dimension when applicable and removed-behavior on diff rounds. Hold disputed findings for the user."
 ---
 
 # Cross Review
 
-Independent lenses, cross-checked truth, consensus-only fixes.
+Use independent review dimensions. Cross-check the evidence. Apply agreed fixes only.
 
 ## Contract
 
-**Must produce:** consensus matrix (agreed / contested / rejected / held), agreed fixes committed one-per-change, green verification evidence, held-items report with evidence and options.
+**Must produce:** consensus matrix (agreed / contested / rejected / held), agreed fixes committed one-per-change, verification evidence with explicit pass, failure, or blocked status, held-items report with evidence and options.
 
 **Input:** optional scope after the trigger. Default = whole repo. Scope may be a file path, a directory, or a symbol (function/class/method name).
 
@@ -17,9 +17,10 @@ Independent lenses, cross-checked truth, consensus-only fixes.
 
 **Must never do:** fix a contested item without explicit user decision; batch unrelated fixes into one commit; accept a bare "No issues found." without walked-evidence; claim verified without running build/tests; write to remotes/PRs.
 
-**Needs:** subagent capability (`review-agent` type), `interface-kit` skill (only when UI detected), `record-each-step` skill, `purple-coding-style` skill, project build/test commands.
+**Needs:** host subagent capability, `interface-kit` skill (only when UI detected), `record-each-step` skill, `purple-coding-style` skill, project build/test commands.
 
-**Done when:** matrix delivered, fixes landed, verification green, held items listed.
+**Done when:** the matrix, fix outcomes, verification status, and held items are delivered.
+A blocked check or incomplete dimension limits the result. Never report that dimension as verified.
 
 ## Change execution
 
@@ -58,11 +59,16 @@ Launch rules shared by all finder agents (1-8, interface-kit; build-test exempt 
 - Read the full files in scope; small repos read everything, large repos get a scope map from Step 1.
 - Every finding carries: `file:line`, severity (Critical / Suggestion / Nice to have), what's wrong, **concrete failure scenario** (trigger → wrong outcome, or concrete cost), suggested fix, confidence. A Suggestion without a scenario is dropped by the agent itself.
 - Evidence rule: verify usage claims by grep before calling something dead; compute (not eyeball) any metric you cite (contrast ratios, payload sizes).
-- Empty return must be `No issues found — <what you examined>`. Bare "No issues found." is a whiff.
+- Empty return must be `No issues found — <what you examined>`. A bare "No issues found." lacks review evidence.
 - Suspected Critical you cannot pin down: report with `Confidence: low`, never silently drop.
-- Every agent runs inline (`run_in_background: false`) so findings return to the orchestrator. Fire-and-forget agents never deliver findings — the round stalls in cross-check with nothing to rule on.
+- Use the host launch, result, and wait tools. Collect every result before cross-check.
+- Keep reviewers read-only. Only the orchestrator applies fixes or commits.
+- Give each reviewer the STE output rules. Preserve quoted evidence exactly.
+- If slots cannot hold the roster, run independent reviewers in batches. Keep all dimensions and collect every result.
 
 ## Main line
+
+Resolve scope → collect reviews → cross-check evidence → apply agreed fixes → verify → report.
 
 ### 1. Qualify the round
 
@@ -76,13 +82,17 @@ Resolve the scope first. Default = whole repo (scope map = all source files). Ot
 
 Roster trimming by scope: build-test always runs project-level commands regardless of scope; interface-kit runs only when the scope map contains UI files; every other lens reviews the scope map with the shared rules (greps may reach anywhere, reads stay in scope).
 
-Then collect round inputs: mode (whole-state default; a diff target adds `removed-behavior` to the roster), UI detection (from the scope map), build/test commands per side (package.json scripts, pyproject/uv, Makefile), domain doc (SDD.md / DESIGN.md — the design-intent judge), existing test suite inventory. Branch setup: if record-each-step is active it owns the branch; otherwise work on the current branch and say so.
+Collect the mode, UI detection, build/test commands per side, domain document, and test inventory.
+Use whole-state mode by default. A diff target adds `removed-behavior`.
+Find commands in project manifests. Use SDD.md, DESIGN.md, or README claims for design intent.
+Record initial branch, HEAD, and user changes. `record-each-step` owns branch setup before agreed edits.
+For a diff round, create a unique temporary directory before capture. Record the complete diff path in the plan.
 
-**Diff rounds only:** resolve the base ONCE yourself (the domain doc, the main branch, or the user-named base — never let agents pick), capture the diff to a file with pinned flags (`git diff --unified=3 <base> > /tmp/cross-review-diff.txt`, or `git diff <base> -- <paths>` for scoped rounds), and build the scope map from the changed files intersected with the requested scope. Hand every agent the diff-file path; agents never run `git diff` themselves (wrong base = phantom regressions; shell output truncates large diffs).
+**Diff rounds only:** resolve the base ONCE yourself (the user-named Git revision or the verified project main branch — never let agents pick), capture the diff to a file with pinned flags (`git diff --unified=3 <base> > /tmp/<unique-round>/cross-review-diff.txt`, or `git diff <base> -- <paths>` for scoped rounds), and build the scope map from the changed files intersected with the requested scope. Hand every agent the diff-file path; agents never run `git diff` themselves (wrong base = phantom regressions; shell output truncates large diffs).
 
 **Checkpoint: `review-plan`**
 
-Written plan: roster list (rows 1-9 + interface-kit? + row 10 on diff rounds), scope map for large repos, test commands, domain doc path.
+Written plan: initial branch and user-change inventory, pinned diff base when applicable, roster list (rows 1-9 + interface-kit? + row 10 on diff rounds), scope map for large repos, test commands, domain doc path.
 
 **Gate**
 
@@ -95,30 +105,36 @@ Written plan: roster list (rows 1-9 + interface-kit? + row 10 on diff rounds), s
 
 **Step**
 
-Launch ALL rostered agents (rows 1-9, plus row 10 on diff rounds, plus interface-kit if planned) in ONE response as parallel subagents — no sequencing. Each gets: its dimension brief (from [references/agent-briefs.md](references/agent-briefs.md) plus the shared launch rules), the scope map, the repo root. build-test additionally gets: run commands, report outcomes verbatim, tag findings `[build]`/`[test]`, do not fix anything.
+Launch all planned reviewers through the host subagent tools. Run them in parallel within the available slots.
+If capacity is smaller than the roster, queue the remaining reviewers in independent batches.
+If subagent tools are absent, **STOP** with the exact limit. Do not simulate independent consensus.
+Give each reviewer its [dimension brief](references/agent-briefs.md), shared rules, scope map, and repository root.
+Give `build-test` the commands. Require exact results with `[build]` and `[test]` tags. Keep all reviewers read-only.
 
 **Checkpoint: `finder-results`**
 
-Every launched agent returned inline with findings or evidence-bearing empty receipt.
+Every planned reviewer returned findings or an empty result with review evidence. Failed dimensions have an explicit status.
 
 **Gate**
 
 - All substantive: **CONTINUE Step 3**.
-- An agent returned bare "No issues found." with no walked-evidence, or returned near-instantly with almost no output: relaunch that ONE agent once with the whiff named; second bare return → take it and record its dimension as `unreviewed lens` in the matrix (caps any "clean" claim). **CONTINUE Step 3**.
+- An agent returned bare "No issues found." with no walked-evidence, or returned near-instantly with almost no output: relaunch that ONE agent once with the missing evidence named; second bare return → take it and record its dimension as `unreviewed lens` in the matrix (caps any "clean" claim). **CONTINUE Step 3**.
 - An agent failed/errored (tool crash, timeout): relaunch once; second failure → same `unreviewed lens` treatment. **CONTINUE Step 3**.
 
 ### 3. Cross-check into a consensus matrix
 
 **Step**
 
-Dedup the union: same defect + same location + same root cause keeps one entry at the highest severity, noting every lens that flagged it. Then rule each entry:
+Merge findings with the same defect, location, and cause. Keep the highest severity and every reporting dimension.
+Check counter-evidence and design conflicts before agreement. Assign each entry one outcome:
 
 - **agree** — flagged by ≥2 lenses, OR flagged once with executed evidence (probe output, failing command, computed metric) from the finder.
 - **rejected** — claim disproved by execution or direct counter-evidence (quote the decisive line/output). Rejected entries are reported, never fixed.
 - **contested** — lenses conflict, OR a lens conflicts with the domain doc (e.g. "dead column" vs SDD listing it as planned surface). Record both sides + the doc citation.
-- **held** — single lens, plausible, but evidence is read-only and a fix would change behavior (risky refactors). Hold with the evidence.
+- **held** — one dimension reports a plausible defect without decisive executed evidence. Hold it with the evidence and behavior risk.
 
-Probe anything runnable that decides agree-vs-rejected (run the code, compute the metric — restore the tree after, `git status` must be clean). Check every load-bearing new claim against the code before accepting it.
+Probe runnable claims that decide agreement or rejection. Use temporary fixtures and restore only probe-owned changes.
+Compare status with the initial user-change inventory. Preserve user changes. Check each decisive claim against the code.
 
 **Checkpoint: `consensus-matrix`**
 
@@ -146,16 +162,19 @@ Commit list (one per fix) + per-finding outcome (fixed / skipped+reason).
 
 **Gate**
 
-- Tree clean, every agreed finding has an outcome: **CONTINUE Step 5**.
-- A "fix" would change public behavior/API beyond the finding's scenario (verb rename, format unification visible to users): reclassify as contested, ask via the report (or ask_user_question if mid-round); **RETURN Step 3**.
+- Managed task changes committed, every agreed finding has an outcome: **CONTINUE Step 5**.
+- User changes prevent safe branch setup: record agreed fixes as blocked; **CONTINUE Step 5** without edits.
+- A "fix" would change public behavior/API beyond the finding's scenario (verb rename, format unification visible to users): reclassify as contested, request the user decision through the host question tool or the report; **RETURN Step 3**.
 - A fix turns out wrong mid-edit (breaks a test, contradicts code reality): revert that edit, move finding to rejected/held with the counter-evidence; **RETURN Step 3**.
-- No agreed fixes (all contested/rejected/held): **CONTINUE Step 5** (verification still runs on the untouched tree) — or skip to Step 6 if the tree is untouched and nothing ran.
+- No agreed fixes: **CONTINUE Step 5**. Reuse Step 2 verification if it covered the required checks and the tree did not change.
 
 ### 5. Verify for real
 
 **Step**
 
-Run the full project verification: build per side, full unit suites, backend tests, and end-to-end tests when the round touched UI. Fresh fixture state for e2e (throwaway DB). Quote pass counts and any failure verbatim.
+Run the required project verification: build per side, full unit suites, backend tests, and end-to-end tests when fixes touched UI.
+Reuse completed checks only if the relevant tree and fixtures did not change.
+Use fresh temporary fixtures for end-to-end tests. Quote pass counts and failure text exactly.
 
 **Checkpoint: `verification-evidence`**
 
@@ -164,6 +183,7 @@ Command list + outcomes (pass counts / failure text).
 **Gate**
 
 - All green: **CONTINUE Step 6**.
+- Existing code failure: record the failure and affected scope; **CONTINUE Step 6** with a failed status.
 - Red caused by a fix: fix the code, not the test — unless the test pinned deliberately-changed behavior (then update the test in its own commit, citing the behavior change). **RETURN Step 4**.
 - Verification blocked (no commands, env failure): record `verification: blocked — <exact reason>`; **CONTINUE Step 6**. Never claim verified.
 
@@ -171,7 +191,9 @@ Command list + outcomes (pass counts / failure text).
 
 **Step**
 
-Deliver: the consensus matrix (agreed / rejected / contested / held — held section is the report's centerpiece), fix log with commit hashes, verification evidence, and for every held/contested item: evidence, both sides, 2-3 concrete options. Then wait — contested items are the user's call, not a follow-up task.
+Check report prose against the STE rules below. Deliver the consensus matrix, fix log with commit hashes, and verification evidence.
+For each held or contested item, provide the evidence, competing interpretations, and two or three concrete options.
+Give held items sufficient detail for a user decision. Wait for that decision before further edits.
 
 **Checkpoint: `cross-review-report`**
 
@@ -181,11 +203,23 @@ Report delivered; user can decide each held item from the report alone.
 
 - Report complete, no unreviewed lens hidden: **COMPLETE**.
 - Any `unreviewed lens` from Step 2: named explicitly in the report with its consequence (that dimension unverified) — still COMPLETE, but the cap is visible.
-- User immediately wants held items fixed: re-enter Step 4 scoped to the items they approved, then Step 5.
+- User approves held or contested items: **RETURN Step 4** with only those items, then run Step 5.
 
-## Failure modes baked into gates
+## Evidence and decision rules
 
-- **Solo-lens inflation**: one lens demanding deletion of something the domain doc plans for = contested, not agreed. The doc wins until the user says otherwise.
-- **Probe beats prose**: a claim killed by running code is dead regardless of how many lenses believed it; a claim surviving a probe is alive regardless of lens count.
-- **Verification theater**: passing counts must come from commands actually run this round. A fix round without green evidence is not done.
-- **Commit hygiene**: one fix per commit keeps `git revert` surgical and record-each-step's squash honest.
+- **Design conflict**: one lens demanding deletion of something the domain doc plans for = contested, not agreed. The doc wins until the user says otherwise.
+- **Executed evidence**: a claim killed by running code is dead regardless of how many lenses believed it; a claim surviving a probe is alive regardless of lens count.
+- **Verification claims**: use results from commands that ran on the relevant tree. Report failed or blocked checks explicitly.
+  A complete report does not establish that blocked dimensions or failed fixes passed.
+- **Commit scope**: one fix per commit permits a separate revert and an accurate squash message.
+
+## Output language and validation
+
+Read [STE rules](../stronger-skill/references/ste.md) before you write English prose.
+This shared reference belongs to the local skill bundle. It does not invoke the `stronger-skill` workflow.
+Use concise, grammatical sentences in status updates, explanations, and the final report.
+Keep the user's requested language. Preserve exact evidence, technical terms, paths, commands, code, and required formats.
+Keep native commit syntax. Apply STE to explanatory comments where source conventions permit it.
+STE takes precedence over caveman fragments within the remaining style choices.
+Before each delivery, check sentence length, articles, voice, stable terms, conditions, and negations.
+If prose fails the check, revise it before delivery. Report material validation limits. Claim only checks that ran.
