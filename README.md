@@ -25,3 +25,4 @@ For vim/nvim plugin common usages, please refer to [`~/.vimrc`](dot_vimrc) and [
 * [**`dot_skills/caveman`**](./dot_skills/caveman) - [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman/tree/main/skills/caveman)
 * [**`dot_skills/caveman-commit`**](./dot_skills/caveman-commit) - [JuliusBrussee/caveman caveman-commit](https://github.com/JuliusBrussee/caveman/tree/main/skills/caveman-commit)
 * [**`dot_skills/interface-kit`**](./dot_skills/interface-kit) - [JuliusBrussee/skills](https://github.com/JuliusBrussee/skills/tree/main/skills/interface-kit)
+* [**`dot_skills/write-docs`**](./dot_skills/write-docs) - [adhamhaithameid/write-skills](https://github.com/adhamhaithameid/write-skills/tree/main/skills/write-docs)
