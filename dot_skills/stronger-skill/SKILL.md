@@ -1,6 +1,6 @@
 ---
 name: stronger-skill
-description: "Create, review, or update agent skills through Step, Checkpoint, and Gate contracts. Use for skill design, SKILL.md audits, workflow restructuring, trigger repair, resource organization, validation, and output rules. Preserve domain behavior. Use Simplified Technical English for prose."
+description: "Create, review, or update agent skills through Step, Checkpoint, and Gate contracts. Use for skill design, SKILL.md audits, workflow restructuring, trigger repair, resource organization, validation, and output rules. Preserve domain behavior. Use write-docs for prose."
 ---
 
 # Stronger Skill
@@ -24,8 +24,8 @@ Define the system contract first. Add detail where a failure has a high cost.
 
 - Follow host platform skill-authoring rules. Use official scaffold, metadata,
   resource, and validation tools when available.
-- Read [STE rules](references/ste.md) before you write prose. Use concise,
-  grammatical sentences. Preserve exact terms, paths, commands, code, and errors.
+- Before you write prose, apply the Output language rules.
+  Preserve exact terms, paths, commands, code, and errors.
 - Review only when user asks review. Edit only when user asks create, apply,
   fix, rewrite, or update.
 - Preserve target domain behavior. Structure serves semantics, never replaces
@@ -333,7 +333,7 @@ Run the official skill validator when it is available. Then check:
 - scripts execute on representative input;
 - optional metadata prompt describes intended skill use;
 - diff contains only intended files;
-- prose follows the STE output rules, with required exceptions identified.
+- prose follows the `write-docs` rules, with required exceptions identified.
 
 Build at least three mental or executable scenarios:
 
@@ -453,8 +453,8 @@ commit text follow their native conventions.
 
 ## Output language
 
-Apply [STE rules](references/ste.md) to English prose, including status updates, skill resources, and the final handoff.
+Use the `write-docs` skill for prose, including status updates, skill resources, and the final handoff.
+Read its `SKILL.md` and follow its output language and prose rules.
 Keep the user's requested language. Preserve exact evidence and native syntax.
-STE takes precedence over caveman fragments within the remaining style choices.
-Before delivery, check sentence length, grammar, stable terms, and preserved conditions.
+Before delivery, check prose against `write-docs`.
 If prose fails the check, **RETURN Step 6** for skill text or revise the handoff before **COMPLETE**.
