@@ -1,17 +1,15 @@
-# Using dotfiles on Linux
+# Use dotfiles on Linux
 
 This guide installs [Purple4pur's dotfiles](https://github.com/purple4pur/dotfiles)
-with [chezmoi](https://www.chezmoi.io/), then connects them to your shell.
-The original wiki guide was tested on Ubuntu 20.04 LTS. Package availability
-varies by distribution; these updated instructions have not been tested on every
-Linux release.
+with [chezmoi](https://www.chezmoi.io/). You then enable the shell setup.
+Package availability depends on your distribution.
 
 ## 1. Install chezmoi and Starship
 
-Install Git with your distribution's package manager. Download and extract the
-Linux binary for your architecture from the
-[bin releases](https://github.com/marcosnils/bin/releases), then run these commands
-from the directory containing it:
+Install Git with your distribution's package manager. Download the Linux binary
+for your architecture from the [bin releases](https://github.com/marcosnils/bin/releases).
+Extract the binary. Run these commands from the directory that contains `bin`:
+Starship is optional. Skip its install command if you prefer the built-in prompt.
 
 ```bash
 chmod +x bin
@@ -22,16 +20,15 @@ bin install github.com/starship/starship
 ```
 
 Add `export PATH="$HOME/.local/bin:$PATH"` once to `~/.bashrc`, before the shell
-setup added below. Starship is optional; skip its install command if you prefer
-the built-in prompt. See [bin](https://github.com/marcosnils/bin) for details.
+setup in step 3. See [bin](https://github.com/marcosnils/bin) for details.
 
 ## 2. Initialize and apply the dotfiles
 
-Back up existing configuration files you want to keep, especially `~/.vimrc`,
-`~/.vim`, `~/.tmux.conf`, and application directories under `~/.config`.
-Run chezmoi as your normal user so it manages your home directory.
+Back up existing configuration files you want to keep.
+Include `~/.vimrc`, `~/.vim`, `~/.tmux.conf`, and application directories under `~/.config`.
+Run chezmoi as your normal user to manage your home directory.
 
-Initialize the repository, inspect the proposed changes, then apply them:
+Initialize the repository. Inspect the proposed changes before you apply them:
 
 ```bash
 chezmoi init https://github.com/purple4pur/dotfiles.git
@@ -39,15 +36,14 @@ chezmoi diff
 chezmoi apply
 ```
 
-For a fresh home directory, you can combine initialization and application:
+For a fresh home directory, initialize and apply the repository with one command:
 
 ```bash
 chezmoi init --apply https://github.com/purple4pur/dotfiles.git
 ```
 
-Chezmoi copies configuration files into your home directory. It does not install
-the applications that use them, and it does not automatically add the shell
-setup to `~/.bashrc`.
+Chezmoi copies configuration files into your home directory. Install the
+applications separately. Add the shell setup to `~/.bashrc` in step 3.
 
 ## 3. Enable the Bash setup
 
@@ -57,24 +53,26 @@ Add this line once to `~/.bashrc`:
 source "$HOME/.config/.bash_setup"
 ```
 
-Open a new terminal, or reload the current shell:
+Open a new terminal, or reload `~/.bashrc`:
 
 ```bash
 source ~/.bashrc
 ```
 
-The [Bash setup](../dot_config/dot_bash_setup) adds shell and Git aliases and
-initializes Starship when available. Without Starship, it uses a built-in prompt.
-For example, `gst` runs `git status` and `srcs` reloads `~/.bashrc`.
+The [Bash setup](../dot_config/dot_bash_setup) adds shell and Git aliases.
+The setup initializes Starship when available. Without Starship, the setup uses
+a built-in prompt. For example, `gst` runs `git status` and `srcs` reloads `~/.bashrc`.
 
-If you use tcsh instead, add the following to `~/.tcshrc` and restart tcsh:
+If you use tcsh, add this line once to `~/.tcshrc`:
 
 ```tcsh
 source ~/.config/.tcsh_setup
 ```
 
-Starship needs no additional initialization line. If prompt glyphs are missing,
-select a suitable terminal font, such as a [Nerd Font](https://www.nerdfonts.com/).
+Restart tcsh to load the setup.
+
+Starship needs no additional initialization line. If prompt symbols are missing,
+select a terminal font that contains those symbols, such as a [Nerd Font](https://www.nerdfonts.com/).
 
 ## 4. Optional: use the application configurations
 
@@ -83,19 +81,26 @@ Install only the applications you want to use:
 | Application | Configuration deployed by chezmoi | Notes |
 | --- | --- | --- |
 | Vim | `~/.vimrc`, `~/.vim/` | Themes and bundled plugins are included. |
-| Neovim | `~/.config/nvim/` | Also loads `~/.vimrc` and `~/.vim/`; use a current release. |
-| tmux | `~/.tmux.conf` | Start a new tmux server to load it. |
+| Neovim | `~/.config/nvim/` | Requires version 0.11.3 or newer. Also loads `~/.vimrc` and `~/.vim/`. |
+| tmux | `~/.tmux.conf` | Start a new tmux server to load the configuration. |
 | mpv | `~/.config/mpv/` | The configuration requires mpv 0.37.0 or newer. |
 
 For Vim and Neovim key mappings, read [the Vim configuration](../dot_vimrc) and
 [the Neovim Lua configuration](../dot_config/nvim/lua/init.lua).
-Neovim's Markdown preview also needs the `glow` executable; language servers
-must be installed and enabled separately in
-[the LSP configuration](../dot_config/nvim/lua/lsp.lua).
+Install the `glow` executable to use Neovim's Markdown preview.
+Install language servers separately. Enable each server in
+[the LSP configuration](../dot_config/nvim/lua/lsp.lua) with `vim.lsp.enable()`.
+The supplied configuration leaves all servers disabled.
+See the [bundled nvim-lspconfig requirements](../dot_config/nvim/lua/nvim-lspconfig/README.md#install)
+for the Neovim version requirement.
 
 ## Update and customize
 
-Update binaries installed with bin using `bin update`.
+Update binaries installed with bin:
+
+```bash
+bin update
+```
 
 Pull and apply the latest repository changes:
 
@@ -103,7 +108,7 @@ Pull and apply the latest repository changes:
 chezmoi update
 ```
 
-To review an update before applying it, use:
+To review an update before you apply the changes, use:
 
 ```bash
 chezmoi git pull -- --ff-only
@@ -111,16 +116,28 @@ chezmoi diff
 chezmoi apply
 ```
 
-For local changes to managed files, use `chezmoi edit ~/.vimrc` followed by
-`chezmoi apply`, or edit the deployed file and run `chezmoi re-add ~/.vimrc`.
-Keep changes in your own fork if you want to share them across machines.
+Edit a managed file in the chezmoi source, then apply the change:
+
+```bash
+chezmoi edit ~/.vimrc
+chezmoi diff
+chezmoi apply
+```
+
+If you edit the deployed file directly, save the change in the source:
+
+```bash
+chezmoi re-add ~/.vimrc
+```
+
+Keep changes in your own fork to share them across machines.
 
 ## Troubleshooting
 
-- **Command not found:** check that the application is installed and its binary
-  directory is on `PATH`. Reopen the terminal after changing `PATH`.
+- **Command not found:** check that the application is installed. Confirm that
+  its binary directory is on `PATH`. Reopen the terminal after you change `PATH`.
 - **Aliases or prompt missing:** confirm `~/.bashrc` sources `.bash_setup` and
-  that you are running Bash. A login Bash shell also needs its login profile
-  to source `~/.bashrc`.
-- **Unexpected file changes:** inspect `chezmoi diff` before applying. Restore
-  your backup or adjust the chezmoi source if a setting should be kept.
+  that you use Bash. For a login Bash shell, make sure its login profile sources
+  `~/.bashrc`.
+- **Unexpected file changes:** inspect `chezmoi diff` before you apply the changes.
+  Restore your backup or edit the chezmoi source to keep a setting.

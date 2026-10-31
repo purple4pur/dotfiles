@@ -1,31 +1,30 @@
-# Using dotfiles on Windows
+# Use dotfiles on Windows
 
 This guide installs [Purple4pur's dotfiles](https://github.com/purple4pur/dotfiles)
-with [chezmoi](https://www.chezmoi.io/), then connects them to PowerShell and
-optional applications. The original wiki guide was tested on Windows 10.
-These updated instructions have not been validated on a Windows machine.
+with [chezmoi](https://www.chezmoi.io/). You then enable the PowerShell setup
+and connect optional applications. These instructions have not been tested on
+a Windows machine.
 
 Run the commands in PowerShell as your normal user. Windows PowerShell 5.1 and
-PowerShell 7 have separate profiles; configure each version you use.
+PowerShell 7 have separate profiles. Configure each version you use.
 For WSL, follow [the Linux guide](using-dotfiles-on-linux.md) inside the Linux
 environment.
 
 ## 1. Install chezmoi and Starship
 
-Install [Scoop](https://scoop.sh/) using its official instructions, then run:
+Install [Scoop](https://scoop.sh/) with its official instructions. Install these applications:
+Starship is optional. Omit `starship` if you prefer the default prompt.
 
 ```powershell
 scoop install git chezmoi starship
 ```
 
-Starship is optional; omit it if you prefer the default prompt.
-
 ## 2. Initialize and apply the dotfiles
 
-Back up existing configuration you want to keep, especially `.vimrc`, `.vim`,
-and application directories under `.config` in your user profile.
+Back up existing configuration files you want to keep.
+Include `.vimrc`, `.vim`, and application directories under `.config` in your user profile.
 
-Initialize the repository, inspect the proposed changes, then apply them:
+Initialize the repository. Inspect the proposed changes before you apply them:
 
 ```powershell
 chezmoi init https://github.com/purple4pur/dotfiles.git
@@ -33,15 +32,15 @@ chezmoi diff
 chezmoi apply
 ```
 
-For a fresh home directory, you can combine initialization and application:
+For a fresh home directory, initialize and apply the repository with one command:
 
 ```powershell
 chezmoi init --apply https://github.com/purple4pur/dotfiles.git
 ```
 
-Chezmoi deploys the configuration to your home directory. It does not install
-applications, modify your PowerShell profile, or create the Windows junctions
-shown below.
+Chezmoi copies configuration files into your home directory. Install the
+applications separately. Add the PowerShell setup to your profile in step 3.
+Create directory junctions in steps 4 and 5 if you use those applications.
 
 ## 3. Enable the PowerShell setup
 
@@ -55,21 +54,20 @@ if (!(Test-Path -LiteralPath $PROFILE)) {
 notepad.exe $PROFILE
 ```
 
-Append this line once, then save:
+Append this line once. Save the profile:
 
 ```powershell
 . "$env:USERPROFILE\.config\.powershell_setup.ps1"
 ```
 
-Optionally set your preferred editor before that line. For example, if Neovim
-is installed and on `PATH`:
+If Neovim is installed and on `PATH`, optionally set it as your editor before the setup line:
 
 ```powershell
 $EDITOR = "nvim.exe"
 ```
 
 The [PowerShell setup](../dot_config/dot_powershell_setup.ps1) defaults to
-`notepad.exe`, adds Git helper functions, and initializes Starship when installed.
+`notepad.exe`. The setup adds Git helper functions and initializes Starship when installed.
 For example, `vims` opens your profile and `gst` runs `git status`.
 
 Restart PowerShell, or reload the profile:
@@ -78,13 +76,13 @@ Restart PowerShell, or reload the profile:
 . $PROFILE
 ```
 
-Repeat this step in each PowerShell version or host you use, including the
-VS Code PowerShell terminal if it uses a different profile. Display `$PROFILE`
-in that host to find the correct file.
+Repeat step 3 in each PowerShell version or host you use.
+Include the VS Code PowerShell terminal if that terminal uses a different profile.
+Display `$PROFILE` in each host to find the correct file.
 
 Starship needs no additional initialization line.
-If the prompt shows missing glyphs, install a suitable font, such as a
-[Nerd Font](https://www.nerdfonts.com/), and select it in your terminal settings.
+If prompt symbols are missing, install a font that contains those symbols, such as a
+[Nerd Font](https://www.nerdfonts.com/). Select the font in your terminal settings.
 
 ## 4. Optional: connect Vim and Neovim
 
@@ -94,8 +92,9 @@ Install the editor you want to use. For example:
 scoop install vim neovim
 ```
 
-Chezmoi deploys `.vim` and `.config\nvim`, while Windows editors normally look
-for `vimfiles` and `%LOCALAPPDATA%\nvim`. Directory junctions connect those paths.
+Chezmoi deploys `.vim` and `.config\nvim` in your user profile.
+Vim normally uses `%USERPROFILE%\vimfiles` on Windows. Neovim normally uses `%LOCALAPPDATA%\nvim`.
+A directory junction connects an editor's configuration directory to the directory that chezmoi manages.
 
 First inspect any existing destinations:
 
@@ -105,11 +104,12 @@ Get-Item -LiteralPath "$env:USERPROFILE\vimfiles", "$env:LOCALAPPDATA\nvim" -For
 ```
 
 If a destination already points to the intended target, skip its `mklink`
-command. If it contains an existing configuration, move it to a backup location
-before continuing. An existing `_vimrc` may also take precedence over the
-deployed `.vimrc`; back it up and remove it from the active location if you want
-to use this repository's Vim settings.
+command. If a destination contains an existing configuration, move that configuration
+to a backup location before you continue.
+An existing `_vimrc` can take precedence over the deployed `.vimrc`.
+To use this repository's Vim settings, move `_vimrc` to a backup location.
 
+Confirm that the destination path is absent and the target directory exists before each command.
 Create the junction for each editor you installed:
 
 ```powershell
@@ -117,27 +117,33 @@ cmd /C mklink /J "$env:USERPROFILE\vimfiles" "$env:USERPROFILE\.vim"
 cmd /C mklink /J "$env:LOCALAPPDATA\nvim" "$env:USERPROFILE\.config\nvim"
 ```
 
-Directory junctions normally do not require administrator privileges. The
-destination path must be absent, and the target directory must have been
-deployed by chezmoi. Keep `.vimrc` and `.vim` even if you only use Neovim: its
-configuration loads both.
+Directory junctions normally do not require administrator privileges.
+Keep `.vimrc` and `.vim` even if you use only Neovim. The Neovim configuration loads both.
 
-Use a current Neovim release. Markdown preview also requires the `glow`
-executable, and language servers must be installed and enabled separately in
-[the LSP configuration](../dot_config/nvim/lua/lsp.lua).
+Use Neovim 0.11.3 or newer, as required by the
+[bundled nvim-lspconfig](../dot_config/nvim/lua/nvim-lspconfig/README.md#install).
+Install the `glow` executable to use Neovim's Markdown preview.
+Install language servers separately. Enable each server in
+[the LSP configuration](../dot_config/nvim/lua/lsp.lua) with `vim.lsp.enable()`.
+The supplied configuration leaves all servers disabled.
 See [the Vim configuration](../dot_vimrc) and
 [the Neovim Lua configuration](../dot_config/nvim/lua/init.lua) for key mappings.
 
 ## 5. Optional: connect Scoop's mpv configuration
 
-Install mpv from Scoop's extras bucket:
+Run `scoop bucket list` to check for the `extras` bucket.
+If `extras` is absent, add the bucket:
 
 ```powershell
 scoop bucket add extras
+```
+
+Install mpv from the `extras` bucket:
+
+```powershell
 scoop install mpv
 ```
 
-Skip the bucket command if `extras` is already listed by `scoop bucket list`.
 The supplied mpv configuration requires version 0.37.0 or newer.
 
 For a standard per-user Scoop install, mpv's persistent configuration is at
@@ -151,29 +157,35 @@ Get-Item -LiteralPath $mpvConfig -Force -ErrorAction SilentlyContinue |
     Select-Object FullName, LinkType, Target
 ```
 
-Close mpv before changing its configuration. If the path already points to
-`%USERPROFILE%\.config\mpv`, no change is needed. Otherwise, preserve the
-existing directory by moving it to an unused backup path. For example, if
-`portable_config.backup` does not already exist:
+Close mpv before you change its configuration. If `$mpvConfig` already points to
+`%USERPROFILE%\.config\mpv`, skip the move and junction commands.
+If `portable_config` does not exist, skip the move command.
+Otherwise, move that directory to an unused backup path.
+Confirm that `$mpvConfig.backup` is absent before you use this example:
 
 ```powershell
 Move-Item -LiteralPath $mpvConfig -Destination "$mpvConfig.backup"
 ```
 
-Skip the move if `portable_config` does not exist. Once the destination is
-absent, create the junction:
+Confirm that `$mpvConfig` is absent and `%USERPROFILE%\.config\mpv` exists.
+Create the junction:
 
 ```powershell
 cmd /C mklink /J "$mpvConfig" "$env:USERPROFILE\.config\mpv"
 ```
 
-This path applies to per-user Scoop installs. For global Scoop installs or
-another mpv distribution, locate that installation's configuration directory
-and adapt the junction destination.
+The path above applies to per-user Scoop installs. For a global Scoop install
+or another mpv distribution, find that installation's configuration directory.
+Use that directory as the junction destination.
 
 ## Update and customize
 
-Update Scoop applications using `scoop update *`.
+Update Scoop and its applications:
+
+```powershell
+scoop update
+scoop update *
+```
 
 Pull and apply the latest repository changes:
 
@@ -189,24 +201,35 @@ chezmoi diff
 chezmoi apply
 ```
 
-Use `chezmoi edit` to edit a managed file in the source, then `chezmoi apply`
-to deploy it. If you edit the deployed file directly, use `chezmoi re-add` to
-save it back to the source. Keep personal changes in your own fork if you want
-to share them across machines. Profile additions and junctions are local setup
-steps; repeat them on a new machine.
+Edit a managed file in the chezmoi source, then apply the change:
+
+```powershell
+chezmoi edit "$env:USERPROFILE\.vimrc"
+chezmoi diff
+chezmoi apply
+```
+
+If you edit the deployed file directly, save the change in the source:
+
+```powershell
+chezmoi re-add "$env:USERPROFILE\.vimrc"
+```
+
+Keep personal changes in your own fork to share them across machines.
+Repeat the profile additions and junction setup on each new machine.
 
 ## Troubleshooting
 
-- **Command not found:** reopen PowerShell after installation and check
-  `Get-Command chezmoi` or the relevant application. Confirm its directory is
+- **Command not found:** reopen PowerShell after installation.
+  Check `Get-Command chezmoi` or the relevant application. Confirm its directory is
   on `PATH`.
-- **Profile does not load:** verify `$PROFILE` in the affected host, and check
-  `Get-ExecutionPolicy -List` if PowerShell reports that scripts are disabled.
-  A shell launched with `-NoProfile` skips profile loading.
-- **`mklink` reports an existing file:** inspect the destination; skip a correct
-  junction or back up an existing configuration before creating it.
+- **Profile does not load:** verify `$PROFILE` in the affected host.
+  Check `Get-ExecutionPolicy -List` if PowerShell reports that scripts are disabled.
+  A shell launched with `-NoProfile` does not load the profile.
+- **`mklink` reports an existing file:** inspect the destination.
+  Skip a correct junction. Back up an existing configuration before you create a junction.
 - **Editor settings are missing:** inspect the junction targets. In Neovim,
-  `:echo stdpath('config')` shows the actual configuration directory; a custom
-  `XDG_CONFIG_HOME` or `NVIM_APPNAME` can change it.
-- **mpv settings are missing:** check the Scoop root and junction target, then
-  restart mpv.
+  `:echo stdpath('config')` shows the actual configuration directory.
+  A custom `XDG_CONFIG_HOME` or `NVIM_APPNAME` can change that directory.
+- **mpv settings are missing:** check the Scoop root and junction target.
+  Restart mpv.
