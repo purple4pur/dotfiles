@@ -230,7 +230,7 @@ MiniTest.current = { all_cases = nil, case = nil }
 ---
 --- All its elements are one of three categories:
 --- - A callable (object that can be called; function or table with `__call`
----   metatble entry) is considered to define a test action. It will be called
+---   metatable entry) is considered to define a test action. It will be called
 ---   with "current arguments" (result of all nested `parametrize` values, read
 ---   further). If it throws error, test has failed.
 --- - A test set (output of this function) defines nested structure. Its
@@ -615,7 +615,7 @@ MiniTest.execute = function(cases, opts)
   -- Execute queue ensuring order
   -- NOTE: Directly `vim.schedule` each step without an explicit queue handling
   -- is possible, but it might interfere with async-adjacent yet synchronous
-  -- functions (as `vim.wait()`) callsed inside cases outside of child process.
+  -- functions (as `vim.wait()`) called inside cases outside of child process.
   local exec_queue_step, n_queue = function(_) end, #queue
   exec_queue_step = function(n)
     queue[n]()
@@ -929,7 +929,7 @@ MiniTest.gen_reporter.buffer = function(opts)
     H.buffer_reporter.set_lines(buf_id, lines, -n_replace - 1, -1)
 
     -- Throttle redraw to reduce flicker
-    local cur_time = vim.loop.hrtime()
+    local cur_time = vim.uv.hrtime()
     local is_enough_time_passed = (cur_time - latest_draw_time) > opts.throttle_delay * 1000000
     if is_enough_time_passed or force then
       vim.cmd('redraw')
@@ -1143,7 +1143,7 @@ MiniTest.new_child_neovim = function()
     -- Using 'jobstart' for creating a job is crucial for getting this to work
     -- in Github Actions. Other approaches:
     -- - Using `{ pty = true }` seems crucial to make this work on GitHub CI.
-    -- - Using `vim.loop.spawn()` is doable, but has some issues:
+    -- - Using `vim.uv.spawn()` is doable, but has some issues:
     --     - https://github.com/neovim/neovim/issues/21630
     --     - https://github.com/neovim/neovim/issues/21886
     job.id = vim.fn.jobstart(full_args)
@@ -1152,7 +1152,7 @@ MiniTest.new_child_neovim = function()
     local connected, i, max_tries = nil, 0, math.floor(opts.connection_timeout / step)
     repeat
       i = i + 1
-      vim.loop.sleep(step)
+      vim.uv.sleep(step)
       connected, job.channel = pcall(vim.fn.sockconnect, 'pipe', job.address, { rpc = true })
     until connected or i >= max_tries
 
@@ -1171,7 +1171,7 @@ MiniTest.new_child_neovim = function()
 
     -- Properly exit Neovim. `pcall` avoids `channel closed by client` error.
     -- Also wait for it to actually close. This reduces simultaneously opened
-    -- Neovim instances and CPU load (overall reducing flacky tests).
+    -- Neovim instances and CPU load (overall reducing flaky tests).
     pcall(child.cmd, 'silent! 0cquit')
     vim.fn.jobwait({ child.job.id }, 1000)
 
@@ -1262,7 +1262,7 @@ MiniTest.new_child_neovim = function()
   --stylua: ignore
   local supported_vim_tables = {
     -- Collections
-    'diagnostic', 'fn', 'highlight', 'hl', 'json', 'loop', 'lsp', 'mpack', 'spell', 'treesitter', 'ui', 'fs',
+    'diagnostic', 'fn', 'highlight', 'hl', 'json', 'loop', 'lsp', 'mpack', 'spell', 'treesitter', 'ui', 'uv', 'fs',
     -- Variables
     'g', 'b', 'w', 't', 'v', 'env',
     -- Options (no 'opt' because not really useful due to use of metatables)
@@ -1310,7 +1310,7 @@ MiniTest.new_child_neovim = function()
       end
 
       -- Possibly wait
-      if has_wait and wait > 0 then vim.loop.sleep(wait) end
+      if has_wait and wait > 0 then vim.uv.sleep(wait) end
     end
   end
 
@@ -1420,7 +1420,7 @@ end
 --- - An important type of field is a "redirection table". It acts as a
 ---   convenience wrapper for corresponding `vim.*` table. Can be used both to
 ---   return and set values. Examples:
----     - `child.api.nvim_buf_line_count(0)` will execute
+---     - `child.api.nvim_buf_line_count(0)` will act as
 ---       `vim.api.nvim_buf_line_count(0)` inside child process and return its
 ---       output to current process.
 ---     - `child.bo.filetype = 'lua'` will execute `vim.bo.filetype = 'lua'`
@@ -1428,7 +1428,7 @@ end
 ---   They still have same limitations listed above, so are not perfect. In
 ---   case of a doubt, use `child.lua()`.
 --- - Almost all methods use |vim.rpcrequest()| (i.e. wait for call to finish and
----   then return value). See for `*_notify` variant to use |vim.rpcnotify()|.
+---   then return value). In a `*_notify` variant |vim.rpcnotify()| is used.
 --- - All fields and methods should be called with `.`, not `:`.
 ---
 ---@class MiniTest.child
@@ -1461,7 +1461,7 @@ end
 ---@field ensure_normal_mode function Ensure normal mode.
 ---@field get_screenshot function Returns table with two "2d arrays" of single
 ---   characters representing what is displayed on screen and how it looks.
----   Has `opts` table argument for optional configuratnion.
+---   Has `opts` table argument for optional configuration.
 ---
 ---@field job table|nil Information about current job. If `nil`, child is not running.
 ---
@@ -1470,10 +1470,10 @@ end
 ---
 ---@field diagnostic table Redirection table for |vim.diagnostic|.
 ---@field fn table Redirection table for |vim.fn|.
+---@field fs table Redirection table for |vim.fs|.
 ---@field highlight table Redirection table for |vim.highlight|.
 ---@field hl table Redirection table for |vim.hl|.
 ---@field json table Redirection table for `vim.json`.
----@field loop table Redirection table for |vim.loop|.
 ---@field lsp table Redirection table for `vim.lsp` (|lsp-core|).
 ---@field mpack table Redirection table for |vim.mpack|.
 ---@field spell table Redirection table for |vim.spell|.
@@ -1481,7 +1481,7 @@ end
 ---@field ui table Redirection table for |vim.ui|. Currently of no
 ---   use because it requires sending function through RPC, which is impossible
 ---   at the moment.
----@field fs table Redirection table for |vim.fs|.
+---@field uv table Redirection table for |vim.uv|.
 ---
 ---@field g table Redirection table for |vim.g|.
 ---@field b table Redirection table for |vim.b|.
@@ -1561,7 +1561,7 @@ end
 ---   94 characters (ASCII codes between 33 and 126), so there will be duplicates
 ---   in case of more than 94 different ways text is displayed on screen.
 ---
----@param opts table|nil Options. Possieble fields:
+---@param opts table|nil Options. Possible fields:
 ---   - <redraw> `(boolean)` - whether to call |:redraw| prior to computing
 ---     screenshot. Default: `true`.
 ---

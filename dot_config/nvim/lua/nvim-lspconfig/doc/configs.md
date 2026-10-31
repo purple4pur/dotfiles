@@ -28,6 +28,7 @@ Nvim by running `:help lspconfig-all`.
 - [awk_ls](#awk_ls)
 - [azure_pipelines_ls](#azure_pipelines_ls)
 - [bacon_ls](#bacon_ls)
+- [badness](#badness)
 - [ballerina](#ballerina)
 - [basedpyright](#basedpyright)
 - [bashls](#bashls)
@@ -80,6 +81,7 @@ Nvim by running `:help lspconfig-all`.
 - [dafny](#dafny)
 - [dagger](#dagger)
 - [dartls](#dartls)
+- [dbt](#dbt)
 - [dcmls](#dcmls)
 - [debputy](#debputy)
 - [denols](#denols)
@@ -207,6 +209,7 @@ Nvim by running `:help lspconfig-all`.
 - [microcad_lsp](#microcad_lsp)
 - [millet](#millet)
 - [mint](#mint)
+- [mise](#mise)
 - [mlir_lsp_server](#mlir_lsp_server)
 - [mlir_pdll_lsp_server](#mlir_pdll_lsp_server)
 - [mm0_ls](#mm0_ls)
@@ -246,6 +249,7 @@ Nvim by running `:help lspconfig-all`.
 - [panache](#panache)
 - [pasls](#pasls)
 - [pbls](#pbls)
+- [perl_lsp](#perl_lsp)
 - [perlls](#perlls)
 - [perlnavigator](#perlnavigator)
 - [perlpls](#perlpls)
@@ -1529,6 +1533,39 @@ Default config:
 
 ---
 
+## badness
+
+https://github.com/jolars/badness
+
+Badness is a language server, formatter, and linter for LaTeX and BibTeX.
+
+Install it with `cargo install badness` or see the
+[installation guide](https://badness.dev/guide/installation.html) for other options.
+
+See the [editor configuration reference](https://badness.dev/reference/editor-configuration.html)
+for available settings. Project settings can be configured in `badness.toml`.
+
+Snippet to enable the language server:
+```lua
+vim.lsp.enable('badness')
+```
+
+Default config:
+- `cmd` :
+  ```lua
+  { "badness", "lsp" }
+  ```
+- `filetypes` :
+  ```lua
+  { "tex", "plaintex", "bib" }
+  ```
+- `root_markers` :
+  ```lua
+  { "badness.toml", ".git" }
+  ```
+
+---
+
 ## ballerina
 
 Ballerina language server
@@ -2728,7 +2765,7 @@ Default config:
   ```lua
   {
     telemetry = {
-      telemetryLevel = "all"
+      telemetryLevel = "off"
     }
   }
   ```
@@ -3355,6 +3392,47 @@ Default config:
     }
   }
   ```
+
+---
+
+## dbt
+
+https://docs.getdbt.com/docs/about-dbt-lsp
+
+The dbt language server, built into the dbt v2 binary as `dbt lsp`. dbt Core 1.x and the
+open-source `dbt-oss` build do not include it, and a dbt Core virtualenv can shadow the v2 `dbt`
+on `$PATH`. For installation see
+[Install dbt](https://docs.getdbt.com/docs/local/install-dbt?version=2).
+
+Neovim does not detect a `dbt` filetype. A plugin such as
+[dbt-ft.nvim](https://github.com/dobsontom/dbt-ft.nvim) sets it on a dbt project's `.sql` files,
+for Jinja-aware highlighting.
+
+The root is the outermost directory containing a `dbt_project.yml`, because every package in
+`dbt_packages/` has its own.
+
+Formatting is turned off, because the server formats the file on disk rather than the buffer and
+so corrupts unsaved changes ([dbt-labs/dbt#16814](https://github.com/dbt-labs/dbt/issues/16814)).
+
+`:LspDbtCompile` shows the compiled SQL of the current model in the preview window.
+
+Snippet to enable the language server:
+```lua
+vim.lsp.enable('dbt')
+```
+
+Default config:
+- `cmd` :
+  ```lua
+  { "dbt", "lsp" }
+  ```
+- `filetypes` :
+  ```lua
+  { "sql", "dbt" }
+  ```
+- `on_attach`: [../lsp/dbt.lua:23](../lsp/dbt.lua#L23)
+- `on_init`: [../lsp/dbt.lua:23](../lsp/dbt.lua#L23)
+- `root_dir`: [../lsp/dbt.lua:23](../lsp/dbt.lua#L23)
 
 ---
 
@@ -8297,6 +8375,47 @@ Default config:
 
 ---
 
+## mise
+
+https://mise.jdx.dev/ide-integration.html#language-server
+
+Language server for [mise](https://mise.jdx.dev) config files, built into the `mise` binary (v2026.10.18 or later).
+It provides diagnostics, completion, hover, formatting, and task navigation for `mise.toml`, `.mise.toml`,
+`mise.local.toml`, `mise.<env>.toml`, `mise/config.toml`, and the files of a `conf.d` directory. It ignores every
+other TOML file.
+
+`mise` can be installed by following the instructions [here](https://mise.jdx.dev/installing-mise.html).
+
+If another TOML server (such as `taplo` or `tombi`) is attached to the same buffers, hover, completion, and
+formatting appear twice. To keep only what mise adds, turn those capabilities off:
+
+```lua
+vim.lsp.config('mise', {
+  init_options = { formatting = false, hover = false, completion = false },
+})
+```
+
+Snippet to enable the language server:
+```lua
+vim.lsp.enable('mise')
+```
+
+Default config:
+- `cmd` :
+  ```lua
+  { "mise", "lsp" }
+  ```
+- `filetypes` :
+  ```lua
+  { "toml" }
+  ```
+- `root_markers` :
+  ```lua
+  { { "mise.toml", ".mise.toml", "mise.local.toml", ".mise.local.toml", "mise/config.toml", ".mise/config.toml", ".config/mise/config.toml" } }
+  ```
+
+---
+
 ## mlir_lsp_server
 
 https://mlir.llvm.org/docs/Tools/MLIRLSP/#mlir-lsp-language-server--mlir-lsp-server=
@@ -9646,6 +9765,37 @@ Default config:
 - `root_markers` :
   ```lua
   { ".pbls.toml", ".git" }
+  ```
+
+---
+
+## perl_lsp
+
+https://github.com/tree-sitter-perl/perl-lsp
+
+A Perl language server built on tree-sitter-perl, with cross-file type inference. It can be
+installed via `cargo`:
+```sh
+cargo install perl-lsp
+```
+
+Snippet to enable the language server:
+```lua
+vim.lsp.enable('perl_lsp')
+```
+
+Default config:
+- `cmd` :
+  ```lua
+  { "perl-lsp" }
+  ```
+- `filetypes` :
+  ```lua
+  { "perl" }
+  ```
+- `root_markers` :
+  ```lua
+  { "cpanfile", "Makefile.PL", "Build.PL", ".git" }
   ```
 
 ---
@@ -11338,6 +11488,7 @@ Download and extract it (nuget's are zip files).
     'dotnet',
     '<my_folder>/Microsoft.CodeAnalysis.LanguageServer.dll',
     '--stdio',
+    '--autoLoadProjects',
   },
   ```
   where `<my_folder>` has to be the folder you extracted the nuget package to.
@@ -11354,6 +11505,7 @@ Commands:
 - roslyn.client.nestedCodeAction
 
 Default config:
+- `before_init`: [../lsp/roslyn_ls.lua:149](../lsp/roslyn_ls.lua#L149)
 - `capabilities` :
   ```lua
   {
@@ -11366,7 +11518,7 @@ Default config:
   ```
 - `cmd` :
   ```lua
-  { "roslyn-language-server", "--stdio" }
+  { "roslyn-language-server", "--stdio", "--autoLoadProjects" }
   ```
 - `cmd_env` :
   ```lua
@@ -11395,12 +11547,8 @@ Default config:
   ```lua
   "roslyn_ls"
   ```
-- `on_attach`: [../lsp/roslyn_ls.lua:156](../lsp/roslyn_ls.lua#L156)
-- `on_init` :
-  ```lua
-  { <function 1> }
-  ```
-- `root_dir`: [../lsp/roslyn_ls.lua:156](../lsp/roslyn_ls.lua#L156)
+- `on_attach`: [../lsp/roslyn_ls.lua:149](../lsp/roslyn_ls.lua#L149)
+- `root_dir`: [../lsp/roslyn_ls.lua:149](../lsp/roslyn_ls.lua#L149)
 - `settings` :
   ```lua
   {
@@ -13230,8 +13378,8 @@ Default config:
   ```lua
   { "astro", "css", "html", "less", "scss", "vue" }
   ```
-- `on_attach`: [../lsp/stylelint_lsp.lua:25](../lsp/stylelint_lsp.lua#L25)
-- `root_dir`: [../lsp/stylelint_lsp.lua:25](../lsp/stylelint_lsp.lua#L25)
+- `on_attach`: [../lsp/stylelint_lsp.lua:26](../lsp/stylelint_lsp.lua#L26)
+- `root_dir`: [../lsp/stylelint_lsp.lua:26](../lsp/stylelint_lsp.lua#L26)
 - `settings` :
   ```lua
   {
@@ -14421,7 +14569,7 @@ Default config:
   ```
 - `filetypes` :
   ```lua
-  { "opentofu", "opentofu-vars", "terraform" }
+  { "opentofu", "opentofu-vars", "terraform", "terraform-vars" }
   ```
 - `root_markers` :
   ```lua

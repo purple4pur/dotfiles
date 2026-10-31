@@ -5,6 +5,10 @@
 ---@alias _.lspconfig.settings.ruff.defs.AllImports
 ---| "all"
 
+---@alias _.lspconfig.settings.ruff.defs.AllowedFloatValue number
+
+---@alias _.lspconfig.settings.ruff.defs.AllowedValue string|integer|_.lspconfig.settings.ruff.defs.AllowedFloatValue
+
 ---Configures Ruff's `analyze` command.
 ---@class _.lspconfig.settings.ruff.defs.AnalyzeOptions
 ---Whether to detect imports from string literals. When enabled, Ruff will search for string
@@ -1548,6 +1552,11 @@
 ---@field ["allow-dunder-method-names"]? string[]
 ---Constant types to ignore when used as "magic values" (see `PLR2004`).
 ---@field ["allow-magic-value-types"]? _.lspconfig.settings.ruff.defs.ConstantType[]
+---Specific literal values to ignore when used as "magic values" (see `PLR2004`).
+---@field ["allow-magic-values"]? _.lspconfig.settings.ruff.defs.AllowedValue[]
+---Literal values to ignore when used as "magic values" (see `PLR2004`),
+---in addition to those included in [`allow-magic-values`](#lint_pylint_allow-magic-values).
+---@field ["extend-allow-magic-values"]? _.lspconfig.settings.ruff.defs.AllowedValue[]
 ---Maximum number of arguments allowed for a function or method definition
 ---(see `PLR0913`).
 ---@field ["max-args"]? integer
@@ -3757,6 +3766,7 @@
 ---| "self-or-cls-assignment"
 ---| "set-attr-with-constant"
 ---| "shallow-copy-environ"
+---| "shared-clock-mock"
 ---| "shebang-leading-whitespace"
 ---| "shebang-missing-executable-file"
 ---| "shebang-missing-python"
@@ -3979,6 +3989,7 @@
 ---| "unnecessary-placeholder"
 ---| "unnecessary-range-start"
 ---| "unnecessary-regular-expression"
+---| "unnecessary-regular-expression-compile"
 ---| "unnecessary-return-none"
 ---| "unnecessary-round"
 ---| "unnecessary-spread"

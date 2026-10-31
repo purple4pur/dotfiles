@@ -416,6 +416,8 @@
 ---default = true
 ---```
 ---@field enableFileBasedProgramsWhenAmbiguous? boolean
+---%configuration.dotnet.projects.loadOnDemand%
+---@field loadOnDemand? boolean
 
 ---@class _.lspconfig.settings.omnisharp.Dotnet.QuickInfo
 ---%configuration.dotnet.quickInfo.showRemarksInQuickInfo%
@@ -874,6 +876,12 @@
 ---default = true
 ---```
 ---@field enable? boolean
+---%configuration.razor.razor.format.ignoreIndentationInScriptOrStyleBlocksWithComplexRazor%
+---
+---```lua
+---default = true
+---```
+---@field ignoreIndentationInScriptOrStyleBlocksWithComplexRazor? boolean
 
 ---@class _.lspconfig.settings.omnisharp.Razor.Plugin
 ---%configuration.omnisharp.razor.plugin.path%

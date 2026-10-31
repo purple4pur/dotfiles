@@ -105,6 +105,7 @@ MiniBracketed.file()	mini-bracketed.txt	/*MiniBracketed.file()*
 MiniBracketed.indent()	mini-bracketed.txt	/*MiniBracketed.indent()*
 MiniBracketed.jump()	mini-bracketed.txt	/*MiniBracketed.jump()*
 MiniBracketed.location()	mini-bracketed.txt	/*MiniBracketed.location()*
+MiniBracketed.multicursor()	mini-bracketed.txt	/*MiniBracketed.multicursor()*
 MiniBracketed.oldfile()	mini-bracketed.txt	/*MiniBracketed.oldfile()*
 MiniBracketed.quickfix()	mini-bracketed.txt	/*MiniBracketed.quickfix()*
 MiniBracketed.register_put_region()	mini-bracketed.txt	/*MiniBracketed.register_put_region()*
