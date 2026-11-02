@@ -4,7 +4,8 @@ description: >
   Auto-commit every change on `agent-working`, or on an explicitly requested
   existing branch. Conventional commits, short messages. On "contribute",
   "squash to main", or "merge my work", squash the managed branch to main
-  with a /caveman-commit message from the net diff, then reset it.
+  as one or more meaningful, healthy milestone commits with approximate
+  original author dates and /caveman-commit messages, then reset it.
   Enable with /record-each-step, /record-each-step on, or
   enable /record-each-step. Disable with /record-each-step off or
   disable /record-each-step. Skip non-Git workspaces with one notice.
@@ -15,16 +16,17 @@ description: >
 ## Contract
 
 **Must produce:** every change committed immediately on the managed branch;
-clean tree at every reportable milestone; on request, one squash commit on
-`main` whose message describes the net diff, then the managed branch reset to
-`main`.
+clean tree at every reportable milestone. On request, produce one or more
+milestone commits on `main`, then reset the managed branch to `main`.
+Each milestone must preserve its net change, pass relevant checks, and use
+an approximate original author date.
 
 **Must never do:** create or rename a branch when the user explicitly requested
 one; switch to a branch other than the requested branch; use a requested branch
 that does not exist; batch unrelated changes in one commit; push without
-explicit ask; replay intermediate step commits in the squash message.
+explicit ask; replay intermediate step commits in milestone messages.
 
-**Needs:** git repo, `/caveman-commit` for squash message.
+**Needs:** git repo, source commit metadata, `/caveman-commit` for milestone messages.
 
 **Done when:** tree clean, work on the managed branch, contribution squashed
 and reset verified.
@@ -159,10 +161,18 @@ Verify the tree is clean and both branches exist. Keep `managed_branch` distinct
 Record both tips. Inspect topology and the net change before the squash.
 Use `git log main..<managed_branch>` to prove that managed commits remain outside `main`.
 A different tip alone does not prove there is work to contribute.
+Record source hashes, author dates, and subjects before any contribution commit:
+
+```bash
+git log --reverse --topo-order --format='%H %aI %s' main..<managed_branch>
+```
+Inspect source diffs to identify which commits supply the surviving changes.
+Use topology to order dependencies. Author dates do not prove dependency order.
 
 **Checkpoint: `contribution_ready`**
 
-Clean tree, distinct existing branches, recorded tips, topology, and a non-empty net contribution.
+Clean tree, distinct existing branches, recorded tips, topology, source metadata,
+and a non-empty net contribution.
 
 **Gate**
 
@@ -171,7 +181,7 @@ Clean tree, distinct existing branches, recorded tips, topology, and a non-empty
 - No managed commits remain outside `main`, or the net contribution is empty: **STOP** with no-work status.
 - Ready: **CONTINUE L2**.
 
-### L2. Squash
+### L2. Resolve the complete contribution
 
 **Step**
 
@@ -188,43 +198,108 @@ The staged diff contains the complete resolved contribution.
 
 **Gate**
 
-- Conflict resolved, staged tree coherent: **CONTINUE L3**.
+- Conflict resolved, staged tree coherent and non-empty: **CONTINUE L3**.
 - Conflict unresolvable: **STOP** with exact conflict files.
 - Squash clean and staged diff non-empty: **CONTINUE L3**.
 - Squash fails for another reason: **STOP** with the exact error.
 - Staged diff empty: **STOP** with no-work status.
 
-### L3. Message and commit
+### L3. Plan milestones and author dates
 
 **Step**
 
-Run `/caveman-commit`. Write the message from `git diff --cached` and its stat —
-what the user sees, why — not a replay of step commits. Commit on `main`.
+Use one commit for a cohesive outcome. Use multiple commits for distinct milestones that remain useful on their own.
+Keep each milestone reviewable and complete. Include its required tests, documentation, and dependencies.
+Combine coupled changes when a split would leave broken behavior or failed checks.
 
-**Checkpoint: `squash_commit`**
+Group by the surviving contribution. Omit temporary edits, later reversals, and repairs already absorbed into the final result.
 
-`git log main -1` shows the squash commit. Its tree ID matches the recorded staged tree.
-The managed tip still matches L1. Keep both IDs for reset verification.
+Build an ordered plan from the recorded `main` tip to L2's staged tree.
+Map each milestone to its source hashes, net change, cumulative tree ID, and relevant checks.
+Every cumulative tree includes the preceding milestones. The last tree must equal L2's staged tree.
+On a return from L4, preserve the completed prefix. Replan only the remaining milestones from the verified current `main` tip.
+
+Choose each milestone's author date from the original commit that best represents its completion.
+Usually use the last source commit that supplies surviving changes to that milestone, in dependency order.
+Keep its `%aI` timestamp and timezone offset. Keep the committer date at the current time.
+Do not force author dates into chronological order when source dates differ from dependency order.
+
+If the preferred date is unavailable, use another attributable source date.
+If no source date is available, use the current author date and record that fallback.
+
+**Checkpoint: `milestone_plan`**
+
+Ordered milestones with source hashes, cumulative tree IDs, required checks,
+chosen author dates, date-selection reasons, and any metadata fallback.
+The planned changes cover the complete resolved contribution exactly once.
 
 **Gate**
 
-- Squash landed and preservation evidence matches: **CONTINUE L4**.
-- Squash tree or managed tip differs from the recorded evidence: **STOP** before reset with the exact mismatch.
-- Commit failed: fix, **RETURN L3**.
+- Plan complete, trees available, final tree matches L2: **CONTINUE L4**.
+- Split leaves incomplete behavior or omits a change: regroup; **RETURN L3**.
+- Date evidence missing: apply the recorded fallback; **RETURN L3**.
+- Tree construction fails: **STOP** with the exact blocker. Preserve both recorded branch tips.
 
-### L4. Reset the managed branch
+### L4. Validate and commit milestones
 
 **Step**
 
-Before reset, verify a clean tree, the recorded managed tip, and the squash commit tree.
-Confirm that the squash preserves the resolved contribution.
+Verify `main` still matches L1's tip before the first commit.
+Before each later commit, verify `main` matches the last recorded milestone hash.
+Verify the managed tip still matches L1 before each commit.
+
+Process the plan in dependency order. Validate each cumulative tree in an isolated, detached temporary worktree.
+Exclude later milestone changes from that worktree. Run repository-required checks and checks relevant to the milestone.
+Record the tree ID and results. Repair a failed split through L3 before any affected commit.
+
+For each validated milestone, stage its planned tree without changing the resolved working files:
+
+```bash
+git read-tree <milestone_tree>
+git diff --cached
+git diff --cached --stat
+```
+
+Verify the staged tree matches the validated tree and the diff matches the planned milestone.
+Require a non-empty staged diff for every milestone.
+Run `/caveman-commit` for that staged diff. Describe the milestone's outcome and reason.
+Commit on `main` with the selected author date:
+
+```bash
+git commit --date="$milestone_author_date" -m "$milestone_message"
+```
+
+Verify each new commit's parent, tree, and `%aI` author date before the next commit.
+Keep later task changes outside that commit. Report only after the final tree is clean.
+
+**Checkpoint: `milestone_commits`**
+
+Record each milestone hash, parent, tree ID, author date, message, and check results.
+The new commits form the planned linear chain from L1's `main` tip.
+The final tree matches L2's staged tree. The managed tip still matches L1.
+The worktree is clean. Keep the final hash and both preservation IDs for reset verification.
+
+**Gate**
+
+- All milestones landed and preservation evidence matches: **CONTINUE L5**.
+- A remaining milestone is empty or fails checks or staging verification: **RETURN L3** for the remaining plan.
+- Commit fails without changing HEAD: repair the cause; **RETURN L4** at that milestone.
+- An existing milestone, branch tip, or final tree differs from the evidence: **STOP** before reset with the exact mismatch.
+- A required check cannot run: **STOP** with the validation limit. Preserve the managed branch.
+
+### L5. Reset the managed branch
+
+**Step**
+
+Before reset, verify a clean tree, the recorded managed tip, and the final milestone commit tree.
+Confirm that the milestone commits preserve the complete resolved contribution.
 
 ```bash
 git checkout <managed_branch>
 git reset --hard main
 ```
 If a permission guard blocks: state that the step-commit history is being
-discarded (content is preserved in main's squash commit) and get explicit
+discarded (content is preserved in main's milestone commits) and get explicit
 approval.
 
 **Checkpoint: `reset_evidence`**
@@ -233,25 +308,27 @@ On `managed_branch`, HEAD = main, tree clean.
 
 **Gate**
 
-- Reset verified: **CONTINUE L5**.
+- Reset verified: **CONTINUE L6**.
 - Tip changed or preservation check fails: **STOP** before reset. Report the exact mismatch.
-- Blocked: **STOP** — report the squash commit and reset limit.
+- Blocked: **STOP** — report the milestone commits and reset limit.
 
-### L5. Report
+### L6. Report
 
 **Step**
 
-Check the output against the STE rules below. Report the squash hash, net changes, reset evidence, and validation limits.
+Check the output against the STE rules below.
+Report milestone hashes, net changes, author dates, date-selection reasons, check results, reset evidence, and validation limits.
+Disclose any author-date fallback.
 Push only when the user explicitly requests it.
 
 **Checkpoint: `contribution_report`**
 
-The user can locate the squash and inspect the verified branch state.
+The user can locate each milestone commit and inspect its date, checks, and the verified branch state.
 
 **Gate**
 
 - Report complete: **RETURN Step 4** with contribution complete.
-- Report lacks evidence: **RETURN L5**.
+- Report lacks evidence: **RETURN L6**.
 
 ## Exception lanes
 
@@ -259,14 +336,15 @@ The user can locate the squash and inspect the verified branch state.
   rename any branch.
 - **Non-git workspace** — handled in Step 1 gate: notify once, skip.
 - **Squash conflict** — handled inside L2: resolve, continue.
-- **Permission-blocked reset** — handled in L4: stop with report; squash
-  commit on main already preserves content.
+- **Permission-blocked reset** — handled in L5: stop with report; milestone
+  commits on main already preserve content.
 
 ## Output contract
 
 - Every reportable milestone: `git status` clean.
-- Contribution: exactly one squash commit on `main`; message = net diff;
-  `managed_branch` reset to `main` and verified.
+- Contribution: one or more meaningful, healthy milestone commits on `main`.
+  Each message describes its milestone's net diff. Each author date follows L3's source-date rule.
+  The final tree preserves L2's resolved contribution. `managed_branch` is reset to `main` and verified.
 - No push without explicit ask.
 
 ## Examples
@@ -280,8 +358,8 @@ chore(deps): bump lodash to 4.17.21
 
 ## Output language and validation
 
-Read [STE rules](../stronger-skill/references/ste.md) before you write English prose.
-This shared reference belongs to the local skill bundle. It does not invoke the `stronger-skill` workflow.
+Read [STE rules](../write-docs/references/ste.md) before you write English prose.
+This shared reference belongs to the local skill bundle. It does not invoke the `write-docs` workflow.
 Use concise, grammatical sentences in status updates, explanations, and the final report.
 Keep the user's requested language. Preserve exact evidence, technical terms, paths, commands, code, and required formats.
 Keep native commit syntax. Apply STE to explanatory comments where source conventions permit it.
