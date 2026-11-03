@@ -2,7 +2,7 @@
 
 Use the brief for each planned dimension. Append the repository root, scope map, and shared rules from `SKILL.md`.
 Keep reviewers read-only. Run independent reviewers in parallel within the host slot limit. Collect every result before cross-check.
-Read the shared [STE rules](../../stronger-skill/references/ste.md) before you write findings. Preserve exact code and quoted evidence.
+Read the shared [STE rules](../../write-docs/references/ste.md) before you write findings. Preserve exact code and quoted evidence.
 
 ## Shared finding format
 

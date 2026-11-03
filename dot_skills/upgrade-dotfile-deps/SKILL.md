@@ -317,8 +317,8 @@ Preserve all skills that README does not list as external resources.
 
 ## Output language and validation
 
-Read [STE rules](../stronger-skill/references/ste.md) before you write English prose.
-This shared reference belongs to the local skill bundle. It does not invoke the `stronger-skill` workflow.
+Read [STE rules](../write-docs/references/ste.md) before you write English prose.
+This shared reference belongs to the local skill bundle. It does not invoke the `write-docs` workflow.
 Use concise, grammatical sentences in status updates, explanations, and the final report.
 Keep the user's requested language. Preserve exact evidence, technical terms, paths, commands, code, and required formats.
 Keep native commit syntax. Apply STE to explanatory comments where source conventions permit it.
