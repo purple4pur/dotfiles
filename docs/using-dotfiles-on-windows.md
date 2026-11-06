@@ -40,7 +40,7 @@ chezmoi init --apply https://github.com/purple4pur/dotfiles.git
 
 Chezmoi copies configuration files into your home directory. Install the
 applications separately. Add the PowerShell setup to your profile in step 3.
-Create directory junctions in steps 4 and 5 if you use those applications.
+Create directory junctions in steps 4 through 6 for the applications you use.
 
 ## 3. Enable the PowerShell setup
 
@@ -177,6 +177,40 @@ cmd /C mklink /J "$mpvConfig" "$env:USERPROFILE\.config\mpv"
 The path above applies to per-user Scoop installs. For a global Scoop install
 or another mpv distribution, find that installation's configuration directory.
 Use that directory as the junction destination.
+
+## 6. Optional: enable coding agent skills
+
+Chezmoi deploys the [bundled skills](../dot_skills) to `%USERPROFILE%\.skills`.
+Create a directory junction so your coding agent can find those skills:
+
+| Coding agent | Skill directory |
+| --- | --- |
+| Codex and Qwen Code | `%USERPROFILE%\.agents\skills` |
+| Claude Code | `%USERPROFILE%\.claude\skills` |
+| OpenCode | `%USERPROFILE%\.config\opencode\skills` |
+
+Confirm that `%USERPROFILE%\.skills` exists before you create a junction.
+If a destination already points to that directory, skip its commands.
+If a destination contains existing skills, move that directory to a backup location first.
+
+Confirm that each destination path is absent.
+Run the commands for each coding agent you use:
+
+```powershell
+# Codex and Qwen Code
+New-Item -ItemType Directory -Path "$env:USERPROFILE\.agents" -Force | Out-Null
+cmd /C mklink /J "$env:USERPROFILE\.agents\skills" "$env:USERPROFILE\.skills"
+
+# Claude Code
+New-Item -ItemType Directory -Path "$env:USERPROFILE\.claude" -Force | Out-Null
+cmd /C mklink /J "$env:USERPROFILE\.claude\skills" "$env:USERPROFILE\.skills"
+
+# OpenCode
+New-Item -ItemType Directory -Path "$env:USERPROFILE\.config\opencode" -Force | Out-Null
+cmd /C mklink /J "$env:USERPROFILE\.config\opencode\skills" "$env:USERPROFILE\.skills"
+```
+
+Start a new session in your coding agent to load the skills.
 
 ## Update and customize
 

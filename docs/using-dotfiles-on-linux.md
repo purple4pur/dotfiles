@@ -94,6 +94,40 @@ The supplied configuration leaves all servers disabled.
 See the [bundled nvim-lspconfig requirements](../dot_config/nvim/lua/nvim-lspconfig/README.md#install)
 for the Neovim version requirement.
 
+## 5. Optional: enable coding agent skills
+
+Chezmoi deploys the [bundled skills](../dot_skills) to `~/.skills`.
+Create a symbolic link so your coding agent can find those skills:
+
+| Coding agent | Skill directory |
+| --- | --- |
+| Codex and Qwen Code | `~/.agents/skills` |
+| Claude Code | `~/.claude/skills` |
+| OpenCode | `~/.config/opencode/skills` |
+
+Confirm that `~/.skills` exists before you create a link.
+If a destination already points to `~/.skills`, skip its commands.
+If a destination contains existing skills, move that directory to a backup location first.
+
+Confirm that each destination path is absent.
+Run the commands for each coding agent you use:
+
+```bash
+# Codex and Qwen Code
+mkdir -p "$HOME/.agents"
+ln -s "$HOME/.skills" "$HOME/.agents/skills"
+
+# Claude Code
+mkdir -p "$HOME/.claude"
+ln -s "$HOME/.skills" "$HOME/.claude/skills"
+
+# OpenCode
+mkdir -p "$HOME/.config/opencode"
+ln -s "$HOME/.skills" "$HOME/.config/opencode/skills"
+```
+
+Start a new session in your coding agent to load the skills.
+
 ## Update and customize
 
 Update binaries installed with bin:
