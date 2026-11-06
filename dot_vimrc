@@ -15,7 +15,7 @@ set autochdir
 set autoread
 set autowrite
 set backspace=indent,eol,start
-set clipboard+=unnamed
+set clipboard+=unnamed,unnamedplus
 set complete-=i
 set cursorcolumn
 set cursorline
