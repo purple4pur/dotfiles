@@ -1,0 +1,19 @@
+onboarding = false
+
+[ui]
+status_indicators = "symbols"
+
+# https://github.com/crierr/herdr-arrange
+# herdr plugin install crierr/herdr-arrange
+
+[[keys.command]]
+key = "prefix+m"
+type = "plugin_action"
+command = "herdr-arrange.open"
+description = "arrange panes"
+
+[[keys.command]]
+key = "prefix+M"
+type = "plugin_action"
+command = "herdr-arrange.open-tree"
+description = "move pane to…"
