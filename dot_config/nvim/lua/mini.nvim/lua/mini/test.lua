@@ -2437,16 +2437,22 @@ end
 
 H.add_style = function(x, ansi_code) return string.format('%s%s%s', H.ansi_codes[ansi_code], x, H.ansi_codes.reset) end
 
-H.fit_to_width = function(text, width)
-  local t_width = vim.fn.strchars(text)
-  return t_width <= width and text or ('…' .. vim.fn.strcharpart(text, t_width - width + 1, width - 1))
+H.fit_to_width = function(text, width, dir)
+  if vim.api.nvim_strwidth(text) <= width then return text end
+  for w = vim.fn.strchars(text) - 1, 1, -1 do
+    text = vim.fn.strcharpart(text, dir == 'right' and 0 or 1, w)
+    if vim.api.nvim_strwidth(text) < width then return dir == 'right' and (text .. '…') or ('…' .. text) end
+  end
+  return width < 1 and '' or '…'
 end
 
 H.string_to_screenchars = function(s)
-  -- Can't use `vim.split(s, '')` because of multibyte characters
+  -- Can't use `vim.split(s, '')` because of multibyte and multicell characters.
+  -- The `skipcc=1` in `strchars` and `strcharpart` is needed to work with
+  -- composing characters.
   local res = {}
-  for i = 1, vim.fn.strchars(s) do
-    local ch = vim.fn.strcharpart(s, i - 1, 1)
+  for i = 1, vim.fn.strchars(s, 1) do
+    local ch = vim.fn.strcharpart(s, i - 1, 1, 1)
     table.insert(res, ch)
     -- Not single-width characters are read as a single char, but result into
     -- `{ ch, '', ... }` when computing observed screenshot (as this is how

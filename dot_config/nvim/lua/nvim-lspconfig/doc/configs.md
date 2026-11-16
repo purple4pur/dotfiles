@@ -181,7 +181,9 @@ Nvim by running `:help lspconfig-all`.
 - [just](#just)
 - [kakehashi](#kakehashi)
 - [kcl](#kcl)
+- [kconfig_lsp](#kconfig_lsp)
 - [kdl_lsp](#kdl_lsp)
+- [kmp_lsp](#kmp_lsp)
 - [koka](#koka)
 - [kotlin_language_server](#kotlin_language_server)
 - [kotlin_lsp](#kotlin_lsp)
@@ -1862,7 +1864,7 @@ Default config:
 - `cmd`: [../lsp/biome.lua:17](../lsp/biome.lua#L17)
 - `filetypes` :
   ```lua
-  { "astro", "css", "graphql", "html", "javascript", "javascriptreact", "json", "jsonc", "svelte", "typescript", "typescriptreact", "vue" }
+  { "astro", "css", "graphql", "html", "javascript", "javascriptreact", "json", "jsonc", "markdown", "svelte", "typescript", "typescriptreact", "vue", "yaml" }
   ```
 - `root_dir`: [../lsp/biome.lua:17](../lsp/biome.lua#L17)
 - `workspace_required` : `true`
@@ -7303,6 +7305,44 @@ Default config:
 
 ---
 
+## kconfig_lsp
+
+https://github.com/cccheng/kconfig-lsp
+
+Language server for Kconfig, the configuration language of Linux, Zephyr, U-Boot, coreboot and
+other projects. It can be installed via `cargo`:
+```sh
+cargo install kconfig-lsp
+```
+
+To accept the Kconfig extensions of Zephyr, such as `configdefault` and `def_int`:
+```lua
+vim.lsp.config('kconfig_lsp', {
+  init_options = { zephyr_extensions = true },
+})
+```
+
+Snippet to enable the language server:
+```lua
+vim.lsp.enable('kconfig_lsp')
+```
+
+Default config:
+- `cmd` :
+  ```lua
+  { "kconfig-lsp" }
+  ```
+- `filetypes` :
+  ```lua
+  { "kconfig" }
+  ```
+- `root_markers` :
+  ```lua
+  { ".git", "Kconfig" }
+  ```
+
+---
+
 ## kdl_lsp
 
 https://github.com/kdl-org/kdl-rs/tree/main/tools/kdl-lsp
@@ -7326,6 +7366,42 @@ Default config:
 - `root_markers` :
   ```lua
   { ".git" }
+  ```
+
+---
+
+## kmp_lsp
+
+https://github.com/Hessesian/kmp-lsp
+
+Language server for Kotlin Multiplatform projects: Kotlin, Java, and Swift. It is built on tree-sitter and needs no
+JVM or Gradle import.
+
+`kmp-lsp` can be installed with Cargo:
+```sh
+cargo install kmp-lsp
+```
+
+Or downloaded from the [GitHub releases page](https://github.com/Hessesian/kmp-lsp/releases). The release archive also
+has the `kmp-jar-indexer` sidecar, which gives types and docs for library JARs.
+
+Snippet to enable the language server:
+```lua
+vim.lsp.enable('kmp_lsp')
+```
+
+Default config:
+- `cmd` :
+  ```lua
+  { "kmp-lsp" }
+  ```
+- `filetypes` :
+  ```lua
+  { "kotlin", "java", "swift" }
+  ```
+- `root_markers` :
+  ```lua
+  { ".git", "settings.gradle", "settings.gradle.kts", "pom.xml", "build.gradle", "build.gradle.kts", "Package.swift" }
   ```
 
 ---
@@ -9589,7 +9665,7 @@ Default config:
 - `cmd`: [../lsp/oxfmt.lua:19](../lsp/oxfmt.lua#L19)
 - `filetypes` :
   ```lua
-  { "javascript", "javascriptreact", "typescript", "typescriptreact", "toml", "json", "jsonc", "json5", "yaml", "html", "vue", "handlebars", "css", "scss", "less", "graphql", "markdown", "svelte" }
+  { "javascript", "javascriptreact", "typescript", "typescriptreact", "toml", "json", "jsonc", "json5", "yaml", "html", "vue", "handlebars", "css", "scss", "less", "graphql", "markdown", "svelte", "astro" }
   ```
 - `root_dir`: [../lsp/oxfmt.lua:19](../lsp/oxfmt.lua#L19)
 
@@ -11505,7 +11581,7 @@ Commands:
 - roslyn.client.nestedCodeAction
 
 Default config:
-- `before_init`: [../lsp/roslyn_ls.lua:149](../lsp/roslyn_ls.lua#L149)
+- `before_init`: [../lsp/roslyn_ls.lua:155](../lsp/roslyn_ls.lua#L155)
 - `capabilities` :
   ```lua
   {
@@ -11547,8 +11623,8 @@ Default config:
   ```lua
   "roslyn_ls"
   ```
-- `on_attach`: [../lsp/roslyn_ls.lua:149](../lsp/roslyn_ls.lua#L149)
-- `root_dir`: [../lsp/roslyn_ls.lua:149](../lsp/roslyn_ls.lua#L149)
+- `on_attach`: [../lsp/roslyn_ls.lua:155](../lsp/roslyn_ls.lua#L155)
+- `root_dir`: [../lsp/roslyn_ls.lua:155](../lsp/roslyn_ls.lua#L155)
 - `settings` :
   ```lua
   {
@@ -11875,7 +11951,7 @@ vim.lsp.enable('rust_analyzer')
 ```
 
 Default config:
-- `before_init`: [../lsp/rust_analyzer.lua:89](../lsp/rust_analyzer.lua#L89)
+- `before_init`: [../lsp/rust_analyzer.lua:91](../lsp/rust_analyzer.lua#L91)
 - `capabilities` :
   ```lua
   {
@@ -11895,8 +11971,8 @@ Default config:
   ```lua
   { "rust" }
   ```
-- `on_attach`: [../lsp/rust_analyzer.lua:89](../lsp/rust_analyzer.lua#L89)
-- `root_dir`: [../lsp/rust_analyzer.lua:89](../lsp/rust_analyzer.lua#L89)
+- `on_attach`: [../lsp/rust_analyzer.lua:91](../lsp/rust_analyzer.lua#L91)
+- `root_dir`: [../lsp/rust_analyzer.lua:91](../lsp/rust_analyzer.lua#L91)
 - `settings` :
   ```lua
   {
