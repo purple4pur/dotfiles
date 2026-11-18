@@ -28,17 +28,18 @@ Match every mutation to user authority.
 
 **Hard gate:** The skill cannot mutate outside the user's intent.
 
-### 3. Main path
+### 3. Instruction structure
 
-Check that the common path is visible without reading every reference.
-Use one evidence chain or an explicit task router. Give each step one purpose and one proof object.
+Check that common use is visible without reading every reference.
+Match structure to the task: rules, a short procedure, or a gated workflow.
+For procedures, use one evidence chain or a task router. Give each step one purpose and checkable completion evidence.
 
 **Hard gate:** The agent cannot skip a prerequisite or finish before the deliverable exists.
 
 ### 4. Checkpoints and gates
 
-Require observable facts or artifacts at each checkpoint.
-Name every `CONTINUE`, `RETURN`, `ENTER`, `STOP`, and `COMPLETE` route.
+Require observable completion checks. Use a checklist for rules and inline checks for short procedures.
+Use formal checkpoints and gate labels where they clarify risky or branching work. Name every decision's next action.
 Return to the shortest repair step. Give every lane an explicit return.
 
 **Hard gate:** Destructive, irreversible, and correctness-critical actions have preconditions.
@@ -67,7 +68,8 @@ Record skipped checks and dependency limits.
 ### 8. Economy
 
 Keep paragraphs that affect action, decisions, evidence, or output. Consolidate repeated rules.
-Shorten text while preserving constraints.
+Use only the sections and workflow labels the task needs. Shorten text while preserving constraints.
+Compare main-file and complete-package word counts for refactors. Explain growth without claiming unmeasured execution gains.
 
 **Hard gate:** Compression preserves clear order, safeguards, and gate meaning.
 
