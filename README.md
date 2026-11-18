@@ -1,11 +1,27 @@
 # Purple4pur's dotfiles
 
-All files are managed by [chezmoi](https://www.chezmoi.io/) .
+Personal dotfiles, custom scripts, and coding agent skills, managed by [chezmoi](https://www.chezmoi.io/).
 
-* **[Using dotfiles on Linux](docs/using-dotfiles-on-linux.md)**
-* **[Using dotfiles on Windows](docs/using-dotfiles-on-windows.md)**
+Use these pages to install the dotfiles or find a file:
 
-For vim/nvim plugin common usages, please refer to [`~/.vimrc`](dot_vimrc) and [`~/.config/nvim/lua/init.lua`](dot_config/nvim/lua/init.lua) .
+- [Use dotfiles on Linux](docs/using-dotfiles-on-linux.md)
+- [Use dotfiles on Windows](docs/using-dotfiles-on-windows.md)
+- [Repository contents](docs/repository-contents.md): source paths, deployed paths, features, script requirements, and skill purposes.
+
+## Repository contents
+
+The repository includes these configurations and tools:
+
+| Area | Contents |
+| --- | --- |
+| Shells | [Bash](dot_config/dot_bash_setup), [tcsh](dot_config/dot_tcsh_setup), and [PowerShell](dot_config/dot_powershell_setup.ps1) helpers, plus a [Starship prompt](dot_config/starship.toml). |
+| Editors | [Vim settings](dot_vimrc), [Neovim settings](dot_config/nvim), bundled plugins, and [SystemVerilog ctags rules](dot_ctags). |
+| Terminals | [tmux settings](dot_tmux.conf), terminal themes, [Goneovim settings](dot_config/goneovim/settings.toml), and [herdr bindings](dot_config/herdr/config.toml). |
+| Media | [mpv profiles and controls](dot_config/mpv), playlist and preview scripts, Anime4K shaders, and a [hold-to-fast-forward script](dot_config/mpv/exact_scripts/fast-forward.lua). |
+| Custom scripts | [Neovim launchers, a PATH helper, a Qwen Code container launcher, Docker Compose updates, Playwright setup, and AV1 conversion](custom_scripts). |
+| Agent skills | [Local and external skills](dot_skills) for code style, reviews, Git commits, documentation, skill maintenance, and session reports. |
+
+For editor mappings, read [the Vim configuration](dot_vimrc) and [the Neovim Lua configuration](dot_config/nvim/lua/init.lua).
 
 ## External resources
 
