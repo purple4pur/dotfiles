@@ -1,92 +1,64 @@
 ---
 name: purple-coding-style
-description: "Apply coding style and conventions whenever creating or editing source code in any language, including features, fixes, refactors, tests, and scripts. Use for purple-coding-style or coding convention requests. Prefer official language formatter style; otherwise enforce surrounding indentation, lazy line wrapping, local alignment, and affirmative illustrative comments. Excludes prose-only tasks and read-only code explanations."
+description: >
+  Apply coding conventions when creating or editing source code in any language,
+  including features, fixes, refactors, tests, and scripts. Use for
+  purple-coding-style or coding convention requests. Excludes prose-only tasks
+  and read-only code explanations.
 ---
 
-# Purple Coding Style
+# Purple coding style
 
 Apply style to every new or edited source region. Preserve intended behavior.
 
-## Contract and precedence
+## Scope and precedence
 
-- Inputs: requested change, target source, applicable project instructions,
-  language/toolchain, formatter configuration, and surrounding code.
-- Output: requested source change with verified style and concise check results.
-- Scope: style accompanies authorized implementation, including whitespace
-  realignment of neighboring statements in the same affected logical block.
-  Preserve their content and behavior, unrelated code, and user edits.
-  Repository-wide cleanup requires that scope in the task.
-- Dependencies: existing language tools and project checks. This skill needs no
-  additional package or custom formatter.
-- Respect explicit user instructions and applicable repository requirements.
-  Resolve the remaining style choices using the order below.
+Apply style within the authorized source change and its affected alignment blocks.
+Preserve neighboring content, behavior, unrelated code, and user edits. Repository-wide cleanup requires explicit scope.
+Use existing language tools and project checks. Preserve formatter configuration.
 
-1. **Official formatter first.** If the language has an official formatter,
-   use its style. Official means maintained or designated by the language
-   project; popularity alone supplies no such authority. Examples: Go `gofmt`,
-   Rust `rustfmt`, Dart `dart format`.
-2. Use the project-pinned version and supported project configuration for that
-   formatter. Its output overrides each contested rule below, including
-   indentation, wrapping, and alignment. Keep that output stable on rerun.
-3. Apply the detailed rules wherever official formatting leaves discretion.
-   If no official formatter exists, apply them directly. An existing mandated
-   third-party formatter remains a repository requirement; identify that
-   authority accurately. Preserve existing formatter configuration.
+Resolve style in this order:
+
+1. Follow explicit user instructions and applicable repository requirements.
+2. Use an official language formatter with the project-pinned version and supported configuration.
+   Official means maintained or designated by the language project. Examples include `gofmt`, `rustfmt`, and `dart format`.
+3. Let official output control indentation, wrapping, and alignment. Require stable output on rerun.
+4. Apply the detailed rules where official formatting leaves discretion, or where no official formatter exists.
+   A mandated third-party formatter remains a repository requirement. Describe its authority accurately.
 
 ## Detailed rules
 
 ### Indentation
 
-- For edits, follow the nearest surrounding logical block's indentation,
-  including tabs versus spaces and indentation width.
-- For a new file, or when surrounding style gives no usable evidence, use
-  four spaces per level.
-- Preserve syntax-required whitespace, such as Make recipe tabs and embedded
-  language constraints. Apply language rules separately to embedded regions.
+- Follow the nearest logical block's tabs or spaces and indentation width.
+- For new files or unclear surrounding style, use four spaces per level.
+- Preserve syntax-required whitespace, including Make recipe tabs. Apply each embedded language's rules to its region.
 
 ### Line wrapping
 
-- Wrap lazily. Consider wrapping a code line only above 250 characters,
-  measured after removing leading indentation. This is a consideration
-  threshold, not a hard maximum. Preserve valid, readable long literals or
-  indivisible expressions when splitting would harm correctness or clarity.
-- Keep existing sensible multiline structures. Use line breaks for statement
-  and logical block structure independently of the wrapping threshold.
-- For function, method, constructor, and similar callable declarations with
-  three or more parameters, place each parameter on its own line and align
-  their starts to one continuation column. Apply this rule regardless of the
-  250-character threshold. Count each declaration's parameter list separately.
-  Call-site arguments follow the general line-wrapping rules.
-  Official formatter output still takes precedence.
-- Wrap prose in comment blocks at 80 characters after removing leading
-  indentation. Count comment markers and spaces after them toward the 80.
-  Apply this to multiline documentation prose as well.
-- Preserve exact URLs, commands, directives, literal examples, and tables when
-  prose reflow would damage their meaning. Record material exceptions.
+- Consider code wrapping only above 250 characters, excluding leading indentation. This threshold is not a hard maximum.
+- Preserve long literals or indivisible expressions when splitting harms correctness or clarity.
+- Keep sensible existing multiline structures. Use line breaks for statement and block structure independently of the threshold.
+- For callable declarations with at least three parameters, put each parameter on its own line at one continuation column.
+  Count each declaration's parameter list separately. This rule applies regardless of line length.
+  Call-site arguments follow the general wrapping rule. Official formatter output takes precedence.
+- Wrap comment and documentation prose at 80 characters, excluding leading indentation but including comment markers and following spaces.
+- Preserve exact URLs, commands, directives, literal examples, and tables when reflow would damage meaning. Record material exceptions.
 
 ### Alignment and logical blocks
 
-- When adding or editing variable definitions, assignments, or other aligned
-  statements, recompute alignment across the whole affected logical block.
-  Adjust neighboring statements' padding too, including lines whose content
-  stays unchanged. Use the widest participating field in that block to choose
-  the shared column; verify the entire group after insertion, rename, or edit.
-- Bound an alignment block by a blank line, a section-heading comment, a
-  control-flow or scope boundary, or a change of logical purpose. Keep nested
-  blocks independent. When boundaries are unclear, use the smallest contiguous
-  group of related statements at the same nesting level.
-- Within one contiguous logical group, align variable definitions at matching
-  structural columns, especially initializer operators.
-- Align repeated operators across consecutive related statements, such as
-  `=`, `+=`, or `<=`. Align like operators in corresponding syntactic roles;
-  preserve expression meaning and evaluation order.
-- Start each new logical group with a blank line and restart its alignment.
-  Use the smallest padding needed within that group. Introduce braces or scopes
-  only when language semantics require them.
-- Let official formatting determine the final columns when it changes manual
-  alignment.
+- When editing definitions, assignments, or aligned statements, recompute padding across the complete affected block.
+  Include neighbors whose content is unchanged. Choose shared columns from the widest participating field.
+- Bound blocks by blank lines, section-heading comments, control flow, scopes, or changes of purpose.
+  Keep nested blocks independent. If boundaries are unclear, use the smallest contiguous related group at one nesting level.
+- Align corresponding structural columns in variable definitions, especially initializer operators.
+- Align like operators in consecutive related statements, including `=`, `+=`, and `<=`.
+  Preserve expression meaning and evaluation order.
+- Start each new logical group with a blank line and restart alignment. Use the smallest required padding.
+  Add braces or scopes only when language semantics require them.
+- Let the official formatter determine final columns where its output changes manual alignment.
 
-Example where no controlling formatter changes spacing:
+Example without a controlling formatter:
 
 ```text
 item_count  = read_count();
@@ -98,119 +70,95 @@ bytes_pending += queued_size;
 
 ### Comments
 
-- Add illustrative comments for large logic sections, complicated logic, and
-  tricky code. Explain purpose, invariants, ordering, units, or a useful example
-  at the point where a reader needs it.
-- Name the **DOs**: describe the action to take and why it works. Never name the
-  **NOT-DOs** in authored explanatory comments. Express constraints positively:
+- Add illustrative comments for large logic sections, complex logic, and tricky code.
+  Explain purpose, invariants, ordering, units, or a useful example where the reader needs that context.
+- Describe the required action and why it works. Express authored explanatory constraints positively:
   `// Hold the lock while publishing the shared snapshot.`
-- Keep simple code self-explanatory through clear names. Scale comment detail
-  with reasoning burden. Preserve required legal text, exact quotations, and
-  machine-readable directives.
+  Never describe the forbidden alternative in authored explanatory comments.
+- Keep simple code clear through names. Scale comment detail to the required reasoning.
+- Preserve legal text, exact quotations, and machine-readable directives.
 
-## Main line
+## Workflow
 
 Discover scope → resolve style → edit → verify → report.
-Keep checkpoint evidence in task notes or the final response; separate report
-files are unnecessary.
+Keep evidence in task notes or the final response. This skill requires no separate report file.
 
-### 1. Discover scope
+### 1. Discover the scope
 
-**Step:** Read target regions and applicable instructions. Identify languages,
-existing indentation, new files, and the authorized change boundary. Include
-the complete affected alignment blocks and their neighboring statements.
+**Step:** Read target regions and local instructions.
+Identify languages, new files, surrounding indentation, authorized changes, and complete affected alignment blocks.
 
-**Checkpoint: `scope`** — Target files, language per region, instruction paths,
-surrounding indentation evidence, alignment block boundaries, and intended change.
+**Checkpoint: `scope`** — Target files, language per region, instruction paths, indentation evidence, block boundaries, and intended change.
 
-**Gate:** Scope known: **CONTINUE Step 2**. Missing target or ambiguous intent
-prevents a safe edit: **STOP** and request the missing detail.
+**Gate:** Scope known: **CONTINUE Step 2**.
+Missing target or intent prevents a safe edit: **STOP** for the missing detail.
 
-### 2. Resolve style
+### 2. Resolve the style
 
-**Step:** Inspect toolchain, formatter configuration, and project commands.
-Establish official formatter status from reliable language/toolchain evidence.
-Record the winning rule for conflicting settings; use defaults above for
-unconstrained choices.
+**Step:** Inspect the toolchain, formatter configuration, and project commands.
+Establish formatter authority from language or toolchain evidence. Record the winning rule for each conflict.
 
-**Checkpoint: `style_plan`** — Formatter identity, authority, version/config
-when available, scoped command, effective rules, and any unavailable evidence.
+**Checkpoint: `style_plan`** — Formatter identity, authority, version, configuration, scoped command, effective rules, and unavailable evidence.
 
-**Gate:** Rules resolved and tools available, or no formatter required:
-**CONTINUE Step 3**. Formatter unavailable or official status unresolved:
-**ENTER Formatter evidence lane**. Required instructions remain contradictory:
-**STOP** with the exact conflict.
+**Gate:** Rules resolved and required tools available: **CONTINUE Step 3**.
+No formatter required: **CONTINUE Step 3**.
+Formatter or authority unavailable: **ENTER Formatter evidence**.
+Required instructions conflict: **STOP** with the exact conflict.
 
-### 3. Edit source
+### 3. Edit the source
 
-**Step:** Implement the requested change using `style_plan`. Group related
-logic, realign each affected block in full, and add affirmative explanations
-where reasoning needs support. Run the formatter on the smallest supported
-authorized scope. Inspect
-whole-file output when range formatting is unavailable; preserve user edits.
+**Step:** Implement the requested change with `style_plan`.
+Realign each affected block and add affirmative comments where the logic needs explanation.
+Run the formatter on the smallest supported authorized scope.
+If only whole-file formatting exists, inspect its full diff and preserve user edits.
 
-**Checkpoint: `source_diff`** — Requested change and formatter output, with
-neighboring alignment-only edits identified, unrelated changes excluded, or a
-required whole-file effect identified.
+**Checkpoint: `source_diff`** — Requested change, formatting output, neighboring padding changes, and any required whole-file effect.
 
-**Gate:** Diff within authorized scope: **CONTINUE Step 4**. Style needs repair:
-**RETURN Step 3**. Formatter necessarily changes beyond authorized scope:
-**STOP** with the concrete affected scope and request a decision.
+**Gate:** Diff stays within scope: **CONTINUE Step 4**. Style needs repair: **RETURN Step 3**.
+Formatter requires changes beyond scope: **STOP** with the concrete diff and request a decision.
 
-### 4. Verify result
+### 4. Verify the result
 
-**Step:** Review the diff against effective indentation, wrap thresholds,
-alignment groups, and comment rules. Inspect all participating statements in
-each affected block, including unchanged-content neighbors; confirm shared
-columns follow the controlling style and padding changes stay within recorded
-boundaries. Check formatter stability using its check
-mode or a second pass. Run relevant existing syntax/build/test checks for the
-implementation; scale checks to behavior changed.
+**Step:** Check indentation, wrapping, comments, and every statement in each affected alignment block.
+Confirm shared columns and block boundaries, including neighbors whose content did not change.
+Check formatter stability with its check mode or a second pass.
+Run existing syntax, build, or test checks appropriate to the behavior change.
 
-**Checkpoint: `checks`** — Commands/results, manual style findings, formatter
-stability result, whole-block alignment findings, applicable exceptions, and
-skipped checks with reasons.
+**Checkpoint: `checks`** — Commands, results, manual findings, formatter stability, alignment findings, exceptions, and skipped checks with reasons.
 
-**Gate:** Checks pass: **CONTINUE Step 5**. Source defect: **RETURN Step 3**.
-Incomplete block alignment or padding outside its boundary: **RETURN Step 3**.
-Wrong style authority: **RETURN Step 2**. Tool unavailable:
-**ENTER Formatter evidence lane**. Other check blocked: record exact limit and
-**CONTINUE Step 5** with validation explicitly incomplete.
+**Gate:** Checks pass: **CONTINUE Step 5**.
+Source, style, or block boundary fails: **RETURN Step 3**. Wrong authority: **RETURN Step 2**.
+Tool unavailable: **ENTER Formatter evidence**.
+Other check blocked: record the exact limit and **CONTINUE Step 5** with incomplete validation.
 
-### 5. Report completion
+### 5. Report the result
 
-**Step:** Check the output against the STE rules below. Summarize the change and checks.
-Name the controlling formatter or fallback rules only when useful. Disclose material exceptions and limits.
+**Step:** Summarize changed paths and check results. Name material exceptions and limits.
+Mention the controlling formatter or fallback rules when useful. Apply the output rules below.
 
-**Checkpoint: `handoff`** — Changed paths, verification result, and any
-remaining blocker and output review. Claim verified style only for checks actually completed.
+**Checkpoint: `handoff`** — The user can locate the change and assess its completed and incomplete checks.
 
-**Gate:** Requested change complete and checks pass: **COMPLETE**. Required
-validation blocked: **STOP** with the partial result and exact blocker.
+**Gate:** Requested change and checks complete: **COMPLETE**.
+Required validation blocked: **STOP** with the partial result and exact blocker.
 
-## Formatter evidence lane
+## Formatter evidence
 
-**Entry:** Required formatter cannot run, or official status lacks evidence.
+**Entry:** A required formatter cannot run, or its official status lacks evidence.
 
-**Step:** Check existing project tools, pinned dependencies, and available
-official documentation. Follow host permission rules for any required install
-or network access. Preserve formatter precedence even when its binary is
-missing. Continue useful manual style work using established rules.
+**Step:** Check project tools, pinned dependencies, and available official documentation.
+Follow host permission rules for installation or network access. Preserve formatter precedence when its binary is missing.
+Complete useful manual work under the established rules.
 
-**Checkpoint: `formatter_limit`** — Tool/evidence searched, exact failure,
-resolved authority if available, and checks still possible.
+**Checkpoint: `formatter_limit`** — Searched tools and evidence, exact failure, resolved authority, and remaining possible checks.
 
-**Gate:** Evidence/tool restored: **RETURN Step 2**. Still unavailable: perform
-remaining safe checks, then **STOP** with partial work and the unverified
-formatter claim. Never report manual inspection as a formatter pass.
+**Gate:** Tool or evidence restored: **RETURN Step 2**.
+Still unavailable: complete safe checks, then **STOP** with the partial work and unverified formatter claim.
+Report manual inspection as manual inspection, never as a formatter pass.
 
-## Output language and validation
+## Output rules
 
-Read [STE rules](../write-docs/references/ste.md) before you write English prose.
-This shared reference belongs to the local skill bundle. It does not invoke the `write-docs` workflow.
-Use concise, grammatical sentences in status updates, explanations, and the final report.
-Keep the user's requested language. Preserve exact evidence, technical terms, paths, commands, code, and required formats.
-Keep native commit syntax. Apply STE to explanatory comments where source conventions permit it.
-STE takes precedence over caveman fragments within the remaining style choices.
-Before each delivery, check sentence length, articles, voice, stable terms, conditions, and negations.
-If prose fails the check, revise it before delivery. Report material validation limits. Claim only checks that ran.
+Read [STE rules](../write-docs/references/ste.md) for English prose. This reference does not invoke the `write-docs` workflow.
+Keep the user's language and exact evidence, terms, paths, commands, code, and required formats.
+Keep native commit syntax. Use affirmative explanatory comments where source conventions permit them.
+STE takes precedence over caveman fragments. Check prose before delivery and revise failures.
+Report material limits and only checks that ran.

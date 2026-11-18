@@ -1,95 +1,77 @@
-# Strong Skill Review Rubric
+# Skill review rubric
 
-Use during package audit and final strength audit. Score helps prioritization;
-hard gates decide ship readiness.
+Use this rubric for the package audit and final audit. Scores set priorities. Hard gates decide readiness.
 
-## Contents
+## Score each dimension
 
-1. Scoring
-2. Eight review lenses
-3. Finding format
-4. Final verdict
+- `0`: absent, incorrect, or dangerous.
+- `1`: usable, but ambiguous, incomplete, or costly.
+- `2`: explicit, checkable, and compact.
 
-## Scoring
+A strong skill scores at least 14 out of 16, with no zero and every hard gate passed.
+A score never overrides a failed hard gate.
 
-Score each lens:
-
-- `0`: absent, wrong, or dangerous;
-- `1`: usable but ambiguous, incomplete, or costly;
-- `2`: explicit, testable, compact.
-
-Strong target: at least 14/16, no zero, every hard gate pass. Score never
-overrides hard-gate failure.
-
-## Lenses
+## Review dimensions
 
 ### 1. Trigger
 
-- Description states capability and concrete invocation contexts.
-- Positive, adjacent-negative, and ambiguous prompt route correctly.
-- Body does not hide essential “when to use” rules.
+Check that the description names the capability and concrete use contexts.
+Test a positive request, an adjacent request outside scope, and an ambiguous request.
+Keep essential invocation rules in the description.
 
-Hard gate: wrong implicit invocation can cause unsafe or costly action.
+**Hard gate:** Incorrect implicit invocation cannot cause unsafe or costly action.
 
 ### 2. Contract
 
-- Inputs, discovery, outputs, side effects, dependencies, and done state clear.
-- Non-goals and missing-input behavior explicit.
-- User authority matches mutation.
+Check inputs, discovery, outputs, side effects, dependencies, completion, non-goals, and missing-input behavior.
+Match every mutation to user authority.
 
-Hard gate: skill can mutate outside user intent.
+**Hard gate:** The skill cannot mutate outside the user's intent.
 
-### 3. Main line
+### 3. Main path
 
-- Common case visible without reading every reference.
-- Steps form one proof chain or explicit task router.
-- Each step has one purpose and one proof object.
+Check that the common path is visible without reading every reference.
+Use one evidence chain or an explicit task router. Give each step one purpose and one proof object.
 
-Hard gate: agent can skip prerequisite or finish before deliverable exists.
+**Hard gate:** The agent cannot skip a prerequisite or finish before the deliverable exists.
 
 ### 4. Checkpoints and gates
 
-- Checkpoints contain observable facts or artifacts.
-- Gates route `CONTINUE`, `RETURN`, `ENTER`, `STOP`, or `COMPLETE`.
-- Returns name shortest repair step. Lanes return explicitly.
+Require observable facts or artifacts at each checkpoint.
+Name every `CONTINUE`, `RETURN`, `ENTER`, `STOP`, and `COMPLETE` route.
+Return to the shortest repair step. Give every lane an explicit return.
 
-Hard gate: destructive, irreversible, or correctness-critical action lacks
-precondition.
+**Hard gate:** Destructive, irreversible, and correctness-critical actions have preconditions.
 
 ### 5. Domain integrity
 
-- Domain invariants remain prominent.
-- Observation, inference, and verdict stay separate where relevant.
-- Fallback never weakens safety or evidence bar.
+Keep domain invariants prominent. Separate observations, inferences, and verdicts where the domain requires them.
+Preserve safety and evidence requirements in fallbacks.
 
-Hard gate: restructuring drops required safeguard or changes meaning.
+**Hard gate:** Restructuring preserves every required safeguard and its meaning.
 
 ### 6. Progressive disclosure
 
-- `SKILL.md` holds core workflow and routing.
-- References hold deep conditional knowledge.
-- Scripts hold repeated deterministic logic.
-- No duplicate source of truth or deep reference maze.
+Keep core workflow and routing in `SKILL.md`. Use direct references for conditional detail and scripts for repeated deterministic work.
+Give every resource a caller. Keep each rule in one authoritative location and avoid deep reference chains.
 
-Hard gate: required instruction becomes undiscoverable.
+**Hard gate:** Required instructions remain discoverable.
 
 ### 7. Validation
 
-- Official validator passes.
-- Links, placeholders, metadata, scripts, and representative routes checked.
-- Skipped test and dependency limit explicit.
+Check the official validator, links, placeholders, metadata, scripts, and representative routes.
+Record skipped checks and dependency limits.
 
-Hard gate: package claims validation not performed.
+**Hard gate:** Validation claims describe only checks that ran.
 
 ### 8. Economy
 
-- Every paragraph changes action, decision, evidence, or output.
-- Repeated rules consolidated.
-- Wording terse without losing constraints.
+Keep paragraphs that affect action, decisions, evidence, or output. Consolidate repeated rules.
+Shorten text while preserving constraints.
 
-Hard gate: compression makes order, safety, or gate meaning ambiguous.
+**Hard gate:** Compression preserves clear order, safeguards, and gate meaning.
 
-## Finding format
+## Record findings
 
 Use one line per issue:
 
@@ -97,21 +79,18 @@ Use one line per issue:
 severity | location | broken contract | smallest fix
 ```
 
-Severity:
+Choose severity by impact:
 
-- `BLOCKER`: hard gate fails;
-- `HIGH`: common route wrong or evidence weak;
-- `MEDIUM`: ambiguity, duplication, maintenance risk;
+- `BLOCKER`: a hard gate fails.
+- `HIGH`: the common route is incorrect, or its evidence is weak.
+- `MEDIUM`: ambiguity, duplication, or maintenance risk.
 - `LOW`: polish with measurable value.
 
-## Final verdict
+## Give the verdict
 
-Use one:
+- `STRONG`: all hard gates pass, with a score of at least 14 out of 16 and no zero.
+- `USABLE`: the core works without an unsafe blocker, but falls below the strong score.
+- `WEAK`: a correctness, routing, or validation blocker remains.
+- `INCONCLUSIVE`: the package or evidence is too incomplete to judge.
 
-- `STRONG`: all hard gates pass; score at least 14/16.
-- `USABLE`: core works; no unsafe blocker; score below strong bar.
-- `WEAK`: one or more correctness, routing, or validation blockers.
-- `INCONCLUSIVE`: package or evidence too incomplete to judge.
-
-State score, failed gates, strongest feature, largest remaining risk, shortest
-next fix.
+State the score, failed gates, strongest feature, largest remaining risk, and shortest useful next fix.

@@ -1,7 +1,6 @@
 # Agent briefs for cross-review
 
 Use the brief for each planned dimension. Append the repository root, scope map, and shared rules from `SKILL.md`.
-Keep reviewers read-only. Run independent reviewers in parallel within the host slot limit. Collect every result before cross-check.
 Read the shared [STE rules](../../write-docs/references/ste.md) before you write findings. Preserve exact code and quoted evidence.
 
 ## Shared finding format
@@ -25,7 +24,8 @@ Use `No issues found — <what you examined>` for an empty result. Include the f
 Read all files in the Step 1 scope map. Searches for call sites can reach outside that map. Keep file reads within scope.
 If a read is truncated, read successive ranges until the complete file is available. Never infer the rest of a file.
 On diff rounds, use the supplied diff file and pinned base. The orchestrator owns diff capture. Reviewers must not choose another base.
-Verify usage claims with `rg`. Compute every cited metric. Record the command and result that support the finding.
+Verify usage claims with `rg`. Compute every cited metric. Record supporting commands and results.
+Before calling code dead, search production code and tests for usage.
 
 ## 1. correctness
 

@@ -1,384 +1,225 @@
 ---
 name: session-performance-report
-description: "Measure and report AI session performance from local session logs (auto-detects agent: Qwen Code chats/*.jsonl + usage/token-usage-*.jsonl, or Codex rollout-*.jsonl): end-to-end and active wall time, derived API/agent time, tool time, input/cached/output/reasoning tokens, phase and skill attribution, tool usage, and model usage. Use when users ask for session statistics, debug performance, token-cost analysis, elapsed-time analysis, tool/model breakdowns, bottlenecks, or a Markdown performance report."
+description: >
+  Measure AI session performance from local Qwen Code or Codex logs. Use for
+  session statistics, token-cost or elapsed-time analysis, phase and skill
+  attribution, tool or model breakdowns, bottlenecks, and Markdown performance
+  reports.
 ---
 
-# Session Performance Report
+# Session performance report
 
-Build a traceable performance report from logs. Preserve exact facts. Label derived facts.
+Build a traceable report from local logs. Preserve exact facts and label derived measurements.
 
-## Output
+## Scope and output
 
-Write requested path. Default: `session_performance_report.md` under current workspace.
-Use the requested path. An explicit request to update that report permits replacement.
-Otherwise, choose a new name if the file exists. Report the chosen path.
-Use [report template](assets/session_performance_report.md). Keep section order
-unless user requests otherwise.
+- Keep logs read-only. Measure one agent format per report.
+- Exclude the current performance-report turn. State the session, boundaries, timezone, exclusions, and idle-gap policy.
+- Use local evidence only. This skill produces no code changes or remote usage queries.
+- Write the requested path. Default to `session_performance_report.md` in the workspace.
+  Replace an existing report only when explicitly requested. Otherwise, choose and report a new name.
+- Use [the report template](assets/session_performance_report.md). Preserve section order unless the user requests another order.
+- Keep secrets and raw proprietary payloads out of the report.
+- Report unavailable values as unavailable, not zero. Avoid unsupported gateway latency or isolated nested-skill cost claims.
 
-## Non-goals
-
-- no gateway-only latency claims;
-- no remote/cloud usage data;
-- no code changes or fixes;
-- no cross-agent format mixing in one report.
-
-Use concise STE prose throughout the report:
-
-- terse technical prose;
-- keep grammatical sentences, including subjects and articles;
-- no filler, praise, decorative text, or repeated conclusions;
-- exact identifiers, model names, paths, timestamps, formulas preserved;
-- human-readable Markdown tables preferred.
-
-Format displayed measurements for fast human scanning:
-
-- tokens: one decimal plus magnitude suffix: `1.2K`, `34.6M`, `7.8B`,
-  `1.1T`, `2.3Q`; use `K`, `M`, `B`, `T`, `Q` for powers of 1,000;
-- tokens below 1,000: integer without suffix, such as `842`;
-- preserve exact token count in parentheses when rounding changes value:
-  `12.3K (12,345 exact)`;
-- time: compact compound duration, such as `2h05m07.042s`,
-  `13m44.900s`, or `7.042s`;
-- omit leading zero-valued hours and minutes;
-- when hours exist, zero-pad minutes and seconds;
-- when minutes exist without hours, do not pad minutes; zero-pad seconds;
-- always show seconds with three decimal places, rounded to nearest millisecond;
-- percentages: one decimal unless exact integer adds clarity;
-- calculations and reconciliation use raw values, never displayed rounded values.
-
-Use `⨽` for nested table rows. Example:
-
-```markdown
-| `parent-skill` | ... |
-| ⨽ `nested-skill` | ... |
-| `exec_command` batches | ... |
-| ⨽ `nested-cli` | ... |
-```
-
-## Tables
-
-Every Markdown table monospace-aligned for plain-text view (`cat`, terminal).
-Markdown ignores table padding. Align the raw text so the user can read it in a terminal.
-
-Rules:
-
-- column width = max rendered cell length across all rows, including header;
-  separator row never narrower than 3 dashes;
-- pad every cell to column width; right-align numeric columns (`---:`),
-  left-align text (`---`);
-- separator row padded with dashes to match column widths, alignment colons
-  preserved: right `-` × (w−1) + `:`;
-- mixed cell formats (`0`, `0.000s`, `31.505s apiMs`) pad as plain cells — no
-  truncation, no normalization;
-- empty cells stay empty, same width;
-- The helper splits cells at `|`, including escaped pipes. Keep those values outside tables when you use the helper.
-  If required table cells contain pipes, escape them and align the table manually. Verify the rendered and raw results.
-- verify before finish: `cat` the report — pipe columns line up vertically in
-  every row; numeric columns flush right, text columns flush left.
-
-## Scripts (optional helpers)
-
-Three helper scripts under `<skill-base>/scripts/`. Judgment stays model work.
-If a script fails or the agent is unknown, fall back to manual
-collection (§2). Cross-check digest against raw logs before trusting.
-
-1. `align_tables.py <file.md> [...]` — monospace-align every Markdown table in
-   place per §Tables. Skips fenced code blocks. Idempotent. Run after writing
-   the report.
-2. `parse_qwen_session.py [--session <id>]` — Qwen Code evidence extractor.
-   Session
-   id comes from skill args path `.qwen/tmp/s-<uuid>/` or `--session`; errors
-   when neither exists. Chat log
-   `~/.qwen/projects/*/chats/<uuid>.jsonl`, tokens
-   `~/.qwen/usage/token-usage-<YYYY-MM>.jsonl`. Prints digest: user turns,
-   per-turn spans, per-turn + total token sums, tool call/result pairs,
-   per-tool aggregates, union tool wall. Excludes the current report turn
-   (records at/after last user message) only when measuring the session
-   running the script; a foreign session passed via `--session` is measured
-   fully.
-3. `parse_codex_session.py [--session <id> | --log <rollout.jsonl>]
-   [--no-subagents]` — Codex evidence extractor. Uses `CODEX_THREAD_ID` when no
-   selector is supplied. Measures only paired `task_started`/`task_complete`
-   spans, so current incomplete report turn stays excluded. Discovers linked
-   subagent rollouts from `sub_agent_activity.agent_thread_id`, excludes copied
-   parent-prefix events, drops unchanged cumulative token repeats, reconciles
-   each span, unions concurrent tool wall, and reports per-turn, per-agent,
-   tool, nested-wrapper, and CLI evidence. Default includes subagents.
-
-Before shipping script changes, forward-test: multi-turn session, one-shot
-session (expect empty digest when measuring current session), and broken log
-path (expect clean error).
-
-Scope selection, phase attribution, findings, optimizations: model work, §4-§5.
-
-## Main line
+## Workflow
 
 Set scope → discover evidence → calculate → attribute → explain → validate.
 
-### 1. Set scope
+### 1. Set the scope
 
-**Step**
+**Step:** Identify the first request and last completed turn of the measured task or session.
+Record UTC boundaries, local timezone, cutoff, and whether elapsed time includes user or overnight gaps.
+For a session across rollout files, identify every linked file and state the selection rule.
 
-Find first user request and last completed turn of measured task/session.
-Exclude current performance-report turn — recursive metrics banned. Record UTC
-timestamps and local timezone. State whether wall span includes user/overnight
-idle gaps. Never silently mix sessions or tasks. When sessions continue across
-rollout files, include each linked file and state selection rule.
+**Checkpoint: `scope`** — Session ID, boundaries, exclusions, file-selection rule, and idle-gap policy.
 
-**Checkpoint: `scope`**
-
-Session id, start/end timestamps, exclusions, idle-gap policy stated.
-
-**Gate**
-
-- scope unambiguous: **CONTINUE Step 2**.
-- mixed sessions or ambiguous boundaries: **ENTER ask-lane** (state selection
-  rule or ask user).
+**Gate:** Scope clear: **CONTINUE Step 2**.
+Mixed sessions or ambiguous boundaries: **ENTER Scope selection**.
 
 ### 2. Discover evidence
 
-**Step**
+**Step:** Detect the agent from workspace and task evidence. Use the sources and helpers below.
+Collect completed task spans, per-response usage, model and provider, effort, agent identity, tool pairs, prompts, and milestones.
+Collect nested skill names from requests, resources, and workflow actions.
+Cross-check any parser digest against the raw records before using it.
 
-Detect agent first — each agent has its own session log format. Probe, do not
-guess, do not ask. Report detected agent, session id, and log paths in Scope.
-Never mix agent formats. Keep logs read-only. Collect raw evidence per 2.1.
-Cross-check script digest against raw logs before trusting.
+**Checkpoint: `evidence`** — Agent, session ID, source paths, raw records, and parser cross-check results.
 
-#### 2.0 Detect agent (automatic)
-
-1. **Qwen Code** — skill args file lives under `.qwen/tmp/s-<uuid>/` (e.g.
-   `.qwen/tmp/s-00000000-0000-4000-8000-000000000000/qwen-skill-args-*.txt`);
-   session id = `<uuid>`.
-   Sources:
-   - chat log: `~/.qwen/projects/<project-slug>/chats/<uuid>.jsonl`
-     (project-slug derives from cwd, e.g. `-home-<user>-<project>`);
-   - per-response tokens: `~/.qwen/usage/token-usage-<YYYY-MM>.jsonl` — fields
-     `sessionId`, `model`, `inputTokens`, `outputTokens`, `cachedTokens`,
-     `thoughtsTokens`, `totalTokens`, `apiDurationMs`, `timestamp`;
-   - tool matching: assistant part `functionCall.id` ↔ `tool_result`
-     `functionResponse.id`; timestamps per event; assistant parts carry
-     `text` / `thought` / `functionCall`.
-2. **Codex** — use `scripts/parse_codex_session.py`. Resolve current root from
-   `CODEX_THREAD_ID`; otherwise pass `--session` or `--log`. Search
-   `.codex/sessions/**/rollout-*.jsonl` in cwd, then home. Include only
-   subagents linked by `sub_agent_activity.agent_thread_id`; never select
-   neighboring rollouts by timestamp alone.
-3. **Fallback** — probe both glob families. Match the session to workspace and task evidence.
-   If the match is ambiguous, **ENTER ask-lane**. A recent timestamp alone does not establish identity.
-
-#### 2.1 Collect
-
-- `task_started` / `task_complete` timestamps and durations;
-- per-response token usage — Codex: `token_count.last_token_usage`, restricted
-  to completed task spans, with copied fork prefixes and unchanged cumulative
-  repeats excluded; Qwen: usage-file fields above (sum per response, never
-  cumulative snapshot);
-- model, provider, effort, agent/thread identity — Qwen: `model` + `authType`
-  in usage file; Codex: `turn_context`;
-- matched tool call/output timestamps and tool names;
-- user prompts, assistant milestones, and tool events for phase attribution;
-- nested skill names from user inputs, skill resources, and workflow actions.
-
-**Checkpoint: `evidence`**
-
-Agent, session id, log paths recorded. Digest cross-checked against raw logs
-when scripts used.
-
-**Gate**
-
-- evidence complete: **CONTINUE Step 3**.
-- script failed or agent unknown: **ENTER manual-lane** (manual collection,
-  §2.1).
-- undetectable: **STOP** ask user for log path.
+**Gate:** Evidence complete: **CONTINUE Step 3**.
+Parser fails or format lacks a helper: **ENTER Manual evidence**.
+Identity ambiguous: **ENTER Scope selection**.
+No detectable source: **STOP** for the log path.
 
 ### 3. Calculate totals
 
-**Step**
-
-Sum raw per-response records into totals. Never use cumulative snapshots.
-
-#### Time
+**Step:** Use raw per-response values. Exclude cumulative snapshots, copied fork prefixes, and unchanged cumulative repeats.
+Compute these totals:
 
 ```text
-end-to-end span = last completed timestamp - first task timestamp
-active wall     = sum measured active turn/phase spans
+end-to-end span  = last completed timestamp - first task timestamp
+active wall      = sum completed root turn spans or non-overlapping phase spans
 idle gaps       = end-to-end span - active wall
-tool wall       = sum matched non-overlapping tool call/output durations
-API/agent time  = active wall - tool wall
+tool wall        = union of matched tool call/output intervals within active spans
+API/agent time   = active wall - tool wall
+
+input            = sum input_tokens
+cached input     = sum cached_input_tokens
+non-cached input = input - cached input
+output           = sum output_tokens
+reasoning output = sum reasoning_output_tokens
+non-reasoning    = output - reasoning output
+total            = input + output
 ```
 
-Call `API/agent time` derived unless complete provider request spans prove pure
-API latency. Explain it includes model latency, reasoning, response generation,
-and local orchestration.
+Use root-turn spans for session active wall. Report summed agent-active time separately because concurrent agents overlap.
+Label `API/agent time` derived unless complete provider request spans prove pure API latency.
+Explain that the derived value includes model latency, reasoning, response generation, and local orchestration.
+State whether output includes reasoning. Calculate the cache ratio from raw input values.
 
-#### Tokens
+**Checkpoint: `totals`** — Raw time and token totals reconcile with source records and their subset relations.
 
-Sum per-response usage, never final cumulative snapshots:
-
-```text
-input             = sum input_tokens
-cached input      = sum cached_input_tokens
-non-cached input  = input - cached input
-output            = sum output_tokens
-reasoning output  = sum reasoning_output_tokens
-non-reasoning     = output - reasoning output
-total             = input + output
-```
-
-State whether output includes reasoning. Calculate cache ratio.
-
-**Checkpoint: `totals`**
-
-Raw per-response sums. Reconciliation figures.
-
-**Gate**
-
-- totals reconcile: **CONTINUE Step 4**.
-- mismatch: **RETURN Step 2**.
+**Gate:** Totals reconcile: **CONTINUE Step 4**. Mismatch: **RETURN Step 2**.
 
 ### 4. Attribute performance
 
-**Step**
+**Step:** Attribute measured time and tokens across the template's dimensions:
 
-Attribute measured spans and tokens by macro stage, workflow phase, skill,
-tool, and model. Rows must reconcile with totals.
+- Macro stages: user turns or major task segments.
+- Workflow phases: actual execution order from milestones, tools, artifacts, and commits.
+  Mark phase attribution approximate when logs lack explicit phase IDs.
+- Exclusive primary skills: one primary skill or activity per turn. Rows sum to the session total.
+- Inclusive nested skills: overlapping coverage. Rows do not sum, and nested rows use `⨽`.
+  Mark unisolatable style or reference costs unavailable or approximate with an evidence basis.
+- Tools: separate matched agent calls, nested wrapper operations, and shell CLI batches.
+  Label overlaps. Launch duration alone does not measure an asynchronous process's full lifetime.
+- Models and agents: model, provider, effort, agent count, API usage count, wall time, and tokens.
+  State whether subagents ran.
 
-#### Macro stages
+**Checkpoint: `attribution`** — Exclusive rows reconcile. Inclusive coverage, overlaps, approximations, and derived values have labels.
 
-Group by user turn or major task segment. Totals must reconcile.
+**Gate:** Attribution reconciles: **CONTINUE Step 5**.
+Wrong totals: **RETURN Step 3**. Wrong assignment: **RETURN Step 4**.
+Unisolatable cost: label its evidence limit and **CONTINUE Step 5**.
 
-#### Workflow phases
+### 5. Explain the costs
 
-Use timestamps from commentary milestones, tool events, artifacts, and commits.
-Follow actual execution order even when numbered phases ran out of order.
-Label attribution approximate when logs lack explicit phase IDs.
+**Step:** Rank the largest time costs, token costs, and avoidable waste from measured evidence.
+Consider broad scans, failed tool routes, repeated polls, excess context, rework, duplicate conversions, and idle-gap confusion.
+Give a concrete improvement and its measurable or directional effect. Keep unsupported advice out of the report.
 
-#### Skills
+**Checkpoint: `findings`** — Ranked costs have evidence and specific improvements.
 
-Provide both:
-
-- **exclusive primary attribution:** one primary skill/activity per turn; rows
-  sum to session total;
-- **inclusive nested coverage:** nested skills overlap; rows do not sum.
-
-Use `⨽` under parent skills. Do not invent independent token cost for style or
-reference skills when attribution cannot be isolated.
-
-#### Tools
-
-Separate:
-
-1. agent/API tools with exact matched call/output duration;
-2. nested operations inside wrapper tools;
-3. CLI batches launched inside shell tools.
-
-Mark overlapping rows. Async utility continuation often appears under wait or
-poll tools; do not present launch-call duration as complete process lifetime.
-
-#### Models and agents
-
-Report model, provider, reasoning effort, agent count, API usage count, wall
-time, and tokens. State whether subagents ran.
-
-**Checkpoint: `attribution`**
-
-Rows reconcile with totals. Overlaps and derived labels marked.
-
-**Gate**
-
-- attribution reconciles: **CONTINUE Step 5**.
-- Cost cannot be isolated: mark it unavailable or approximate with its evidence basis; **CONTINUE Step 5**.
-- Exclusive rows do not reconcile: **RETURN Step 3** to repair totals or **RETURN Step 4** to repair attribution.
-
-### 5. Explain performance
-
-**Step**
-
-Rank biggest time and token costs. Name avoidable waste: broad scans, failed
-tool routes, repeated polling, oversized context, rework after wrong
-inference, duplicate conversions, idle gaps confused with active work. Give
-concrete optimization and expected effect. No generic advice.
-
-**Checkpoint: `findings`**
-
-Ranked costs with concrete, measurable fixes.
-
-**Gate**
-
-- findings concrete: **CONTINUE Step 6**.
-- generic or unsupported: **RETURN Step 5**.
+**Gate:** Findings supported: **CONTINUE Step 6**. Generic or unsupported findings: **RETURN Step 5**.
 
 ### 6. Write and validate the report
 
-**Step**
+**Step:** Fill the template from the checkpoints. Replace each template field with evidence or an explicit unavailable value.
+Apply the display and table rules below. Check these requirements before delivery:
 
-Write the report from `scope`, `evidence`, `totals`, `attribution`, and `findings`. Use the requested path and the report template.
-Replace every template field with evidence or an explicit unavailable value. Align the tables with `scripts/align_tables.py`.
-If the helper fails, align the tables manually. Check every item below before delivery:
+- The report exists, is non-empty, and names the agent, session ID, paths, boundaries, and cutoff.
+- Parser results match raw evidence. Input and output match raw per-response sums.
+- Primary skill rows match totals. Phase API counts match model usage counts. Tool counts match matched calls.
+- Inclusive skill, wrapper, and CLI overlaps have labels. Nested rows use `⨽`.
+- Derived API time has its caveat. The current report turn remains excluded.
+- Tables align in raw and rendered views. The report contains no secrets or raw proprietary payloads.
+- Prose passes the output rules, and required syntax exceptions have an explanation.
 
-- report exists and is non-empty;
-- detected agent + session id + log paths stated in Scope;
-- scope start/end and cutoff stated;
-- script digest cross-checked against raw logs when scripts used (§Scripts);
-- all tables monospace-aligned (`cat` check, see §Tables);
-- primary skill rows reconcile with total;
-- phase API usages reconcile with model usage count;
-- tool counts reconcile with matched calls;
-- input/output totals match raw per-response sums;
-- inclusive skill and CLI overlap labeled;
-- derived API-time caveat present;
-- current report turn excluded;
-- nested rows use `⨽`;
-- no secrets or raw proprietary log payload copied;
-- STE output review complete; required exceptions identified.
+**Checkpoint: `report`** — The report passes applicable checks and names all data-quality limits.
 
-Report limitations. Never claim unavailable gateway-only latency or exact
-nested-skill cost.
+**Gate:** All checks pass: **COMPLETE**.
+Scope or cutoff fails: **RETURN Step 1**. Evidence fails: **RETURN Step 2**.
+Totals fail: **RETURN Step 3**. Attribution fails: **RETURN Step 4**.
+Findings fail: **RETURN Step 5**. File, table, or prose fails: **RETURN Step 6**.
+Required evidence unavailable: **STOP** with the partial report and exact limit.
 
-**Checkpoint: `report`**
+## Sources and helpers
 
-File exists, non-empty. Tables aligned. No secrets. Current report turn
-excluded.
+### Detect Qwen Code
 
-**Gate**
+Resolve the session ID from `.qwen/tmp/s-<uuid>/qwen-skill-args-*.txt` or an explicit selector.
+Use these sources:
 
-- all checks pass: **COMPLETE**.
-- Scope or cutoff fails: **RETURN Step 1**. Evidence fails: **RETURN Step 2**.
-- Totals fail: **RETURN Step 3**. Attribution fails: **RETURN Step 4**.
-- Findings lack evidence: **RETURN Step 5**. File, table, or prose fails: **RETURN Step 6**.
-- Required evidence remains unavailable: **STOP** with the partial report and exact limit.
+- Chats: `~/.qwen/projects/<project-slug>/chats/<uuid>.jsonl`. The project slug derives from the workspace path.
+- Usage: `~/.qwen/usage/token-usage-<YYYY-MM>.jsonl`, filtered by `sessionId`.
+- Usage fields: `model`, `authType`, `inputTokens`, `outputTokens`, `cachedTokens`, `thoughtsTokens`, `totalTokens`, `apiDurationMs`, and `timestamp`.
+- Tool pairs: assistant `functionCall.id` matched to `tool_result` `functionResponse.id`, with event timestamps.
+  Assistant parts contain `text`, `thought`, or `functionCall`.
 
-## Exception lanes
+Run `scripts/parse_qwen_session.py [--session <id>]` for turns, spans, tokens, tool pairs, aggregates, and union tool wall.
+The helper excludes records at or after the last user message only for the current session.
+It measures an explicitly selected foreign session fully. Apply the requested scope to that digest.
+Missing automatic and explicit selectors produce an error.
 
-### ask-lane
+### Detect Codex
 
-**Entry:** The session, task boundary, or requested output is ambiguous.
+Resolve the root from `CODEX_THREAD_ID`, `--session`, or `--log`.
+Search `.codex/sessions/**/rollout-*.jsonl` in the workspace, then home.
+Include only subagents linked by `sub_agent_activity.agent_thread_id`. Nearby timestamps do not establish session identity.
+Use `task_started` and `task_complete` for completed spans, `token_count.last_token_usage` for usage, and `turn_context` for model metadata.
 
-**Step:** Use available task evidence to state a selection rule. Ask for the log path or boundary if evidence cannot resolve it.
+Run `scripts/parse_codex_session.py [--session <id> | --log <rollout.jsonl>] [--no-subagents]`.
+The helper includes linked subagents by default and measures paired completed spans.
+It excludes copied parent prefixes and unchanged cumulative token repeats, reconciles spans, and unions concurrent tool intervals.
+The digest includes per-turn, agent, tool, nested-wrapper, and CLI evidence.
 
-**Checkpoint: `scope_selection`** — The selected session and boundaries have an evidence basis or a user decision.
+If detection fails, probe both log families and match workspace and task evidence.
+Use Scope selection if multiple candidates remain. Recency alone does not establish identity.
 
-**Gate:** Scope resolved: **RETURN Step 1**. Required answer absent: **STOP** with the exact missing input.
+Before delivering parser changes, test a multi-turn session, a current one-shot session, and a broken log path.
+Expect an empty digest for the current incomplete one-shot session and a clear error for the broken path.
+The helpers collect evidence. Scope decisions, attribution, findings, and improvements remain model work.
 
-### manual-lane
+## Display measurements
 
-**Entry:** A parser fails, or the log format has no supported parser.
+Calculate and reconcile with raw values. Format only the displayed values:
 
-**Step:** Read the relevant raw records under Step 2.1. Preserve the scope, token, privacy, and overlap rules.
-Record the parser error. Distinguish absent data from zero values.
+- Tokens below 1,000: integers. Larger values: one decimal with `K`, `M`, `B`, `T`, or `Q` for powers of 1,000.
+- If rounded tokens differ, include the exact count: `12.3K (12,345 exact)`.
+- Time: compound duration, such as `2h05m07.042s`, `13m44.900s`, or `7.042s`.
+  Omit leading zero hours and minutes. With hours, pad minutes and seconds to two digits.
+  Without hours, leave minutes unpadded and pad seconds. Show three decimal places, rounded to the nearest millisecond.
+- Percentages: one decimal, unless an exact integer is clearer.
 
-**Checkpoint: `manual_evidence`** — Required raw records exist, with source paths and unresolved data limits.
+## Align tables
 
-**Gate:** Evidence complete: **RETURN Step 2** to validate it without the failed parser.
-Required records absent: **STOP** with the exact limit. Do not invent metrics.
+Run `scripts/align_tables.py <file.md> [...]` after writing the report.
+The helper edits tables in place, skips fenced code, and is idempotent. If it fails, align manually.
 
-## Output language and validation
+Set each column width to its widest rendered cell, including the header, with at least three separator dashes.
+Pad text left and numeric columns right. Preserve alignment colons and every cell value, including mixed formats and empty cells.
+The helper splits at every `|`, including escaped pipes.
+Keep pipe values outside helper-formatted tables, or escape them and align the affected tables manually.
+Read the final report with `cat`. Check vertical pipes, numeric alignment, and rendered tables.
 
-Read [STE rules](../write-docs/references/ste.md) before you write English prose.
-This shared reference belongs to the local skill bundle. It does not invoke the `write-docs` workflow.
-Use concise, grammatical sentences in status updates, explanations, and the final report.
-Keep the user's requested language. Preserve exact evidence, technical terms, paths, commands, code, and required formats.
-Keep native commit syntax. Apply STE to explanatory comments where source conventions permit it.
-STE takes precedence over caveman fragments within the remaining style choices.
-Before each delivery, check sentence length, articles, voice, stable terms, conditions, and negations.
-If prose fails the check, revise it before delivery. Report material validation limits. Claim only checks that ran.
+## Conditional lanes
+
+### Scope selection
+
+**Entry:** Session, boundaries, or destination remain ambiguous.
+
+**Step:** Resolve the choice from task evidence and state the selection rule.
+If evidence cannot decide, ask for the missing path or boundary.
+
+**Checkpoint: `scope_selection`** — Evidence or a user decision supports the selected scope.
+
+**Gate:** Choice resolved: **RETURN Step 1**. Required answer absent: **STOP** with the missing input.
+
+### Manual evidence
+
+**Entry:** A parser fails, or the format has no supported helper.
+
+**Step:** Record the error and read raw records under Step 2 and Sources and helpers.
+Preserve scope, privacy, token, and overlap rules. Distinguish absent data from zero.
+
+**Checkpoint: `manual_evidence`** — Raw records, source paths, and unresolved limits support the required metrics.
+
+**Gate:** Evidence complete: **RETURN Step 2** without the failed helper.
+Required records absent: **STOP** with the exact limit. Report only supported metrics.
+
+## Output rules
+
+Read [STE rules](../write-docs/references/ste.md) for English prose. This reference does not invoke the `write-docs` workflow.
+Keep the user's language, exact evidence, identifiers, formulas, paths, timestamps, and native syntax.
+STE takes precedence over caveman fragments. Check prose before delivery and revise failures.
+Report only completed checks and name material limits.
