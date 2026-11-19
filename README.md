@@ -40,6 +40,7 @@ For editor mappings, read [the Vim configuration](dot_vimrc) and [the Neovim Lua
 * [**`dot_skills/ponytail*`**](./dot_skills/ponytail) - [DietrichGebert/ponytail skills](https://github.com/DietrichGebert/ponytail/tree/main/skills)
 * [**`dot_skills/caveman`**](./dot_skills/caveman) - [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman/tree/main/skills/caveman)
 * [**`dot_skills/caveman-commit`**](./dot_skills/caveman-commit) - [JuliusBrussee/caveman caveman-commit](https://github.com/JuliusBrussee/caveman/tree/main/skills/caveman-commit)
+* [**`dot_skills/convert-documents-to-markdown`**](./dot_skills/convert-documents-to-markdown) - [firecrawl/anydoc](https://github.com/firecrawl/anydoc/tree/main/skills/convert-documents-to-markdown)
 * [**`dot_skills/interface-kit`**](./dot_skills/interface-kit) - [JuliusBrussee/skills](https://github.com/JuliusBrussee/skills/tree/main/skills/interface-kit)
 * [**`dot_skills/modern-web-guidance`**](./dot_skills/modern-web-guidance) - [GoogleChrome/modern-web-guidance](https://github.com/GoogleChrome/modern-web-guidance/tree/main/skills/modern-web-guidance)
 * [**`dot_skills/show-me`**](./dot_skills/show-me) - [humanlayer/skills show-me](https://github.com/humanlayer/skills/tree/main/plugins/show-me/skills/show-me)

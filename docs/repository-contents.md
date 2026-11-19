@@ -164,6 +164,7 @@ Local skills remain outside that dependency list.
 | [upgrade-dotfile-deps](../dot_skills/upgrade-dotfile-deps/SKILL.md) | Inspect and update dependencies listed in the README. | Local |
 | [caveman](../dot_skills/caveman/SKILL.md) | Use terse replies while retaining technical facts. | External |
 | [caveman-commit](../dot_skills/caveman-commit/SKILL.md) | Write concise Conventional Commits messages. | External |
+| [convert-documents-to-markdown](../dot_skills/convert-documents-to-markdown/SKILL.md) | Convert office documents and PDFs to Markdown with anydoc. | External |
 | [interface-kit](../dot_skills/interface-kit/SKILL.md) | Implement accessible interfaces, components, and animation. | External |
 | [modern-web-guidance](../dot_skills/modern-web-guidance/SKILL.md) | Consult bundled guidance for current web development practices. | External |
 | [ponytail](../dot_skills/ponytail/SKILL.md) | Make the smallest complete code change. | External |
