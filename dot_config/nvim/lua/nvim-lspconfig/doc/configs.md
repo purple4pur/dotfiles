@@ -89,6 +89,7 @@ Nvim by running `:help lspconfig-all`.
 - [dhall_lsp_server](#dhall_lsp_server)
 - [diagnosticls](#diagnosticls)
 - [digestif](#digestif)
+- [djlint](#djlint)
 - [djls](#djls)
 - [djlsp](#djlsp)
 - [docker_compose_language_service](#docker_compose_language_service)
@@ -151,6 +152,7 @@ Nvim by running `:help lspconfig-all`.
 - [guile_ls](#guile_ls)
 - [hare_lsp](#hare_lsp)
 - [harper_ls](#harper_ls)
+- [haxe_language_server](#haxe_language_server)
 - [hdl_checker](#hdl_checker)
 - [helm_ls](#helm_ls)
 - [herb_ls](#herb_ls)
@@ -3749,6 +3751,41 @@ Default config:
 
 ---
 
+## djlint
+
+https://github.com/djlint/djLint
+
+Linter and formatter for HTML templates. Needs djLint 1.49 or newer.
+
+```sh
+pip install djlint
+```
+
+Neovim gives some template extensions (`.j2`, `.njk`, `.gotmpl`, `.mako` and others) no
+filetype, see the [docs](https://djlint.com/docs/integrations/#neovim) to register them, and the
+[settings](https://djlint.com/docs/integrations/#settings).
+
+Snippet to enable the language server:
+```lua
+vim.lsp.enable('djlint')
+```
+
+Default config:
+- `cmd` :
+  ```lua
+  { "djlint", "--lsp" }
+  ```
+- `filetypes` :
+  ```lua
+  { "html", "htmldjango", "htmlangular", "jinja", "jinja.html", "nunjucks", "twig", "handlebars", "mustache", "liquid", "gotmpl", "tera", "mako" }
+  ```
+- `root_markers` :
+  ```lua
+  { "pyproject.toml", "djlint.toml", ".djlint.toml", ".djlintrc", ".git" }
+  ```
+
+---
+
 ## djls
 
 https://github.com/joshuadavidthomas/django-language-server
@@ -6177,6 +6214,73 @@ Default config:
   ```lua
   { ".harper-dictionary.txt", ".git" }
   ```
+
+---
+
+## haxe_language_server
+
+https://github.com/vshaxe/haxe-language-server
+
+The Haxe language server can be built from the project's root directory:
+
+```sh
+npm ci
+npx lix run vshaxe-build -t language-server
+```
+
+This creates `bin/server.js`. The server requires Haxe 3.4.0 or newer.
+Configure the path to the server before enabling it:
+
+```lua
+vim.lsp.config('haxe_language_server', {
+  cmd = { 'node', '/path/to/bin/server.js' },
+})
+vim.lsp.enable('haxe_language_server')
+```
+
+By default, the first `.hxml` file found in the project root supplies the
+compiler arguments. To choose a different file or pass arguments directly:
+
+```lua
+vim.lsp.config('haxe_language_server', {
+  init_options = {
+    displayArguments = { 'build.hxml' },
+  },
+})
+```
+
+Snippet to enable the language server:
+```lua
+vim.lsp.enable('haxe_language_server')
+```
+
+Default config:
+- `before_init`: [../lsp/haxe_language_server.lua:34](../lsp/haxe_language_server.lua#L34)
+- `cmd` :
+  ```lua
+  { "haxe-language-server" }
+  ```
+- `filetypes` :
+  ```lua
+  { "haxe" }
+  ```
+- `init_options` :
+  ```lua
+  {}
+  ```
+- `root_markers` :
+  ```lua
+  { ".git" }
+  ```
+- `settings` :
+  ```lua
+  {
+    haxe = {
+      executable = "haxe"
+    }
+  }
+  ```
+- `workspace_required` : `true`
 
 ---
 
