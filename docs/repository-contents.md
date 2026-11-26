@@ -1,6 +1,6 @@
 # Repository contents
 
-This reference records the configurations, custom scripts, and coding agent skills in this repository.
+This reference records the configurations, scripts, and coding agent skills in this repository.
 Source links point to the files that you edit.
 Deployed paths use the default home directory layout.
 The [Linux guide](using-dotfiles-on-linux.md) and [Windows guide](using-dotfiles-on-windows.md) cover installation and application setup.
@@ -17,7 +17,7 @@ Chezmoi converts source names into deployed names:
 | `exact_` | Removes the prefix and removes entries absent from the source directory. |
 
 [`.chezmoiignore`](../.chezmoiignore) excludes `README.md` and `docs/` from deployment.
-Chezmoi deploys custom scripts to `~/custom_scripts`, without an automatic addition to `PATH`.
+Chezmoi deploys scripts to `~/scripts`, without an automatic addition to `PATH`.
 Applications, shell profile additions, and coding agent skill links require separate setup.
 
 ## Shell configurations
@@ -116,19 +116,19 @@ Release `Insert` to restore the previous speed.
 The [fast-forward options](../dot_config/mpv/script-opts/fast-forward.conf) cap the temporary speed at five times normal speed.
 `q` saves playback state before exit. `Q` exits without that save command.
 
-## Custom scripts
+## Scripts
 
 Chezmoi removes `executable_` from each script name and sets execute permissions.
-The names below refer to scripts under `~/custom_scripts` after deployment.
+The names below refer to scripts under `~/scripts` after deployment.
 
 | Script source | Purpose | Requirements and behavior |
 | --- | --- | --- |
-| [compose_update.sh](../custom_scripts/executable_compose_update.sh) | Update selected Docker Compose projects and purge Cloudflare caches after image changes. | Requires Bash, Docker Compose, curl, and GNU command-line tools. Reads `compose_update.conf` beside the script. `--all` skips selection. Stopped projects remain stopped. |
-| [install_sandbox_playwright.sh](../custom_scripts/executable_install_sandbox_playwright.sh) | Install the Playwright Chromium headless shell inside a container. | Accepts a container ID. Requires Docker and a container with npm and `/etc/apt/sources.list.d/debian.sources`. Changes container package sources to Tencent Cloud and downloads through npmmirror. |
-| [nvim-gnome](../custom_scripts/executable_nvim-gnome), [nvim-kitty](../custom_scripts/executable_nvim-kitty), [nvim-xfce4](../custom_scripts/executable_nvim-xfce4) | Run Neovim in the current terminal or a separate terminal window. | Requires `nvim.appimage` on `PATH`. `-g` opens the selected terminal. Each launcher requires [nvim-terminal](../custom_scripts/executable_nvim-terminal) beside it. |
-| [prepend-path](../custom_scripts/executable_prepend-path) | Print a new `PATH` with the supplied directories first. | Requires Perl. Moves existing entries to the front. The caller must assign the printed value to `PATH`. |
-| [qwen](../custom_scripts/executable_qwen) | Start the Qwen Code Docker image. | Requires Docker. Pulls the `latest` image and mounts the current directory, `~/.qwen`, and `~/.skills`. |
-| [video2av1](../custom_scripts/executable_video2av1) | Convert a video to AV1 with AAC audio and write a size and bitrate report. | Requires Bash, FFmpeg with `libsvtav1`, ffprobe, awk, and GNU command-line tools. Accepts a relative file path within the current directory. |
+| [compose_update.sh](../scripts/executable_compose_update.sh) | Update selected Docker Compose projects and purge Cloudflare caches after image changes. | Requires Bash, Docker Compose, curl, and GNU command-line tools. Reads `compose_update.conf` beside the script. `--all` skips selection. Stopped projects remain stopped. |
+| [install_sandbox_playwright.sh](../scripts/executable_install_sandbox_playwright.sh) | Install the Playwright Chromium headless shell inside a container. | Accepts a container ID. Requires Docker and a container with npm and `/etc/apt/sources.list.d/debian.sources`. Changes container package sources to Tencent Cloud and downloads through npmmirror. |
+| [nvim-gnome](../scripts/executable_nvim-gnome), [nvim-kitty](../scripts/executable_nvim-kitty), [nvim-xfce4](../scripts/executable_nvim-xfce4) | Run Neovim in the current terminal or a separate terminal window. | Requires `nvim.appimage` on `PATH`. `-g` opens the selected terminal. Each launcher requires [nvim-terminal](../scripts/executable_nvim-terminal) beside it. |
+| [prepend-path](../scripts/executable_prepend-path) | Print a new `PATH` with the supplied directories first. | Requires Perl. Moves existing entries to the front. The caller must assign the printed value to `PATH`. |
+| [qwen](../scripts/executable_qwen) | Start the Qwen Code Docker image. | Requires Docker. Pulls the `latest` image and mounts the current directory, `~/.qwen`, and `~/.skills`. |
+| [video2av1](../scripts/executable_video2av1) | Convert a video to AV1 with AAC audio and write a size and bitrate report. | Requires Bash, FFmpeg with `libsvtav1`, ffprobe, awk, and GNU command-line tools. Accepts a path inside the current directory. `--self-test` checks the encoder and output shape. |
 
 The repository does not include `compose_update.conf`.
 The script header documents `COMPOSE_PROJECTS`, Cloudflare credentials, and `__SKIP__` for projects without cache purges.
@@ -143,6 +143,7 @@ The launcher loads that input into a read-only buffer.
 `video2av1` keeps the first video stream and the first audio stream.
 The output fits within 1440 by 810 pixels, or 810 by 1440 pixels for portrait video, at up to 30 fps.
 The script writes `video2av1_output/<input-name>.av1.mp4` and a companion `.report.txt` file.
+The encode uses a temporary part file, so a failed run leaves no partial output.
 The script refuses an existing output file.
 
 ## Coding agent skills
@@ -181,7 +182,7 @@ Local skills remain outside that dependency list.
 Use this command from the repository root to list the tracked configurations, scripts, and skill entry points:
 
 ```bash
-git ls-files dot_config dot_vim dot_vimrc dot_ctags dot_tmux.conf custom_scripts 'dot_skills/*/SKILL.md'
+git ls-files dot_config dot_vim dot_vimrc dot_ctags dot_tmux.conf scripts 'dot_skills/*/SKILL.md'
 ```
 
 The [external resource list](../README.md#external-resources) records upstream sources for bundled dependencies.

@@ -1,6 +1,6 @@
 # Purple4pur's dotfiles
 
-Personal dotfiles, custom scripts, and coding agent skills, managed by [chezmoi](https://www.chezmoi.io/).
+Personal dotfiles, scripts, and coding agent skills, managed by [chezmoi](https://www.chezmoi.io/).
 
 Use these pages to install the dotfiles or find a file:
 
@@ -18,7 +18,7 @@ The repository includes these configurations and tools:
 | Editors | [Vim settings](dot_vimrc), [Neovim settings](dot_config/nvim), bundled plugins, and [SystemVerilog ctags rules](dot_ctags). |
 | Terminals | [tmux settings](dot_tmux.conf), terminal themes, [Goneovim settings](dot_config/goneovim/settings.toml), and [herdr bindings](dot_config/herdr/config.toml). |
 | Media | [mpv profiles and controls](dot_config/mpv), playlist and preview scripts, Anime4K shaders, and a [hold-to-fast-forward script](dot_config/mpv/exact_scripts/fast-forward.lua). |
-| Custom scripts | [Neovim launchers, a PATH helper, a Qwen Code container launcher, Docker Compose updates, Playwright setup, and AV1 conversion](custom_scripts). |
+| Scripts | [Neovim launchers, a PATH helper, a Qwen Code container launcher, Docker Compose updates, Playwright setup, and AV1 conversion](scripts). |
 | Agent skills | [Local and external skills](dot_skills) for code style, reviews, Git commits, documentation, skill maintenance, and session reports. |
 
 For editor mappings, read [the Vim configuration](dot_vimrc) and [the Neovim Lua configuration](dot_config/nvim/lua/init.lua).
