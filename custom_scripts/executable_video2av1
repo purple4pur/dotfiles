@@ -1,27 +1,220 @@
 #!/usr/bin/env bash
 
-# AV1 Video Conversion Script
+# AV1 Video Conversion Script (encoder default threads, low priority)
+# Video: SVT-AV1 preset 10, CRF 34, 8-bit, long side <= 1440, short side <= 810,
+# fps <= 30.
+# CPU: encoder default thread count (all online logical processors), nice 19.
 # Function: Convert video files to AV1 encoding format
+# Requires a GNU/Linux userland (GNU coreutils, GNU grep, realpath, mv -n).
 
 set -euo pipefail
 
+for cmd in ffmpeg ffprobe nice realpath awk stat mkdir date rm mv; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        echo "Error: Required command '$cmd' not found" >&2
+        exit 1
+    fi
+done
+
+# Smoke test: encode generated clips and check the output shape.
+run_self_test() {
+    local input output width height script_path log lp lp_line report audio_type
+    local portrait fast portrait_dims fast_fps
+
+    # These tools are only needed by the self-test.
+    for cmd in mktemp grep tail; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            echo "Error: Required command '$cmd' not found" >&2
+            exit 1
+        fi
+    done
+
+    self_test_tmp=$(mktemp -d "${TMPDIR:-/tmp}/video2av1_test.XXXXXX")
+    trap 'rm -rf -- "$self_test_tmp"' EXIT
+
+    script_path=$(realpath "$0" 2>/dev/null || command -v -- "$0" 2>/dev/null || true)
+    if [ -z "$script_path" ]; then
+        echo "Self-test FAILED: cannot locate this script" >&2
+        exit 1
+    fi
+    script_path=$(realpath "$script_path")
+
+    input="$self_test_tmp/input.mp4"
+    output="$self_test_tmp/video2av1_output/input.av1.mp4"
+
+    echo "Self-test: generating test clips..."
+    ffmpeg -hide_banner -nostdin -loglevel error \
+        -f lavfi -i "testsrc2=size=1920x1080:rate=30:duration=1" \
+        -f lavfi -i "sine=frequency=440:duration=1" \
+        -c:v mpeg4 -q:v 3 -pix_fmt yuv420p \
+        -c:a aac -shortest "$input"
+
+    log="$self_test_tmp/encode.log"
+    if ! ( cd "$self_test_tmp" && "$script_path" input.mp4 ) >"$log" 2>&1; then
+        echo "Self-test FAILED: conversion failed" >&2
+        tail -20 "$log" >&2
+        exit 1
+    fi
+    if grep -q "Error parsing option" "$log"; then
+        echo "Self-test FAILED: bad encoder option" >&2
+        grep "Error parsing option" "$log" >&2
+        exit 1
+    fi
+
+    # The exact thread count depends on the encoder default, so require a
+    # positive integer. nproc and the encoder can disagree on affinity hosts.
+    lp_line=$(grep -m1 -o 'Level of Parallelism: [0-9]*' "$log" || true)
+    lp=${lp_line##*: }
+    case "$lp" in
+        ''|*[!0-9]*)
+            echo "Self-test FAILED: encoder did not report a thread count" >&2
+            grep "Level of Parallelism" "$log" >&2 || true
+            exit 1
+            ;;
+    esac
+    if [ "$lp" -lt 1 ]; then
+        echo "Self-test FAILED: encoder reported zero threads" >&2
+        exit 1
+    fi
+
+    if [ ! -f "$output" ]; then
+        echo "Self-test FAILED: output missing" >&2
+        exit 1
+    fi
+
+    width=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$output")
+    height=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$output")
+    if [ "$width" != "1440" ] || [ "$height" != "810" ]; then
+        echo "Self-test FAILED: got ${width}x${height}, expected 1440x810" >&2
+        exit 1
+    fi
+
+    # The first audio stream must survive the conversion.
+    audio_type=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_type -of csv=p=0 "$output")
+    if [ "$audio_type" != "audio" ]; then
+        echo "Self-test FAILED: audio stream missing" >&2
+        exit 1
+    fi
+
+    # The report must hold all three lines and use finite values.
+    report="$output.report.txt"
+    if [ ! -f "$report" ]; then
+        echo "Self-test FAILED: report missing" >&2
+        exit 1
+    fi
+    for label in Input Output Saved; do
+        if ! grep -q "^$label:" "$report"; then
+            echo "Self-test FAILED: report line '$label' missing" >&2
+            exit 1
+        fi
+    done
+    if grep -Eqi 'inf|nan' "$report"; then
+        echo "Self-test FAILED: report has non-finite values" >&2
+        exit 1
+    fi
+
+    # Portrait input must cap the long side, and 60 fps must drop to 30 fps.
+    portrait="$self_test_tmp/portrait.mp4"
+    fast="$self_test_tmp/fast.mp4"
+    ffmpeg -hide_banner -nostdin -loglevel error \
+        -f lavfi -i "testsrc2=size=1080x1920:rate=30:duration=1" \
+        -c:v mpeg4 -q:v 3 -pix_fmt yuv420p "$portrait"
+    ffmpeg -hide_banner -nostdin -loglevel error \
+        -f lavfi -i "testsrc2=size=1920x1080:rate=60:duration=1" \
+        -c:v mpeg4 -q:v 3 -pix_fmt yuv420p "$fast"
+    for name in portrait fast; do
+        if ! ( cd "$self_test_tmp" && "$script_path" "$name.mp4" ) >>"$log" 2>&1; then
+            echo "Self-test FAILED: $name conversion failed" >&2
+            tail -20 "$log" >&2
+            exit 1
+        fi
+    done
+
+    portrait_dims=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "$self_test_tmp/video2av1_output/portrait.av1.mp4")
+    if [ "$portrait_dims" != "810,1440" ]; then
+        echo "Self-test FAILED: portrait got $portrait_dims, expected 810,1440" >&2
+        exit 1
+    fi
+    fast_fps=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "$self_test_tmp/video2av1_output/fast.av1.mp4")
+    if [ "$fast_fps" != "30/1" ]; then
+        echo "Self-test FAILED: 60 fps input got $fast_fps, expected 30/1" >&2
+        exit 1
+    fi
+
+    echo "Self-test OK: 1440x810, $lp threads, audio kept, report checked, portrait and 60 fps capped"
+    exit 0
+}
+
+if [ "${1:-}" = "--self-test" ] && [ $# -eq 1 ]; then
+    run_self_test
+fi
+
+case "${1:-}" in
+    -h|--help)
+        echo "Usage: $0 <video_file>"
+        echo "       $0 --self-test"
+        exit 0
+        ;;
+esac
+
 # Check if filename parameter is provided
-if [ $# -eq 0 ]; then
-    echo "Error: Please provide the video filename to convert" >&2
+if [ $# -ne 1 ]; then
+    echo "Error: Please provide exactly one video filename to convert" >&2
     echo "Usage: $0 <video_file>"
+    echo "       $0 --self-test"
     exit 1
 fi
 
 file="$1"
 
+# A leading hyphen would be parsed as an option by stat and ffprobe.
+case "$file" in
+    -*) file="./$file" ;;
+esac
+
 # Check if file exists
 if [ ! -f "$file" ]; then
-    echo "Error: File '$file' does not exist" >&2
+    printf 'Error: File %q does not exist\n' "$file" >&2
     exit 1
 fi
 
-# Remove file extension to get filename without extension
-file_no_ext="${file%.*}"
+# Keep inputs inside the current directory so the mirrored output path cannot
+# escape video2av1_output.
+cwd_abs=$(realpath -m .)
+cwd_prefix="${cwd_abs%/}/"
+file_abs=$(realpath -m -- "$file")
+case "$file_abs" in
+    "$cwd_prefix"*) ;;
+    *)
+        printf 'Error: Input file %q must resolve inside the current directory\n' "$file" >&2
+        exit 1
+        ;;
+esac
+file_rel=${file_abs#"$cwd_prefix"}
+
+# Refuse inputs that carry no video stream, such as audio-only files.
+if ! video_stream=$(ffprobe -v error -select_streams v:0 \
+    -show_entries stream=index -of csv=p=0 -- "$file"); then
+    printf 'Error: Could not read %q as a video\n' "$file" >&2
+    exit 1
+fi
+if [ -z "$video_stream" ]; then
+    printf 'Error: No video stream found in %q\n' "$file" >&2
+    exit 1
+fi
+
+# Remove the extension from the basename only, so dots in directory names and
+# extensionless files keep their full name.
+file_dir="${file_rel%/*}"
+if [ "$file_dir" = "$file_rel" ]; then
+    file_dir=""
+fi
+file_base="${file_rel##*/}"
+file_base="${file_base%.*}"
+if [ -z "$file_base" ]; then
+    file_base="${file_rel##*/}"
+fi
+file_no_ext="${file_dir:+$file_dir/}${file_base}"
 
 # Build an output path that mirrors any input subdirectories.
 target_dir="video2av1_output"
@@ -33,21 +226,26 @@ target_file_abs=$(realpath -m "$target_file")
 case "$target_file_abs" in
     "$target_dir_abs"/*) ;;
     *)
-        echo "Error: Video path must resolve within the current directory" >&2
+        echo "Error: Output path must stay within '$target_dir'" >&2
         exit 1
         ;;
 esac
 
-mkdir -p "$(dirname "$target_file")"
+mkdir -p "${target_file%/*}"
 
 # Report container-average bitrate so input and output are measured the same way.
 write_report() {
     local input_size output_size input_duration output_duration
 
-    input_size=$(stat -c%s "$file") || return 1
-    output_size=$(stat -c%s "$target_file") || return 1
-    input_duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$file") || return 1
-    output_duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$target_file") || return 1
+    input_size=$(stat -c%s -- "$file") || return 1
+    output_size=$(stat -c%s -- "$target_file") || return 1
+    input_duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 -- "$file") || return 1
+    output_duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 -- "$target_file") || return 1
+
+    # Replace a stale report or symlink instead of writing through it.
+    if [ -e "$report_file" ] || [ -L "$report_file" ]; then
+        rm -f -- "$report_file" || return 1
+    fi
 
     awk -v input_size="$input_size" -v output_size="$output_size" -v input_duration="$input_duration" -v output_duration="$output_duration" '
         function format_size(bytes, units, unit_index, negative, result) {
@@ -59,7 +257,9 @@ write_report() {
             return negative ? "-" result : result
         }
         BEGIN {
-            if (input_duration <= 0 || output_duration <= 0) exit 1
+            if (input_duration !~ /^[0-9]+([.][0-9]+)?$/ || input_duration <= 0 ||
+                output_duration !~ /^[0-9]+([.][0-9]+)?$/ || output_duration <= 0 ||
+                input_size <= 0) exit 1
             input_rate = input_size * 8 / input_duration / 1000000
             output_rate = output_size * 8 / output_duration / 1000000
             printf "Input:  %s | %.1f Mb/s\n", format_size(input_size), input_rate
@@ -70,31 +270,55 @@ write_report() {
 }
 
 # Re-encode every input, retaining only the first video and audio streams.
-if [ -f "$target_file" ]; then
-    echo "Error: Target file '$target_file' already exists" >&2
+if [ -e "$target_file" ] || [ -L "$target_file" ]; then
+    printf 'Error: Target file %q already exists\n' "$target_file" >&2
     exit 1
 fi
 
+preset=10
+crf=34
+part_file="${target_file%.mp4}.part.$$.mp4"
+trap 'if [ -n "${part_file:-}" ]; then rm -f -- "$part_file"; fi' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
 echo "[Start] $(date '+%Y-%m-%dT%H:%M%z')"
-echo "Starting AV1 conversion: $file -> $target_file"
+printf 'Starting AV1 conversion: %q -> %q\n' "$file" "$target_file"
+echo "Encoder: libsvtav1 preset $preset, CRF $crf | CPU: encoder default, nice 19"
 echo "Conversion may take some time, please be patient..."
 
-ffmpeg -hide_banner -nostdin \
+# All logical processors, low priority. The output is written to a unique part
+# file and moved into place only after a successful encode.
+nice -n 19 ffmpeg -hide_banner -nostdin \
     -i "$file" \
-    -map 0:v:0? -map 0:a:0? \
-    -c:v libsvtav1 -preset 9 \
-    -vf "scale=w='if(gte(iw\\,ih)\\,min(iw\\,1440)\\,min(iw\\,810))':h='if(gte(iw\\,ih)\\,min(ih\\,810)\\,min(ih\\,1440))':force_original_aspect_ratio=decrease:force_divisible_by=2,fps=min(source_fps\\,30)" \
+    -map 0:v:0 -map 0:a:0? \
+    -c:v libsvtav1 -preset "$preset" -crf "$crf" -pix_fmt yuv420p \
+    -vf "fps='if(eq(source_fps\,0)\,30\,min(source_fps\,30))',scale=w='if(gte(iw\,ih)\,min(iw\,1440)\,min(iw\,810))':h='if(gte(iw\,ih)\,min(ih\,810)\,min(ih\,1440))':force_original_aspect_ratio=decrease:force_divisible_by=2" \
     -c:a aac -b:a 128k \
     -movflags faststart \
-    "$target_file" -y
+    "$part_file" -y
 
-echo "Conversion completed! Output file: $target_file"
-if write_report; then
-    echo "Report: $report_file"
-else
-    if ! rm -f "$report_file"; then
-        echo "Warning: Could not remove partial report: $report_file" >&2
+# Publish the finished file unless another process created the target first.
+mv -n -- "$part_file" "$target_file" 2>/dev/null || true
+if [ -e "$part_file" ]; then
+    if [ -e "$target_file" ]; then
+        printf 'Error: %q appeared during conversion; finished output kept at %q\n' "$target_file" "$part_file" >&2
+    else
+        printf 'Error: Could not move finished output to %q; kept at %q\n' "$target_file" "$part_file" >&2
     fi
-    echo "Warning: Could not write conversion report" >&2
+    part_file=""
+    exit 1
 fi
+part_file=""
+
+# A successful run produces both the video and its report.
+if ! write_report; then
+    if ! rm -f -- "$report_file"; then
+        printf 'Warning: Could not remove partial report: %q\n' "$report_file" >&2
+    fi
+    echo "Error: Could not write conversion report" >&2
+    exit 3
+fi
+printf 'Conversion completed! Output file: %q\n' "$target_file"
+printf 'Report: %q\n' "$report_file"
 echo "[Finish] $(date '+%Y-%m-%dT%H:%M%z')"
