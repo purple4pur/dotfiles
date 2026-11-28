@@ -1,5 +1,5 @@
 ---
-name: devops-records
+name: devops
 description: >
   Read and update the operations records in `$HOME/devops`. Use for devops and
   sysadmin work on any host: containers, systemd units, reverse proxies,
@@ -76,7 +76,7 @@ mkdir -p ~/devops/ops
 git -C ~/devops init -b main
 ```
 
-Copy `references/AGENTS.md` to `~/devops/AGENTS.md`. Copy `references/README.md` to `~/devops/README.md`, replace every `<slot>`, and delete the template note. Run the commands in its Verification section on that host, and write their output into the first pages under `ops/`. Commit `chore: bootstrap the operations records`.
+Copy `references/AGENTS.md` to `~/devops/AGENTS.md`. Copy `references/README.md` to `~/devops/README.md`, replace every value in angle brackets, and delete the template note. Run the commands in its Verification section on that host, and write their output into the first pages under `ops/`. Commit `chore: bootstrap the operations records`.
 
 `references/AGENTS.md` is the canonical copy of the repository rules. Change it before you change an installed copy.
 
