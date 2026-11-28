@@ -3,16 +3,15 @@ name: devops
 description: >
   Read and update the operations records in `$HOME/devops`. Use for devops and
   sysadmin work on any host: containers, systemd units, reverse proxies,
-  tunnels, DNS, TLS, disks, backups, secret rotation, installs, and any other
-  change to live machine state. Read the records before the work starts, and
-  bootstrap them when `$HOME/devops` does not exist.
+  tunnels, DNS, TLS, disks, backups, secret rotation, installs, deployments,
+  and any other change to live machine state. Read the records before the work
+  starts, and bootstrap them when `$HOME/devops` does not exist.
 ---
 
 # DevOps records
 
-Every machine keeps one documentation repository at `~/devops`. Read it before
-you change a machine, and write the change back before you finish. The
-repository is the memory that outlives the session.
+Every machine keeps one documentation repository at `~/devops`. The repository
+is the memory that outlives the session.
 
 ## Rules
 
@@ -56,7 +55,7 @@ A secret value would enter the file: **STOP**, and apply the secret rule.
 
 ### 4. Commit
 
-**Step:** Load the `record-each-step` skill. Commit on the branch that the repository's `AGENTS.md` names, with one Conventional Commit for the operation.
+**Step:** Load the `record-each-step` skill. Commit on the branch that the repository's `AGENTS.md` names, or on the current branch when it names none. Use one Conventional Commit for the operation.
 
 **Checkpoint: `clean_tree`** — `git status` is clean, and `git log -1` shows the record commit.
 
@@ -67,16 +66,22 @@ Unrelated changes are staged: **RETURN Step 4**.
 
 ### Bootstrap
 
-**Entry:** The machine that owns the fact has no `~/devops`.
+**Entry:** The machine that owns the fact has no `~/devops` Git repository.
 
-**Step:** Run these commands on that machine:
+**Step:** On that machine, do these steps:
 
-```bash
-mkdir -p ~/devops/ops
-git -C ~/devops init -b main
-```
+1. Keep any files that the directory already holds.
+2. Create the directory and the repository:
 
-Copy `references/AGENTS.md` to `~/devops/AGENTS.md`. Copy `references/README.md` to `~/devops/README.md`, replace every value in angle brackets, and delete the template note. Run the commands in its Verification section on that host, and write their output into the first pages under `ops/`. Commit `chore: bootstrap the operations records`.
+   ```bash
+   mkdir -p ~/devops/ops
+   git -C ~/devops init -b main
+   ```
+
+3. Copy `references/AGENTS.md` to `~/devops/AGENTS.md`, and `references/README.md` to `~/devops/README.md`. A remote host does not hold these files, so send them with `scp`.
+4. Replace every value in angle brackets, and delete the template note.
+5. Run the commands in its Verification section on that host, and write their output into the first pages under `ops/`.
+6. Commit `chore: bootstrap the operations records`.
 
 `references/AGENTS.md` is the canonical copy of the repository rules. Change it before you change an installed copy.
 
