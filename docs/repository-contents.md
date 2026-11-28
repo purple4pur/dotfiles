@@ -158,6 +158,7 @@ Local skills remain outside that dependency list.
 | Skill | Purpose | Origin |
 | --- | --- | --- |
 | [cross-review](../dot_skills/cross-review/SKILL.md) | Use independent reviewers to audit code and agree on fixes. | Local |
+| [devops-records](../dot_skills/devops-records/SKILL.md) | Read and update the `~/devops` operations records, and bootstrap them on a new machine. | Local |
 | [purple-coding-style](../dot_skills/purple-coding-style/SKILL.md) | Apply coding conventions to source changes. | Local |
 | [record-each-step](../dot_skills/record-each-step/SKILL.md) | Commit logical changes and manage later contributions when explicitly enabled. | Local |
 | [session-performance-report](../dot_skills/session-performance-report/SKILL.md) | Measure local Qwen Code or Codex session logs. | Local |
